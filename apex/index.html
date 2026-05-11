@@ -16,6 +16,8 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://andy-miller.com" />
     <link rel="canonical" href="https://andy-miller.com/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/images/portrait.jpg" />
     <style>
       :root {
         --bg: #ffffff;
@@ -129,6 +131,30 @@
 
       .about p { margin: 0 0 1.25rem; }
       .about p:last-child { margin-bottom: 0; }
+
+      .portrait {
+        float: right;
+        width: 8rem;
+        aspect-ratio: 3 / 4;
+        margin: 0.25rem 0 0.75rem 1.25rem;
+        shape-outside: inset(0);
+      }
+
+      .portrait img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: 50% 28%;
+      }
+
+      @media (max-width: 460px) {
+        .portrait {
+          float: none;
+          width: 6.5rem;
+          margin: 0 0 1rem;
+        }
+      }
 
       .awards {
         display: grid;
@@ -301,6 +327,9 @@
 
         <section id="about" class="about">
           <h2 class="section-label">About</h2>
+          <figure class="portrait">
+            <img src="/images/portrait.jpg" alt="Andy Miller" loading="lazy" />
+          </figure>
           <p>
             I&rsquo;m a product designer and inventor. Day to day, I run
             <a href="https://www.loamist.com" target="_blank" rel="noopener">Loamist</a>,

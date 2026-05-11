@@ -45,4 +45,10 @@ if (fs.existsSync(apexImagesSrc)) {
   fs.cpSync(apexImagesSrc, path.join(distDir, 'images'), { recursive: true })
 }
 
+// Copy apex/favicon.svg → dist/favicon.svg
+const faviconSrc = path.join(apexDir, 'favicon.svg')
+if (fs.existsSync(faviconSrc)) {
+  fs.copyFileSync(faviconSrc, path.join(distDir, 'favicon.svg'))
+}
+
 console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage.')
