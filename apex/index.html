@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Andy Miller — Berkeley, CA</title>
+    <meta
+      name="description"
+      content="Andy Miller. Berkeley, CA. Founder of Loamist. I make simple websites for folks who need them."
+    />
+    <meta property="og:title" content="Andy Miller" />
+    <meta
+      property="og:description"
+      content="I make simple websites for folks who need them."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://andy-miller.com" />
+    <link rel="canonical" href="https://andy-miller.com/" />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --ink: #0a0a0a;
+        --muted: #6b6b6b;
+        --rule: #1a1a1a;
+        --rule-soft: #e5e5e5;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        font-size: 17px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      a {
+        color: var(--ink);
+        text-decoration: underline;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+        transition: opacity 0.15s ease;
+      }
+      a:hover { opacity: 0.55; }
+
+      .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 4rem 1.5rem 6rem;
+      }
+
+      @media (min-width: 720px) {
+        .wrap { padding: 6rem 2rem 9rem; }
+      }
+
+      header.top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 4.5rem;
+      }
+
+      .name {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-weight: 400;
+        font-size: 1.05rem;
+        letter-spacing: 0.02em;
+      }
+
+      .nav {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .nav a {
+        color: var(--muted);
+        text-decoration: none;
+        margin-left: 1.25rem;
+      }
+      .nav a:hover { color: var(--ink); opacity: 1; }
+
+      h1.hero {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-weight: 400;
+        font-size: clamp(2rem, 5.5vw, 3.25rem);
+        line-height: 1.1;
+        letter-spacing: -0.015em;
+        margin: 0 0 1.5rem;
+      }
+
+      .hero-sub {
+        color: var(--muted);
+        max-width: 32rem;
+        margin: 0 0 2rem;
+        font-size: 1.05rem;
+      }
+
+      .hero-cta {
+        display: inline-block;
+        margin-top: 0.25rem;
+        font-size: 0.95rem;
+      }
+
+      section {
+        margin-top: 4.5rem;
+      }
+
+      h2.section-label {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-weight: 400;
+        font-size: 0.78rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+
+      p { margin: 0 0 1rem; }
+      p:last-child { margin-bottom: 0; }
+
+      .about p { margin: 0 0 1.25rem; }
+      .about p:last-child { margin-bottom: 0; }
+
+      .awards {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .award {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.15rem;
+      }
+
+      @media (min-width: 540px) {
+        .award {
+          grid-template-columns: 8.5rem 1fr;
+          gap: 1rem;
+        }
+      }
+
+      .award-year {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-size: 0.85rem;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .award-body { }
+
+      .award-title {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.15rem;
+      }
+
+      .award-context {
+        font-size: 0.95rem;
+        color: var(--muted);
+      }
+
+      .work-item {
+        display: block;
+        text-decoration: none;
+        color: inherit;
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid var(--rule-soft);
+      }
+
+      .work-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+      }
+
+      .work-item:hover { opacity: 1; }
+
+      .work-title {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-size: 1.45rem;
+        line-height: 1.2;
+        margin: 0 0 0.4rem;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.4rem;
+      }
+
+      .work-title .arrow {
+        font-size: 0.95em;
+        transition: transform 0.2s ease;
+        display: inline-block;
+      }
+
+      .work-item:hover .work-title .arrow {
+        transform: translate(2px, 0);
+      }
+
+      .work-title-underline {
+        background-image: linear-gradient(to right, var(--ink), var(--ink));
+        background-position: 0 100%;
+        background-repeat: no-repeat;
+        background-size: 0% 1px;
+        transition: background-size 0.3s ease;
+      }
+
+      .work-item:hover .work-title-underline {
+        background-size: 100% 1px;
+      }
+
+      .work-meta {
+        font-family: Georgia, "Times New Roman", Times, serif;
+        font-size: 0.78rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 0.5rem;
+      }
+
+      .work-desc {
+        color: var(--muted);
+        font-size: 0.98rem;
+        margin: 0;
+        max-width: 36rem;
+      }
+
+      .placeholder {
+        font-style: italic;
+        color: var(--muted);
+        font-size: 0.95rem;
+        margin-top: 1.5rem;
+      }
+
+      .contact a {
+        font-size: 1.05rem;
+      }
+
+      footer {
+        margin-top: 6rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--rule-soft);
+        font-size: 0.8rem;
+        color: var(--muted);
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .skip {
+        position: absolute;
+        left: -9999px;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="#main" class="skip">Skip to content</a>
+    <div class="wrap">
+      <header class="top">
+        <div class="name">Andy Miller</div>
+        <nav class="nav" aria-label="Primary">
+          <a href="#about">About</a>
+          <a href="#work">Work</a>
+          <a href="#contact">Contact</a>
+        </nav>
+      </header>
+
+      <main id="main">
+        <h1 class="hero">
+          I make simple websites for folks who need them.
+        </h1>
+        <p class="hero-sub">
+          One page, two pages, or three. Built with care, fast to load,
+          easy for clients to update. Based in Berkeley, California.
+        </p>
+        <a href="#contact" class="hero-cta">Get in touch →</a>
+
+        <section id="about" class="about">
+          <h2 class="section-label">About</h2>
+          <p>
+            I&rsquo;m a product designer and inventor. Day to day, I run
+            <a href="https://www.loamist.com" target="_blank" rel="noopener">Loamist</a>,
+            a Berkeley climate-tech company building infrastructure for
+            biomass-based carbon removal (Breakthrough Energy Fellow, cohort 4).
+          </p>
+          <p>
+            Before that I led innovation at
+            <a href="https://flexfits.com" target="_blank" rel="noopener">The Flex Company</a>,
+            co-founded
+            <em>Keela</em> &mdash; the best-selling menstrual cup in the
+            United States by unit volume &mdash; and worked at the
+            intersection of bioengineering, medical devices, and
+            consumer product design. Sixteen patents, work in the
+            permanent collection of the Cooper Hewitt Smithsonian
+            Design Museum, and a handful of awards listed below.
+          </p>
+          <p>
+            On the side I help friends, neighbors, and small businesses
+            get simple, well-built websites up. If that&rsquo;s you, say hi.
+          </p>
+        </section>
+
+        <section id="recognition">
+          <h2 class="section-label">Recognition</h2>
+          <div class="awards">
+            <div class="award">
+              <div class="award-year">2019 – 2022</div>
+              <div class="award-body">
+                <div class="award-title">Red Dot Design Award &times; 3</div>
+                <div class="award-context">
+                  Sustainable product design at The Flex Company. Products
+                  that diverted more than 5,000 tons of single-use waste.
+                </div>
+              </div>
+            </div>
+
+            <div class="award">
+              <div class="award-year">2025</div>
+              <div class="award-body">
+                <div class="award-title">
+                  <a
+                    href="https://www.dandad.org/work/d-ad-awards-archive/ultraderp"
+                    target="_blank"
+                    rel="noopener"
+                    >D&amp;AD Award &middot; Ultraderp</a
+                  >
+                </div>
+                <div class="award-context">
+                  New Brand Identity. An ultralight, packable dog leash that
+                  weighs as much as a single AA battery. Designed at Mucho.
+                </div>
+              </div>
+            </div>
+
+            <div class="award">
+              <div class="award-year">2025</div>
+              <div class="award-body">
+                <div class="award-title">
+                  <a
+                    href="https://wearemucho.com/insights/we-are-ultra-proud-silver-win-at-the-2025-brand-impact-awards"
+                    target="_blank"
+                    rel="noopener"
+                    >Brand Impact Awards &middot; Silver</a
+                  >
+                </div>
+                <div class="award-context">
+                  Sports &amp; Leisure category. Ultraderp&rsquo;s tongue-shaped
+                  leash and playful logo system. Designed at Mucho.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="work">
+          <h2 class="section-label">Work</h2>
+
+          <a href="/hum/" class="work-item">
+            <div class="work-meta">2026 · Data visualization</div>
+            <div class="work-title">
+              <span class="work-title-underline">Where the Ground Hums</span>
+              <span class="arrow" aria-hidden="true">→</span>
+            </div>
+            <p class="work-desc">
+              An interactive map of the United States&rsquo; magnetotelluric
+              field, layered with sites long called sacred. Built from the
+              USMTArray national impedance map. Hidden continent included.
+            </p>
+          </a>
+
+          <p class="placeholder">More projects coming as the portfolio fills out.</p>
+        </section>
+
+        <section id="contact" class="contact">
+          <h2 class="section-label">Contact</h2>
+          <p>
+            <a href="mailto:andymill@gmail.com">andymill@gmail.com</a>
+          </p>
+          <p style="color: var(--muted); margin-top: 0.5rem;">
+            Available for small projects. Berkeley, CA.
+          </p>
+        </section>
+      </main>
+
+      <footer>
+        <span>&copy; 2026 Andy Miller</span>
+        <span>Berkeley, CA</span>
+      </footer>
+    </div>
+  </body>
+</html>

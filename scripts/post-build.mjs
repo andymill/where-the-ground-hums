@@ -33,66 +33,10 @@ fs.writeFileSync(
 `,
 )
 
-// Write an apex placeholder at /. Minimal HTML, brand-adjacent typography.
-const apex = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Andy Miller</title>
-    <meta name="robots" content="noindex, nofollow" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-    <style>
-      html, body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background: #0a0908;
-        color: #e8e6e1;
-        font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
-      }
-      .wrap {
-        min-height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-        text-align: center;
-      }
-      h1 {
-        font-weight: 300;
-        font-size: clamp(2rem, 6vw, 4rem);
-        letter-spacing: -0.02em;
-        margin: 0 0 1rem;
-      }
-      p { color: #9a958a; max-width: 32rem; margin: 0 0 2rem; line-height: 1.6; }
-      a {
-        color: #e8e6e1;
-        text-decoration: none;
-        border: 1px solid rgba(232,230,225,0.3);
-        padding: 0.6rem 1.2rem;
-        font-size: 0.9rem;
-        letter-spacing: 0.04em;
-        transition: all 0.2s ease;
-      }
-      a:hover {
-        background: rgba(232,230,225,0.08);
-        border-color: rgba(232,230,225,0.6);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <h1>andy-miller.com</h1>
-      <p>Side projects in progress. Nothing to see here yet.</p>
-      <a href="/hum/">→ Where the Ground Hums</a>
-    </div>
-  </body>
-</html>
-`
-fs.writeFileSync(path.join(distDir, 'index.html'), apex)
+// Copy the apex homepage (a separately-maintained static HTML file) into dist/.
+// The page lives at apex/index.html so it's easier to edit than an inline
+// template literal in this script.
+const apexSrc = path.resolve(__dirname, '..', 'apex', 'index.html')
+fs.copyFileSync(apexSrc, path.join(distDir, 'index.html'))
 
 console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex placeholder.')
