@@ -156,6 +156,41 @@ const GEO_POI = [
   { lat: 42.4,  lng: -72.6,   label: 'Connecticut Valley Rift',       kind: 'Mesozoic basin · traprock' },
 ];
 
+// "The Piedmont Resistor" — a buried, ~200 Ma fragment of crust along the
+// eastern Appalachian front, one of the signature discoveries of the
+// USMTArray national impedance map (Kelbert et al., 2026). The polygon below
+// traces its surface footprint (Maine to Alabama, ~Fall Line on the east,
+// Appalachian crest on the west). Rendered as a faint blue easter egg that
+// fades in as the user zooms past ~1.2× — they have to find it.
+const PIEDMONT_RESISTOR = [
+  // Western (Appalachian) edge — N to S
+  { lat: 45.6, lng: -69.5 },
+  { lat: 44.3, lng: -71.3 },
+  { lat: 42.5, lng: -73.0 },
+  { lat: 41.0, lng: -74.2 },
+  { lat: 40.4, lng: -77.5 },
+  { lat: 38.8, lng: -79.4 },
+  { lat: 37.0, lng: -81.0 },
+  { lat: 35.6, lng: -82.6 },
+  { lat: 34.5, lng: -83.5 },
+  { lat: 33.6, lng: -84.5 },
+  { lat: 32.5, lng: -85.7 },
+  // Southern terminus (AL)
+  { lat: 32.0, lng: -86.0 },
+  // Eastern (Fall Line) edge — S to N
+  { lat: 32.8, lng: -83.6 },
+  { lat: 34.0, lng: -81.0 },
+  { lat: 35.8, lng: -78.6 },
+  { lat: 37.5, lng: -77.4 },
+  { lat: 39.3, lng: -76.6 },
+  { lat: 39.9, lng: -75.2 },
+  { lat: 40.7, lng: -74.0 },
+  { lat: 41.8, lng: -72.7 },
+  { lat: 42.4, lng: -71.1 },
+  { lat: 43.7, lng: -70.3 },
+  { lat: 44.8, lng: -68.8 },
+];
+
 // Stylized depth–conductivity profiles for each anomaly center, synthesized from
 // published MT literature (Bedrosian 2007/2014/2024, Kim 2025, Wannamaker 2008,
 // Meqbel 2014, Murphy 2022, Kelbert 2026). Layers are illustrative; intensity
@@ -1686,6 +1721,87 @@ export default function App() {
               strokeWidth="1.4"
               vectorEffect="non-scaling-stroke"
             />
+
+            {/* Piedmont Resistor — buried Pangaea-era continental fragment
+                from Kelbert et al. (2026). Invisible at default zoom; fades
+                in once the user zooms in to find it. */}
+            {(() => {
+              const opacity = Math.max(
+                0,
+                Math.min(1, (zoomT.k - 1.2) / 0.8)
+              );
+              if (opacity < 0.02) return null;
+              const pts = PIEDMONT_RESISTOR.map((p) =>
+                projection([p.lng, p.lat])
+              ).filter(Boolean);
+              if (pts.length < 3) return null;
+              const path =
+                'M' +
+                pts
+                  .map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`)
+                  .join(' L') +
+                ' Z';
+              const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+              const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+              return (
+                <g opacity={opacity} style={{ pointerEvents: 'none' }}>
+                  <path d={path} fill="rgba(56, 189, 248, 0.06)" />
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke="#38bdf8"
+                    strokeOpacity="0.85"
+                    strokeWidth="0.9"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke="#7dd3fc"
+                    strokeOpacity="0.45"
+                    strokeWidth="0.4"
+                    strokeDasharray="2 1.6"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <text
+                    x={cx}
+                    y={cy - 4}
+                    textAnchor="middle"
+                    stroke="#000"
+                    strokeWidth="3"
+                    strokeOpacity="0.85"
+                    paintOrder="stroke"
+                    fill="#7dd3fc"
+                    style={{
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '11px',
+                      letterSpacing: '0.18em',
+                    }}
+                  >
+                    PIEDMONT RESISTOR
+                  </text>
+                  <text
+                    x={cx}
+                    y={cy + 9}
+                    textAnchor="middle"
+                    stroke="#000"
+                    strokeWidth="3"
+                    strokeOpacity="0.85"
+                    paintOrder="stroke"
+                    fill="#7dd3fc"
+                    fillOpacity="0.85"
+                    style={{
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontSize: '7.5px',
+                      letterSpacing: '0.18em',
+                    }}
+                  >
+                    ~200 Ma · PANGAEA FRAGMENT
+                  </text>
+                </g>
+              );
+            })()}
 
             {/* Geological POI layer (centroids of conductivity anomalies) */}
             {showPOI && projectedPOI.map((p, i) => {
