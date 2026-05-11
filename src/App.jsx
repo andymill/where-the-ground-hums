@@ -1542,14 +1542,64 @@ export default function App() {
         </div>
 
         {/* Map + depth visuals — side-by-side on desktop, stacked on mobile */}
-        <div className="lg:grid lg:grid-cols-[3fr_2fr] lg:gap-6 lg:items-start">
-        <div>
+        <div className="lg:grid lg:grid-cols-[3fr_2fr] lg:gap-6">
+        <div className="lg:h-full lg:flex lg:flex-col">
 
         {/* Map */}
         <div
-          className="relative grain rounded-md overflow-hidden ring-1 ring-stone-800/60 bg-black"
+          className="rounded-md overflow-hidden ring-1 ring-stone-800/60 bg-black flex flex-col lg:h-full"
           style={{boxShadow: '0 30px 80px -20px rgba(255,170,80,0.10), inset 0 0 80px rgba(255,200,100,0.03)'}}
         >
+          {/* TOP BAR — toggles, about, reset */}
+          <div className="flex items-center gap-1.5 px-2 sm:px-3 py-2 bg-stone-950/80 border-b border-stone-800/60">
+            <span
+              style={{fontFamily:'JetBrains Mono, monospace'}}
+              className="text-[9px] tracking-[0.22em] text-stone-500 mr-auto hidden md:inline-block"
+            >
+              UNITED STATES · MT FIELD
+            </span>
+            <div className="md:hidden flex-1" />
+            {[
+              { label: 'FIELD',  state: showField,  set: setShowField  },
+              { label: 'STATES', state: showStates, set: setShowStates },
+              { label: 'SITES',  state: showSites,  set: setShowSites  },
+              { label: 'GEO',    state: showPOI,    set: setShowPOI    },
+            ].map(c => (
+              <button
+                key={c.label}
+                onClick={(e) => { e.stopPropagation(); c.set(v => !v); }}
+                className="px-2 py-1.5 rounded ring-1 ring-stone-700/60 text-[10px] tracking-[0.18em] text-stone-300 hover:bg-stone-900 hover:text-stone-100 active:text-stone-100 transition-colors flex items-center gap-1.5"
+                style={{fontFamily:'JetBrains Mono, monospace'}}
+                aria-label={c.label}
+              >
+                {c.state ? <Eye size={12} /> : <EyeOff size={12} />}
+                <span className="hidden lg:inline">{c.label}</span>
+              </button>
+            ))}
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowInfo(true); }}
+              className="px-2 py-1.5 rounded ring-1 ring-stone-700/60 text-[10px] tracking-[0.18em] text-stone-300 hover:bg-stone-900 hover:text-stone-100 active:text-stone-100 transition-colors flex items-center gap-1.5"
+              style={{fontFamily:'JetBrains Mono, monospace'}}
+              aria-label="About"
+            >
+              <Info size={12} />
+              <span className="hidden lg:inline">ABOUT</span>
+            </button>
+            {zoomT.k > 1.01 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); resetZoom(); }}
+                className="px-2 py-1.5 rounded bg-amber-200/15 ring-1 ring-amber-200/40 text-[10px] tracking-[0.18em] text-amber-100 hover:bg-amber-200/25 active:bg-amber-200/30 transition-colors flex items-center gap-1.5"
+                style={{fontFamily:'JetBrains Mono, monospace'}}
+                aria-label="Reset zoom"
+              >
+                <Maximize2 size={12} />
+                <span className="hidden lg:inline">RESET</span>
+              </button>
+            )}
+          </div>
+
+          {/* MAP AREA — relative parent for SVG + tooltips */}
+          <div className="relative grain bg-black flex-1 min-h-0">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${w} ${h}`}
@@ -1936,53 +1986,23 @@ export default function App() {
             );
           })()}
 
-          {/* Top-right controls */}
-          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1.5">
-            {[
-              { label: 'FIELD',  state: showField,  set: setShowField  },
-              { label: 'STATES', state: showStates, set: setShowStates },
-              { label: 'SITES',  state: showSites,  set: setShowSites  },
-              { label: 'GEO',    state: showPOI,    set: setShowPOI    },
-            ].map(c => (
-              <button
-                key={c.label}
-                onClick={(e) => { e.stopPropagation(); c.set(v => !v); }}
-                className="px-2 py-1.5 sm:px-2.5 rounded backdrop-blur-md bg-black/70 ring-1 ring-stone-700/60 text-[10px] tracking-[0.18em] text-stone-300 hover:bg-stone-900 hover:text-stone-100 active:text-stone-100 transition-colors flex items-center gap-1.5"
-                style={{fontFamily:'JetBrains Mono, monospace'}}
-                aria-label={c.label}
-              >
-                {c.state ? <Eye size={12} /> : <EyeOff size={12} />}
-                <span className="hidden sm:inline">{c.label}</span>
-              </button>
-            ))}
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowInfo(true); }}
-              className="px-2 py-1.5 sm:px-2.5 rounded backdrop-blur-md bg-black/70 ring-1 ring-stone-700/60 text-[10px] tracking-[0.18em] text-stone-300 hover:bg-stone-900 hover:text-stone-100 active:text-stone-100 transition-colors flex items-center gap-1.5"
-              style={{fontFamily:'JetBrains Mono, monospace'}}
-              aria-label="About"
-            >
-              <Info size={12} />
-              <span className="hidden sm:inline">ABOUT</span>
-            </button>
-            {zoomT.k > 1.01 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); resetZoom(); }}
-                className="px-2 py-1.5 sm:px-2.5 rounded backdrop-blur-md bg-amber-200/15 ring-1 ring-amber-200/40 text-[10px] tracking-[0.18em] text-amber-100 hover:bg-amber-200/25 active:bg-amber-200/30 transition-colors flex items-center gap-1.5"
-                style={{fontFamily:'JetBrains Mono, monospace'}}
-                aria-label="Reset zoom"
-              >
-                <Maximize2 size={12} />
-                <span className="hidden sm:inline">RESET</span>
-              </button>
-            )}
           </div>
 
-          {/* Legend (desktop only — overlaid on map) */}
-          <div className="hidden sm:block absolute bottom-3 left-3 backdrop-blur-md bg-black/70 ring-1 ring-stone-800/70 px-3 py-2.5 rounded">
-            <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] tracking-[0.22em] text-stone-400 mb-1.5">
+          {/* BOTTOM BAR — full-width legend */}
+          <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 bg-stone-950/80 border-t border-stone-800/60">
+            <span
+              style={{fontFamily:'JetBrains Mono, monospace'}}
+              className="text-[9px] tracking-[0.22em] text-stone-500 hidden md:inline-block"
+            >
               ISOLINES · DENSITY = INTENSITY
-            </div>
-            <svg className="block w-40 h-[18px]" viewBox="0 0 160 18" preserveAspectRatio="none">
+            </span>
+            <span
+              style={{fontFamily:'JetBrains Mono, monospace'}}
+              className="text-[9px] tracking-[0.2em] text-stone-500 md:ml-auto"
+            >
+              CRATONIC
+            </span>
+            <svg className="flex-1 h-4 max-w-xs md:max-w-sm" viewBox="0 0 160 18" preserveAspectRatio="none">
               {[
                 {x:8,   op:0.55},
                 {x:34,  op:0.62},
@@ -1994,29 +2014,13 @@ export default function App() {
                 <line key={i} x1={l.x} y1="2" x2={l.x} y2="16" stroke="#fff8e7" strokeOpacity={l.op} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
               ))}
             </svg>
-            <div className="flex justify-between mt-1" style={{fontFamily:'JetBrains Mono, monospace'}}>
-              <span className="text-[9px] tracking-wider text-stone-500">CRATONIC</span>
-              <span className="text-[9px] tracking-wider text-amber-200/85">UNREST</span>
-            </div>
+            <span
+              style={{fontFamily:'JetBrains Mono, monospace'}}
+              className="text-[9px] tracking-[0.2em] text-amber-200/85"
+            >
+              UNREST
+            </span>
           </div>
-        </div>
-
-        {/* Legend (mobile only — strip below map) */}
-        <div className="sm:hidden mt-2 flex items-center gap-2 px-3 py-2 bg-stone-950/60 ring-1 ring-stone-800/40 rounded">
-          <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] tracking-[0.2em] text-stone-500">CRATONIC</span>
-          <svg className="flex-1 h-4" viewBox="0 0 160 18" preserveAspectRatio="none">
-            {[
-              {x:8,   op:0.55},
-              {x:34,  op:0.62},
-              {x:62,  op:0.68}, {x:70,  op:0.72},
-              {x:96,  op:0.78}, {x:102, op:0.82}, {x:108, op:0.86},
-              {x:128, op:0.88}, {x:132, op:0.92}, {x:136, op:0.94},
-              {x:140, op:0.96}, {x:144, op:0.98}, {x:148, op:1.0},
-            ].map((l, i) => (
-              <line key={i} x1={l.x} y1="2" x2={l.x} y2="16" stroke="#fff8e7" strokeOpacity={l.op} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
-            ))}
-          </svg>
-          <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] tracking-[0.2em] text-amber-200/85">UNREST</span>
         </div>
         </div>
 
