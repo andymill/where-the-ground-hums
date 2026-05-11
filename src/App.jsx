@@ -1741,7 +1741,7 @@ export default function App() {
                     textAnchor={anchor}
                     style={{
                       fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '8.5px',
+                      fontSize: '10.625px',
                       letterSpacing: '0.06em',
                       fill: '#000',
                       stroke: '#000',
@@ -1759,7 +1759,7 @@ export default function App() {
                     textAnchor={anchor}
                     style={{
                       fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '8.5px',
+                      fontSize: '10.625px',
                       letterSpacing: '0.06em',
                       fill: '#bae6fd',
                       pointerEvents: 'none',
