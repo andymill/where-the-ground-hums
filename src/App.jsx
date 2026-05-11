@@ -81,60 +81,53 @@ const SITES = [
   { name: 'Brattleboro',         lat: 42.8509, lng: -72.5579, note: 'Connecticut & West River confluence · S. VT' },
 ];
 
-// Wikipedia article slugs for each site, used to fetch thumbnail images
-// from the public REST summary endpoint (CORS-enabled, no key required).
-const SITE_WIKI_SLUGS = {
-  'Sedona':              'Sedona,_Arizona',
-  'Mt. Shasta':          'Mount_Shasta',
-  'Taos Pueblo':         'Taos_Pueblo',
-  'Yellowstone':         'Yellowstone_National_Park',
-  'Joshua Tree':         'Joshua_Tree_National_Park',
-  'Mt. Tamalpais':       'Mount_Tamalpais',
-  'Crater Lake':         'Crater_Lake',
-  'Devils Tower':        'Devils_Tower',
-  'Bear Butte':          'Bear_Butte',
-  'Chaco Canyon':        'Chaco_Culture_National_Historical_Park',
-  'Mesa Verde':          'Mesa_Verde_National_Park',
-  'Shiprock':            'Shiprock',
-  'Mt. Rainier':         'Mount_Rainier',
-  'San Francisco Peaks': 'San_Francisco_Peaks',
-  'Cahokia Mounds':      'Cahokia',
-  'Serpent Mound':       'Serpent_Mound',
-  'Mt. Katahdin':        'Mount_Katahdin',
-  'Mt. Hood':            'Mount_Hood',
-  'Lake Tahoe':          'Lake_Tahoe',
-  'Mono Lake':           'Mono_Lake',
-  'Canyon de Chelly':    'Canyon_de_Chelly_National_Monument',
-  'Hot Springs':         'Hot_Springs_National_Park',
-  'Avi Kwa Ame':         'Avi_Kwa_Ame_National_Monument',
-  'Bandelier':           'Bandelier_National_Monument',
-  'Black Hills':         'Black_Hills',
-  'Mount Mitchell':      'Mount_Mitchell',
-  'Mount Toby':          'Mount_Toby',
-  'Brattleboro':         'Brattleboro,_Vermont',
+// Thumbnails for each sacred site, bundled locally from Wikipedia.
+// To refresh or add images: edit scripts/fetch-site-images.mjs and re-run it.
+// Each entry maps site name -> filename (kebab-case) under src/assets/sites/.
+const SITE_IMAGE_FILES = {
+  'Sedona':              'sedona',
+  'Mt. Shasta':          'mt-shasta',
+  'Taos Pueblo':         'taos-pueblo',
+  'Yellowstone':         'yellowstone',
+  'Joshua Tree':         'joshua-tree',
+  'Mt. Tamalpais':       'mt-tamalpais',
+  'Crater Lake':         'crater-lake',
+  'Devils Tower':        'devils-tower',
+  'Bear Butte':          'bear-butte',
+  'Chaco Canyon':        'chaco-canyon',
+  'Mesa Verde':          'mesa-verde',
+  'Shiprock':            'shiprock',
+  'Mt. Rainier':         'mt-rainier',
+  'San Francisco Peaks': 'san-francisco-peaks',
+  'Cahokia Mounds':      'cahokia-mounds',
+  'Serpent Mound':       'serpent-mound',
+  'Mt. Katahdin':        'mt-katahdin',
+  'Mt. Hood':            'mt-hood',
+  'Lake Tahoe':          'lake-tahoe',
+  'Mono Lake':           'mono-lake',
+  'Canyon de Chelly':    'canyon-de-chelly',
+  'Hot Springs':         'hot-springs',
+  'Avi Kwa Ame':         'avi-kwa-ame',
+  'Bandelier':           'bandelier',
+  'Black Hills':         'black-hills',
+  'Mount Mitchell':      'mount-mitchell',
+  'Mount Toby':          'mount-toby',
+  'Brattleboro':         'brattleboro',
 };
 
-async function fetchSiteThumbnails() {
-  const entries = await Promise.all(
-    Object.entries(SITE_WIKI_SLUGS).map(async ([name, slug]) => {
-      try {
-        const res = await fetch(
-          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`,
-          { headers: { Accept: 'application/json' } }
-        );
-        if (!res.ok) return [name, null];
-        const data = await res.json();
-        const thumb = data.thumbnail?.source ?? null;
-        // Prefer a higher-res variant where the URL pattern allows it
-        const upgraded = thumb ? thumb.replace(/\/\d+px-/, '/480px-') : null;
-        return [name, upgraded ?? thumb];
-      } catch {
-        return [name, null];
-      }
-    })
-  );
-  return Object.fromEntries(entries.filter(([, url]) => url));
-}
+// Vite resolves these to hashed asset URLs at build time. Eager import so the
+// thumbnail map is available synchronously on first render — no loading state.
+const siteImageModules = import.meta.glob('./assets/sites/*.jpg', {
+  eager: true,
+  import: 'default',
+});
+
+const SITE_IMAGES = Object.fromEntries(
+  Object.entries(SITE_IMAGE_FILES).map(([name, slug]) => [
+    name,
+    siteImageModules[`./assets/sites/${slug}.jpg`] ?? null,
+  ])
+);
 
 // Geological "what's actually there" — the named feature responsible for each
 // anomaly center. Pinned to the same lat/lng as ANOMALIES.
@@ -1233,19 +1226,6 @@ export default function App() {
   const [hovered, setHovered] = useState(null);
   const [selected, setSelected] = useState(null);
   const [selectedPOI, setSelectedPOI] = useState(null);
-  const [siteThumbs, setSiteThumbs] = useState({});
-
-  // Prefetch a Wikipedia lead-image URL for each sacred site on mount.
-  // Cached forever in component state; tooltips render thumbs when ready.
-  useEffect(() => {
-    let cancelled = false;
-    fetchSiteThumbnails().then((map) => {
-      if (!cancelled) setSiteThumbs(map);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
   const [showSites, setShowSites] = useState(true);
   const [showField, setShowField] = useState(true);
   const [showPOI, setShowPOI] = useState(false);
@@ -1862,10 +1842,10 @@ export default function App() {
                     fontFamily: 'IBM Plex Sans, sans-serif'
                   }}
                 >
-                  {siteThumbs[activeSite.name] && (
+                  {SITE_IMAGES[activeSite.name] && (
                     <div className="relative w-full h-24 overflow-hidden bg-stone-900">
                       <img
-                        src={siteThumbs[activeSite.name]}
+                        src={SITE_IMAGES[activeSite.name]}
                         alt={activeSite.name}
                         loading="lazy"
                         className="w-full h-full object-cover"
@@ -1912,10 +1892,10 @@ export default function App() {
                   }}
                 >
                   <div className="flex items-start gap-3">
-                    {siteThumbs[activeSite.name] && (
+                    {SITE_IMAGES[activeSite.name] && (
                       <div className="w-14 h-14 rounded overflow-hidden flex-shrink-0 bg-stone-900 ring-1 ring-stone-800">
                         <img
-                          src={siteThumbs[activeSite.name]}
+                          src={SITE_IMAGES[activeSite.name]}
                           alt={activeSite.name}
                           loading="lazy"
                           className="w-full h-full object-cover"
