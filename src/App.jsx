@@ -78,7 +78,6 @@ const SITES = [
   { name: 'Black Hills',         lat: 43.88, lng: -103.46, note: 'Pahá Sápa · Lakota sacred heart' },
   { name: 'Mount Mitchell',      lat: 35.76, lng: -82.27,  note: 'Highest E. of Mississippi · Cherokee' },
   { name: 'Mount Toby',          lat: 42.4747, lng: -72.5237, note: 'Pioneer Valley · MA traprock summit' },
-  { name: 'Brattleboro',         lat: 42.8509, lng: -72.5579, note: 'Connecticut & West River confluence · S. VT' },
 ];
 
 // Thumbnails for each sacred site, bundled locally from Wikipedia.
@@ -112,7 +111,6 @@ const SITE_IMAGE_FILES = {
   'Black Hills':         'black-hills',
   'Mount Mitchell':      'mount-mitchell',
   'Mount Toby':          'mount-toby',
-  'Brattleboro':         'brattleboro',
 };
 
 // Vite resolves these to hashed asset URLs at build time. Eager import so the

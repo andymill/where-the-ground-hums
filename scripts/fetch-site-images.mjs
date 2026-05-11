@@ -41,7 +41,6 @@ const SITES = {
   'black-hills':         'Black_Hills',
   'mount-mitchell':      'Mount_Mitchell',
   'mount-toby':          'Mount_Toby',
-  'brattleboro':         'Brattleboro,_Vermont',
 }
 
 const FORCE = process.argv.includes('--force')
