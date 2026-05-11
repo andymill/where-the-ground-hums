@@ -81,6 +81,61 @@ const SITES = [
   { name: 'Brattleboro',         lat: 42.8509, lng: -72.5579, note: 'Connecticut & West River confluence · S. VT' },
 ];
 
+// Wikipedia article slugs for each site, used to fetch thumbnail images
+// from the public REST summary endpoint (CORS-enabled, no key required).
+const SITE_WIKI_SLUGS = {
+  'Sedona':              'Sedona,_Arizona',
+  'Mt. Shasta':          'Mount_Shasta',
+  'Taos Pueblo':         'Taos_Pueblo',
+  'Yellowstone':         'Yellowstone_National_Park',
+  'Joshua Tree':         'Joshua_Tree_National_Park',
+  'Mt. Tamalpais':       'Mount_Tamalpais',
+  'Crater Lake':         'Crater_Lake',
+  'Devils Tower':        'Devils_Tower',
+  'Bear Butte':          'Bear_Butte',
+  'Chaco Canyon':        'Chaco_Culture_National_Historical_Park',
+  'Mesa Verde':          'Mesa_Verde_National_Park',
+  'Shiprock':            'Shiprock',
+  'Mt. Rainier':         'Mount_Rainier',
+  'San Francisco Peaks': 'San_Francisco_Peaks',
+  'Cahokia Mounds':      'Cahokia',
+  'Serpent Mound':       'Serpent_Mound',
+  'Mt. Katahdin':        'Mount_Katahdin',
+  'Mt. Hood':            'Mount_Hood',
+  'Lake Tahoe':          'Lake_Tahoe',
+  'Mono Lake':           'Mono_Lake',
+  'Canyon de Chelly':    'Canyon_de_Chelly_National_Monument',
+  'Hot Springs':         'Hot_Springs_National_Park',
+  'Avi Kwa Ame':         'Avi_Kwa_Ame_National_Monument',
+  'Bandelier':           'Bandelier_National_Monument',
+  'Black Hills':         'Black_Hills',
+  'Mount Mitchell':      'Mount_Mitchell',
+  'Mount Toby':          'Mount_Toby',
+  'Brattleboro':         'Brattleboro,_Vermont',
+};
+
+async function fetchSiteThumbnails() {
+  const entries = await Promise.all(
+    Object.entries(SITE_WIKI_SLUGS).map(async ([name, slug]) => {
+      try {
+        const res = await fetch(
+          `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(slug)}`,
+          { headers: { Accept: 'application/json' } }
+        );
+        if (!res.ok) return [name, null];
+        const data = await res.json();
+        const thumb = data.thumbnail?.source ?? null;
+        // Prefer a higher-res variant where the URL pattern allows it
+        const upgraded = thumb ? thumb.replace(/\/\d+px-/, '/480px-') : null;
+        return [name, upgraded ?? thumb];
+      } catch {
+        return [name, null];
+      }
+    })
+  );
+  return Object.fromEntries(entries.filter(([, url]) => url));
+}
+
 // Geological "what's actually there" — the named feature responsible for each
 // anomaly center. Pinned to the same lat/lng as ANOMALIES.
 const GEO_POI = [
@@ -1178,6 +1233,19 @@ export default function App() {
   const [hovered, setHovered] = useState(null);
   const [selected, setSelected] = useState(null);
   const [selectedPOI, setSelectedPOI] = useState(null);
+  const [siteThumbs, setSiteThumbs] = useState({});
+
+  // Prefetch a Wikipedia lead-image URL for each sacred site on mount.
+  // Cached forever in component state; tooltips render thumbs when ready.
+  useEffect(() => {
+    let cancelled = false;
+    fetchSiteThumbnails().then((map) => {
+      if (!cancelled) setSiteThumbs(map);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [showSites, setShowSites] = useState(true);
   const [showField, setShowField] = useState(true);
   const [showPOI, setShowPOI] = useState(false);
@@ -1491,67 +1559,6 @@ export default function App() {
           <p style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="mt-2.5 sm:mt-4 max-w-xl text-[13px] sm:text-base text-stone-400 leading-relaxed">
             Sacred American sites laid over the magnetotelluric pulse of the contiguous United States. Packed isolines mark zones of strong crustal conductivity — fluids, melt, fault damage. Notice where the pins want to land.
           </p>
-
-          {/* Source CTAs — paper + raw data */}
-          <div className="mt-5 sm:mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-3xl">
-            <a
-              href="https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2024RG000850"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative overflow-hidden bg-stone-950/70 ring-1 ring-amber-200/25 hover:ring-amber-200/70 hover:bg-stone-900/80 rounded-md px-4 py-3 sm:px-5 sm:py-4 transition-all"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] sm:text-[10px] tracking-[0.22em] text-amber-300/80 mb-1">
-                    READ THE PAPER
-                  </div>
-                  <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[15px] sm:text-[17px] leading-tight">
-                    The United States Magnetotelluric Array
-                    <span className="text-stone-400"> &amp; the National Impedance Map</span>
-                  </div>
-                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[11px] text-stone-500 mt-1">
-                    Kelbert et al., <span className="italic">Reviews of Geophysics</span>, 2026
-                  </div>
-                </div>
-                <div
-                  style={{fontFamily:'JetBrains Mono, monospace'}}
-                  className="text-amber-200/70 text-lg leading-none group-hover:translate-x-1 transition-transform flex-shrink-0"
-                  aria-hidden
-                >
-                  ↗
-                </div>
-              </div>
-            </a>
-
-            <a
-              href="https://ds.iris.edu/ds/products/emtf/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative overflow-hidden bg-stone-950/70 ring-1 ring-amber-200/25 hover:ring-amber-200/70 hover:bg-stone-900/80 rounded-md px-4 py-3 sm:px-5 sm:py-4 transition-all"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] sm:text-[10px] tracking-[0.22em] text-amber-300/80 mb-1">
-                    BROWSE THE RAW DATA
-                  </div>
-                  <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[15px] sm:text-[17px] leading-tight">
-                    EarthScope MT Transfer Functions
-                    <span className="text-stone-400"> · IRIS SPUD</span>
-                  </div>
-                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[11px] text-stone-500 mt-1">
-                    1,700+ stations · XML &amp; EDI downloads
-                  </div>
-                </div>
-                <div
-                  style={{fontFamily:'JetBrains Mono, monospace'}}
-                  className="text-amber-200/70 text-lg leading-none group-hover:translate-x-1 transition-transform flex-shrink-0"
-                  aria-hidden
-                >
-                  ↗
-                </div>
-              </div>
-            </a>
-          </div>
         </div>
 
         {/* Map + depth visuals — side-by-side on desktop, stacked on mobile */}
@@ -1849,12 +1856,25 @@ export default function App() {
                 }}
               >
                 <div
-                  className="backdrop-blur-md bg-black/85 ring-1 ring-amber-200/25 px-3 py-2.5 rounded"
+                  className="backdrop-blur-md bg-black/85 ring-1 ring-amber-200/25 rounded overflow-hidden"
                   style={{
                     boxShadow: '0 10px 40px -10px rgba(255,200,100,0.30)',
                     fontFamily: 'IBM Plex Sans, sans-serif'
                   }}
                 >
+                  {siteThumbs[activeSite.name] && (
+                    <div className="relative w-full h-24 overflow-hidden bg-stone-900">
+                      <img
+                        src={siteThumbs[activeSite.name]}
+                        alt={activeSite.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                        style={{filter:'saturate(0.85) contrast(1.05)'}}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70" />
+                    </div>
+                  )}
+                  <div className="px-3 py-2.5">
                   <div style={{fontFamily:'Fraunces, serif', fontWeight:500}} className="text-stone-100 text-base leading-tight">
                     {activeSite.name}
                   </div>
@@ -1872,6 +1892,7 @@ export default function App() {
                     <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-amber-200/85 tabular-nums">
                       {fieldPct.toString().padStart(2, '0')}
                     </div>
+                  </div>
                   </div>
                 </div>
               </div>
@@ -1891,6 +1912,17 @@ export default function App() {
                   }}
                 >
                   <div className="flex items-start gap-3">
+                    {siteThumbs[activeSite.name] && (
+                      <div className="w-14 h-14 rounded overflow-hidden flex-shrink-0 bg-stone-900 ring-1 ring-stone-800">
+                        <img
+                          src={siteThumbs[activeSite.name]}
+                          alt={activeSite.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover"
+                          style={{filter:'saturate(0.85) contrast(1.05)'}}
+                        />
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <div style={{fontFamily:'Fraunces, serif', fontWeight:500}} className="text-stone-100 text-base leading-tight">
                         {activeSite.name}
@@ -2358,6 +2390,75 @@ export default function App() {
             </div>
           );
         })()}
+
+        {/* Sources — full-width CTA section, pinned to the bottom of the page */}
+        <section className="mt-12 sm:mt-16 pt-8 sm:pt-10 border-t border-stone-800/60">
+          <div className="flex items-center gap-3 mb-5 sm:mb-6">
+            <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.28em] text-amber-300/70">
+              SOURCES
+            </div>
+            <div className="flex-1 h-px bg-stone-800/60" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+            <a
+              href="https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2024RG000850"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative overflow-hidden bg-stone-950/70 ring-1 ring-amber-200/25 hover:ring-amber-200/70 hover:bg-stone-900/80 rounded-md px-5 py-5 sm:px-7 sm:py-7 transition-all"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.24em] text-amber-300/80 mb-2">
+                    READ THE PAPER
+                  </div>
+                  <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[17px] sm:text-[20px] leading-tight">
+                    The United States Magnetotelluric Array
+                    <span className="text-stone-400"> &amp; the National Impedance Map</span>
+                  </div>
+                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] sm:text-[13px] text-stone-500 mt-2">
+                    Kelbert et al., <span className="italic">Reviews of Geophysics</span>, 2026
+                  </div>
+                </div>
+                <div
+                  style={{fontFamily:'JetBrains Mono, monospace'}}
+                  className="text-amber-200/70 text-2xl leading-none group-hover:translate-x-1 transition-transform flex-shrink-0"
+                  aria-hidden
+                >
+                  ↗
+                </div>
+              </div>
+            </a>
+
+            <a
+              href="https://ds.iris.edu/ds/products/emtf/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative overflow-hidden bg-stone-950/70 ring-1 ring-amber-200/25 hover:ring-amber-200/70 hover:bg-stone-900/80 rounded-md px-5 py-5 sm:px-7 sm:py-7 transition-all"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.24em] text-amber-300/80 mb-2">
+                    BROWSE THE RAW DATA
+                  </div>
+                  <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[17px] sm:text-[20px] leading-tight">
+                    EarthScope MT Transfer Functions
+                    <span className="text-stone-400"> · IRIS SPUD</span>
+                  </div>
+                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] sm:text-[13px] text-stone-500 mt-2">
+                    1,700+ stations · XML &amp; EDI downloads
+                  </div>
+                </div>
+                <div
+                  style={{fontFamily:'JetBrains Mono, monospace'}}
+                  className="text-amber-200/70 text-2xl leading-none group-hover:translate-x-1 transition-transform flex-shrink-0"
+                  aria-hidden
+                >
+                  ↗
+                </div>
+              </div>
+            </a>
+          </div>
+        </section>
 
         {/* About modal */}
         {showInfo && (
