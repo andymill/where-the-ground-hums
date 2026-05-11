@@ -1446,6 +1446,10 @@ export default function App() {
           </p>
         </div>
 
+        {/* Map + depth visuals — side-by-side on desktop, stacked on mobile */}
+        <div className="lg:grid lg:grid-cols-[3fr_2fr] lg:gap-6 lg:items-start">
+        <div>
+
         {/* Map */}
         <div
           className="relative grain rounded-md overflow-hidden ring-1 ring-stone-800/60 bg-black"
@@ -1894,10 +1898,11 @@ export default function App() {
           </svg>
           <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] tracking-[0.2em] text-amber-200/85">UNREST</span>
         </div>
+        </div>
 
         {/* Live cursor preview: two cross-sections that update as you move
             the mouse over the map (or tap on mobile) */}
-        <div className="mt-6">
+        <div className="mt-6 lg:mt-0">
           <div className="flex items-center justify-between mb-3 gap-3">
             <div className="min-w-0 flex-1">
               <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.22em] text-amber-300/70">
@@ -1941,7 +1946,7 @@ export default function App() {
             </div>
           </div>
           {showLive && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
               <MiniCrossSection
                 table={contourTable}
                 lat={cursor?.lat}
@@ -1956,6 +1961,7 @@ export default function App() {
               />
             </div>
           )}
+        </div>
         </div>
 
         {/* Brightest vs Quietest sites */}
