@@ -36,7 +36,13 @@ fs.writeFileSync(
 // Copy the apex homepage (a separately-maintained static HTML file) into dist/.
 // The page lives at apex/index.html so it's easier to edit than an inline
 // template literal in this script.
-const apexSrc = path.resolve(__dirname, '..', 'apex', 'index.html')
-fs.copyFileSync(apexSrc, path.join(distDir, 'index.html'))
+const apexDir = path.resolve(__dirname, '..', 'apex')
+fs.copyFileSync(path.join(apexDir, 'index.html'), path.join(distDir, 'index.html'))
 
-console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex placeholder.')
+// Copy apex/images/ (portfolio thumbnails) → dist/images/
+const apexImagesSrc = path.join(apexDir, 'images')
+if (fs.existsSync(apexImagesSrc)) {
+  fs.cpSync(apexImagesSrc, path.join(distDir, 'images'), { recursive: true })
+}
+
+console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage.')
