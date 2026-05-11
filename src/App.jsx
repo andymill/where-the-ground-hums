@@ -1598,8 +1598,11 @@ export default function App() {
             )}
           </div>
 
-          {/* MAP AREA — relative parent for SVG + tooltips */}
-          <div className="relative grain bg-black flex-1 min-h-0">
+          {/* MAP AREA — flex container; centers the inner SVG vertically. */}
+          <div className="grain bg-black flex-1 min-h-0 flex items-center justify-center">
+          {/* SVG + tooltips share this aspect-sized wrapper so tooltips'
+              percentage positions align with the actual map content. */}
+          <div className="relative w-full">
           <svg
             ref={svgRef}
             viewBox={`0 0 ${w} ${h}`}
@@ -1986,6 +1989,7 @@ export default function App() {
             );
           })()}
 
+          </div>
           </div>
 
           {/* BOTTOM BAR — full-width legend */}
