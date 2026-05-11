@@ -78,6 +78,7 @@ const SITES = [
   { name: 'Black Hills',         lat: 43.88, lng: -103.46, note: 'Pahá Sápa · Lakota sacred heart' },
   { name: 'Mount Mitchell',      lat: 35.76, lng: -82.27,  note: 'Highest E. of Mississippi · Cherokee' },
   { name: 'Mount Toby',          lat: 42.4747, lng: -72.5237, note: 'Pioneer Valley · MA traprock summit' },
+  { name: 'Brattleboro',         lat: 42.8509, lng: -72.5579, note: 'VT · Connecticut Valley rift' },
 ];
 
 // Thumbnails for each sacred site, bundled locally from Wikipedia.
@@ -111,6 +112,7 @@ const SITE_IMAGE_FILES = {
   'Black Hills':         'black-hills',
   'Mount Mitchell':      'mount-mitchell',
   'Mount Toby':          'mount-toby',
+  'Brattleboro':         'brattleboro',
 };
 
 // Vite resolves these to hashed asset URLs at build time. Eager import so the
@@ -154,40 +156,38 @@ const GEO_POI = [
   { lat: 42.4,  lng: -72.6,   label: 'Connecticut Valley Rift',       kind: 'Mesozoic basin · traprock' },
 ];
 
-// "The Piedmont Resistor" — a buried, ~200 Ma fragment of crust along the
-// eastern Appalachian front, one of the signature discoveries of the
-// USMTArray national impedance map (Kelbert et al., 2026). The polygon below
-// traces its surface footprint (Maine to Alabama, ~Fall Line on the east,
-// Appalachian crest on the west). Rendered as a faint blue easter egg that
-// fades in as the user zooms past ~1.2× — they have to find it.
-const PIEDMONT_RESISTOR = [
-  // Western (Appalachian) edge — N to S
-  { lat: 45.6, lng: -69.5 },
-  { lat: 44.3, lng: -71.3 },
-  { lat: 42.5, lng: -73.0 },
-  { lat: 41.0, lng: -74.2 },
-  { lat: 40.4, lng: -77.5 },
-  { lat: 38.8, lng: -79.4 },
-  { lat: 37.0, lng: -81.0 },
-  { lat: 35.6, lng: -82.6 },
-  { lat: 34.5, lng: -83.5 },
-  { lat: 33.6, lng: -84.5 },
-  { lat: 32.5, lng: -85.7 },
-  // Southern terminus (AL)
-  { lat: 32.0, lng: -86.0 },
-  // Eastern (Fall Line) edge — S to N
-  { lat: 32.8, lng: -83.6 },
-  { lat: 34.0, lng: -81.0 },
-  { lat: 35.8, lng: -78.6 },
-  { lat: 37.5, lng: -77.4 },
-  { lat: 39.3, lng: -76.6 },
-  { lat: 39.9, lng: -75.2 },
-  { lat: 40.7, lng: -74.0 },
-  { lat: 41.8, lng: -72.7 },
-  { lat: 42.4, lng: -71.1 },
-  { lat: 43.7, lng: -70.3 },
-  { lat: 44.8, lng: -68.8 },
+// "The Piedmont Resistor" — a buried ~200 Ma slab of igneous basement along
+// the eastern Appalachian piedmont, named because it blocks electrical
+// current rather than passing it. The mirror of the conductive anomalies:
+// same Gaussian-centers + depth-profile model, inverted visual treatment.
+// Modeled as a NE→SW band; coords nudged inland from the original brief so
+// the centers sit on the actual piedmont rather than the coast. Discovered
+// by the USMTArray and described in Kelbert et al. (2026).
+const RESISTORS = [
+  { lat: 45.5, lng: -70.5, amp: 0.70, sigma: 1.60 }, // Maine
+  { lat: 43.5, lng: -71.8, amp: 0.70, sigma: 1.60 }, // NH / MA
+  { lat: 41.7, lng: -72.7, amp: 0.70, sigma: 1.60 }, // CT
+  { lat: 40.3, lng: -75.0, amp: 0.70, sigma: 1.60 }, // NJ / PA
+  { lat: 38.7, lng: -77.0, amp: 0.70, sigma: 1.60 }, // DC / VA
+  { lat: 36.5, lng: -79.0, amp: 0.70, sigma: 1.60 }, // NC
+  { lat: 34.5, lng: -81.5, amp: 0.70, sigma: 1.60 }, // SC
+  { lat: 33.0, lng: -83.5, amp: 0.70, sigma: 1.60 }, // GA
 ];
+
+// Single shared depth-intensity profile. Tuned for visual contrast against
+// the conductors, not as literal inversion output — the published paper
+// resolves a fatter, less peaked body. Treat layer values as illustrative.
+const RESISTOR_PROFILE_PIEDMONT = [
+  { topKm: 0,   botKm: 5,   intensity: 0.30 }, // sedimentary cover · not resistive
+  { topKm: 5,   botKm: 30,  intensity: 0.85 }, // top of resistor
+  { topKm: 30,  botKm: 100, intensity: 0.95 }, // peak resistance
+  { topKm: 100, botKm: 200, intensity: 0.70 }, // tapering at depth
+];
+
+function intensityAtDepthResistor(km) {
+  const layer = RESISTOR_PROFILE_PIEDMONT.find(l => km >= l.topKm && km <= l.botKm);
+  return layer ? layer.intensity : 0.30;
+}
 
 // Stylized depth–conductivity profiles for each anomaly center, synthesized from
 // published MT literature (Bedrosian 2007/2014/2024, Kim 2025, Wannamaker 2008,
@@ -484,6 +484,21 @@ function fieldAt(lat, lng) {
   return Math.min(v / 1.5, 1);
 }
 
+// 2D spatial sum of resistor centers — mirrors fieldAt. Used for the main-map
+// topo lines. Normalization divisor matched to the conductor field so the
+// two contour systems read at comparable visual densities.
+function resistorFieldAt(lat, lng) {
+  let v = 0;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+  for (const r of RESISTORS) {
+    const dlat = lat - r.lat;
+    const dlng = (lng - r.lng) * cosLat;
+    const d2 = dlat * dlat + dlng * dlng;
+    v += r.amp * Math.exp(-d2 / (2 * r.sigma * r.sigma));
+  }
+  return Math.min(v / 1.5, 1);
+}
+
 // For each anomaly, find the closest named POI; use its depth profile.
 // Memoized per anomaly so we never recompute during render.
 const ANOMALY_PROFILES = ANOMALIES.map(a => {
@@ -653,6 +668,130 @@ function buildContourSegments(points) {
   return segments;
 }
 
+// Depth-intensity LUT for the resistor (single shared profile, so a flat
+// Float32Array indexed by depth in km — no per-center dimension needed).
+const RESISTOR_DEPTH_LUT = (() => {
+  const lut = new Float32Array(CONTOUR_MAX_DEPTH + 1);
+  for (let d = 0; d <= CONTOUR_MAX_DEPTH; d++) {
+    lut[d] = intensityAtDepthResistor(d);
+  }
+  return lut;
+})();
+
+// Same incremental-rAF pattern as computeContourTableAsync, but stores the
+// SHALLOWEST depth at which the 3D resistor field exceeds threshold (mirror
+// of "deepest" for the conductor). When no resistive zone exists at a grid
+// cell, store CONTOUR_MAX_DEPTH + 30 so the segment builder treats it as
+// "no zone" and draws the line dashed at the chart floor.
+function computeResistorTableAsync({ onProgress, onDone }) {
+  const data = new Int16Array(CONTOUR_LAT_N * CONTOUR_LNG_N);
+  const NO_ZONE = CONTOUR_MAX_DEPTH + 30;
+  let i = 0;
+
+  function batch() {
+    const start = performance.now();
+    while (i < CONTOUR_LAT_N && performance.now() - start < 12) {
+      const lat = CONTOUR_LAT_MIN + i * CONTOUR_STEP;
+      const cosLat = Math.cos(lat * Math.PI / 180);
+      for (let j = 0; j < CONTOUR_LNG_N; j++) {
+        const lng = CONTOUR_LNG_MIN + j * CONTOUR_STEP;
+
+        let shallowest = -1;
+        // Sweep depth in 4-km steps and record the FIRST depth at/above
+        // threshold (top of zone, not bottom).
+        for (let d = 0; d <= CONTOUR_MAX_DEPTH; d += 4) {
+          let v = 0;
+          for (let k = 0; k < RESISTORS.length; k++) {
+            const r = RESISTORS[k];
+            const dlat = lat - r.lat;
+            const dlng = (lng - r.lng) * cosLat;
+            const d2 = dlat * dlat + dlng * dlng;
+            const spatial = r.amp * Math.exp(-d2 / (2 * r.sigma * r.sigma));
+            if (spatial < 0.005) continue;
+            v += spatial * RESISTOR_DEPTH_LUT[d];
+          }
+          v = v / 1.4;
+          if (v > 1) v = 1;
+          if (v >= CONTOUR_THRESHOLD) { shallowest = d; break; }
+        }
+
+        data[i * CONTOUR_LNG_N + j] = shallowest >= 0 ? shallowest : NO_ZONE;
+      }
+      i++;
+    }
+
+    if (i >= CONTOUR_LAT_N) {
+      onDone(data);
+    } else {
+      onProgress(i / CONTOUR_LAT_N);
+      requestAnimationFrame(batch);
+    }
+  }
+
+  requestAnimationFrame(batch);
+}
+
+// Bilinear sample, identical pattern to sampleContour. Returns NO_ZONE
+// (CONTOUR_MAX_DEPTH + 30) outside the grid so callers always see "no zone".
+function sampleResistor(table, lat, lng) {
+  const NO_ZONE = CONTOUR_MAX_DEPTH + 30;
+  if (!table) return NO_ZONE;
+  const fi = (lat - CONTOUR_LAT_MIN) / CONTOUR_STEP;
+  const fj = (lng - CONTOUR_LNG_MIN) / CONTOUR_STEP;
+  const i0 = Math.floor(fi);
+  const j0 = Math.floor(fj);
+  const i1 = i0 + 1;
+  const j1 = j0 + 1;
+  if (i0 < 0 || i1 >= CONTOUR_LAT_N || j0 < 0 || j1 >= CONTOUR_LNG_N) {
+    return NO_ZONE;
+  }
+  const ti = fi - i0;
+  const tj = fj - j0;
+  const v00 = table[i0 * CONTOUR_LNG_N + j0];
+  const v01 = table[i0 * CONTOUR_LNG_N + j1];
+  const v10 = table[i1 * CONTOUR_LNG_N + j0];
+  const v11 = table[i1 * CONTOUR_LNG_N + j1];
+  return v00 * (1 - ti) * (1 - tj)
+       + v01 * (1 - ti) * tj
+       + v10 * ti * (1 - tj)
+       + v11 * ti * tj;
+}
+
+// Mirror of buildContourSegments, but with the chart FLOOR as the boundary
+// instead of the surface. Solid where a resistive zone exists at real depth,
+// dashed riding the floor where not. The transition midpoint sits at the
+// floor so the two path sets meet visually.
+function buildResistorSegments(points, floorKm) {
+  const segments = [];
+  if (!points || points.length === 0) return segments;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const aReal = a.depth <= floorKm;
+    const bReal = b.depth <= floorKm;
+    const aDepth = aReal ? a.depth : floorKm;
+    const bDepth = bReal ? b.depth : floorKm;
+    if (aReal === bReal) {
+      segments.push({
+        type: aReal ? 'solid' : 'dashed',
+        from: { off: a.off, depth: aDepth },
+        to:   { off: b.off, depth: bDepth },
+      });
+    } else {
+      const midOff = (a.off + b.off) / 2;
+      const mid = { off: midOff, depth: floorKm };
+      if (aReal) {
+        segments.push({ type: 'solid',  from: { off: a.off, depth: aDepth }, to: mid });
+        segments.push({ type: 'dashed', from: mid, to: { off: b.off, depth: floorKm } });
+      } else {
+        segments.push({ type: 'dashed', from: { off: a.off, depth: floorKm }, to: mid });
+        segments.push({ type: 'solid',  from: mid, to: { off: b.off, depth: bDepth } });
+      }
+    }
+  }
+  return segments;
+}
+
 function segmentsToPaths(segments, xKmToPx, depthToPx) {
   let solidD = '';
   let dashedD = '';
@@ -682,7 +821,7 @@ const MINI_LAYERS = {
   lab: 100,
 };
 
-function MiniCrossSection({ table, lat, lng, axis }) {
+function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
   const HALF_KM = 200;
   const SKY = CONTOUR_SKY;
   // The contour line itself maxes out at CONTOUR_MAX_DEPTH (200km), but we
@@ -691,7 +830,7 @@ function MiniCrossSection({ table, lat, lng, axis }) {
   const MAX = 300;
   const N = 80;
 
-  // Sample the contour line through (lat, lng) along the chosen axis
+  // Sample the conductor line through (lat, lng) along the chosen axis
   const points = useMemo(() => {
     if (!table || lat == null || lng == null) return null;
     const cosLat = Math.cos(lat * Math.PI / 180);
@@ -710,6 +849,26 @@ function MiniCrossSection({ table, lat, lng, axis }) {
     }
     return arr;
   }, [table, lat, lng, axis]);
+
+  // Parallel sample for the resistor line, same offsets.
+  const resistorPoints = useMemo(() => {
+    if (!resistorTable || lat == null || lng == null) return null;
+    const cosLat = Math.cos(lat * Math.PI / 180);
+    const arr = new Array(N);
+    for (let i = 0; i < N; i++) {
+      const off = -HALF_KM + (i / (N - 1)) * 2 * HALF_KM;
+      let sLat, sLng;
+      if (axis === 'ew') {
+        sLat = lat;
+        sLng = lng + off / (111 * cosLat);
+      } else {
+        sLat = lat + off / 111;
+        sLng = lng;
+      }
+      arr[i] = { off, depth: sampleResistor(resistorTable, sLat, sLng) };
+    }
+    return arr;
+  }, [resistorTable, lat, lng, axis]);
 
   // Geometry
   const W = 360;
@@ -737,6 +896,13 @@ function MiniCrossSection({ table, lat, lng, axis }) {
     return segmentsToPaths(segs, xKmToPx, depthToPx);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points]);
+
+  const { solidD: resistSolidD, dashedD: resistDashedD } = useMemo(() => {
+    if (!resistorPoints) return { solidD: '', dashedD: '' };
+    const segs = buildResistorSegments(resistorPoints, CONTOUR_MAX_DEPTH);
+    return segmentsToPaths(segs, xKmToPx, depthToPx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resistorPoints]);
 
   const axisLabel = axis === 'ew' ? 'WEST ↔ EAST' : 'SOUTH ↔ NORTH';
 
@@ -789,7 +955,23 @@ function MiniCrossSection({ table, lat, lng, axis }) {
         <line x1={PAD_LEFT} y1={mohoY} x2={PAD_LEFT + cw} y2={mohoY} stroke="#000" strokeOpacity="0.5" strokeWidth="0.5" strokeDasharray="2 3" />
         <line x1={PAD_LEFT} y1={labY} x2={PAD_LEFT + cw} y2={labY} stroke="#000" strokeOpacity="0.35" strokeWidth="0.4" strokeDasharray="1 3" />
 
-        {/* Contour line — solid where conductive zone is real, dashed at
+        {/* Resistor line — drawn first so the yellow conductor line sits on
+            top where they cross. Solid where a resistive zone is real (top
+            of zone), dashed at the chart floor where there's no resistor. */}
+        {resistSolidD && (
+          <>
+            <path d={resistSolidD} fill="none" stroke="#bae6fd" strokeOpacity="0.45" strokeWidth="4"
+              strokeLinejoin="round" strokeLinecap="round" filter="blur(1.5px)" />
+            <path d={resistSolidD} fill="none" stroke="#7dd3fc" strokeOpacity="0.95" strokeWidth="1.6"
+              strokeLinejoin="round" strokeLinecap="round" />
+          </>
+        )}
+        {resistDashedD && (
+          <path d={resistDashedD} fill="none" stroke="#7dd3fc" strokeOpacity="0.55" strokeWidth="1.4"
+            strokeLinejoin="round" strokeLinecap="round" strokeDasharray="3 3" />
+        )}
+
+        {/* Conductor line — solid where conductive zone is real, dashed at
             surface where it isn't */}
         {solidD && (
           <>
@@ -886,21 +1068,28 @@ function SiteCrossSectionDrawer({ site, onClose }) {
   const MOHO = 38;
   const LAB = 100;
 
-  // Sample conductivity along the cross-section line, find contour depth at each x
-  const contour = useMemo(() => {
+  // Sample conductivity along the cross-section line, find contour depth at
+  // each x. Also sample the resistor field at the same x-positions so the
+  // two lines share a coordinate grid and read as one paired story.
+  const { contour, resistorContour } = useMemo(() => {
     const cosLat = Math.cos(site.lat * Math.PI / 180);
     const N = 121; // ≈ 3.3 km per sample
     const out = [];
+    const resistorOut = [];
+    const NO_ZONE = MAX_DEPTH + 30;
 
     for (let i = 0; i < N; i++) {
       const xKm = -HALF_KM + (i / (N - 1)) * 2 * HALF_KM;
       const lng = site.lng + xKm / (111 * cosLat);
       const lat = site.lat;
 
-      // Walk down in 1-km steps; track v_max and the deepest depth where v ≥ T
+      // Walk down in 1-km steps; track v_max, deepest conductor sample, and
+      // shallowest resistor sample in the same loop.
       let vMax = 0;
       let deepestAboveT = -1;
+      let shallowestResist = -1;
       for (let d = 0; d <= MAX_DEPTH; d += 1) {
+        // Conductor
         let v = 0;
         for (let j = 0; j < ANOMALIES.length; j++) {
           const a = ANOMALIES[j];
@@ -914,9 +1103,26 @@ function SiteCrossSectionDrawer({ site, onClose }) {
         v = Math.min(v / 1.4, 1);
         if (v > vMax) vMax = v;
         if (v >= T) deepestAboveT = d;
+
+        // Resistor (track shallowest only — once found, we still finish the
+        // loop because tracking deepest conductor needs to keep running)
+        if (shallowestResist < 0) {
+          let vr = 0;
+          for (let k = 0; k < RESISTORS.length; k++) {
+            const r = RESISTORS[k];
+            const dlat = lat - r.lat;
+            const dlng = (lng - r.lng) * cosLat;
+            const d2 = dlat * dlat + dlng * dlng;
+            const spatial = r.amp * Math.exp(-d2 / (2 * r.sigma * r.sigma));
+            if (spatial < 0.005) continue;
+            vr += spatial * intensityAtDepthResistor(d);
+          }
+          vr = Math.min(vr / 1.4, 1);
+          if (vr >= T) shallowestResist = d;
+        }
       }
 
-      // If a conductive zone exists, line sits at its bottom. If not, line
+      // Conductor: if zone exists, line sits at its bottom. If not, line
       // floats into sky proportional to how far below threshold v_max is.
       let depth;
       if (deepestAboveT >= 0) {
@@ -926,8 +1132,15 @@ function SiteCrossSectionDrawer({ site, onClose }) {
         if (depth < -SKY_KM + 6) depth = -SKY_KM + 6;
       }
       out.push({ xKm, depth });
+
+      // Resistor: if zone exists, line sits at its top. If not, sentinel
+      // value past the chart floor so the segment builder draws it dashed.
+      resistorOut.push({
+        xKm,
+        depth: shallowestResist >= 0 ? shallowestResist : NO_ZONE,
+      });
     }
-    return out;
+    return { contour: out, resistorContour: resistorOut };
   }, [site]);
 
   const siteContourDepth = useMemo(() => {
@@ -969,6 +1182,13 @@ function SiteCrossSectionDrawer({ site, onClose }) {
     return segmentsToPaths(segs, xKmToPx, depthToPx);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contour]);
+
+  const { solidD: resistSolidD, dashedD: resistDashedD } = useMemo(() => {
+    const pts = resistorContour.map(p => ({ off: p.xKm, depth: p.depth }));
+    const segs = buildResistorSegments(pts, MAX_DEPTH);
+    return segmentsToPaths(segs, xKmToPx, depthToPx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resistorContour]);
 
   const layers = [
     { name: 'Surface',             range: '0–3 km',     color: '#3d6e3a' },
@@ -1062,6 +1282,27 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 stroke="#000" strokeOpacity="0.5" strokeWidth="0.7" strokeDasharray="2 3" />
               <line x1={PAD_LEFT} y1={labY} x2={PAD_LEFT + cw} y2={labY}
                 stroke="#000" strokeOpacity="0.35" strokeWidth="0.5" strokeDasharray="1 3" />
+
+              {/* Resistor contour — solid at the TOP of the resistive zone,
+                  dashed at the chart floor where no resistor exists. Drawn
+                  first so the yellow conductor line sits on top at crossings. */}
+              {resistSolidD && (
+                <>
+                  <path d={resistSolidD} fill="none"
+                    stroke="#bae6fd" strokeOpacity="0.50" strokeWidth="6"
+                    filter="url(#contourGlow)"
+                    strokeLinejoin="round" strokeLinecap="round" />
+                  <path d={resistSolidD} fill="none"
+                    stroke="#7dd3fc" strokeOpacity="0.95" strokeWidth="2.2"
+                    strokeLinejoin="round" strokeLinecap="round" />
+                </>
+              )}
+              {resistDashedD && (
+                <path d={resistDashedD} fill="none"
+                  stroke="#7dd3fc" strokeOpacity="0.60" strokeWidth="1.8"
+                  strokeLinejoin="round" strokeLinecap="round"
+                  strokeDasharray="5 4" />
+              )}
 
               {/* Conductivity contour — solid where the conductive zone is real,
                   dashed at surface where the rock is below threshold */}
@@ -1202,6 +1443,25 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                   No conductive zone — riding the surface
                 </span>
               </div>
+              <div className="flex items-center gap-2">
+                <svg width="20" height="6" className="flex-shrink-0">
+                  <line x1="0" y1="3" x2="20" y2="3" stroke="#7dd3fc" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+                <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-300">
+                  Resistive body — line at its top
+                </span>
+                <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500">
+                  · ρ ≥ {Math.round(T * 100)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg width="20" height="6" className="flex-shrink-0">
+                  <line x1="0" y1="3" x2="20" y2="3" stroke="#7dd3fc" strokeOpacity="0.60" strokeWidth="1.8" strokeDasharray="5 4" strokeLinecap="round" />
+                </svg>
+                <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-400">
+                  No resistive body — riding the depth floor
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1234,9 +1494,14 @@ function SiteCrossSectionDrawer({ site, onClose }) {
           {/* Reading guide */}
           <div
             style={{fontFamily:'IBM Plex Sans, sans-serif'}}
-            className="mt-5 text-[12.5px] text-stone-400 leading-relaxed border-l-2 border-amber-300/30 pl-3"
+            className="mt-5 text-[12.5px] text-stone-400 leading-relaxed border-l-2 border-amber-300/30 pl-3 space-y-2"
           >
-            A 400-km slice straight through Earth, west to east, with {site.name} centered on the dashed line. Real geologic layers fill the cutaway: green soil, brown crust to the Moho at 38 km, deep-red rigid mantle to the Lithosphere–Asthenosphere Boundary at 100 km, then hot ductile asthenosphere fading to peach. The yellow line traces the bottom of the conductive zone — solid where it bottoms out at real depth (fluids, melt, fault damage, or graphite), dashed and riding the surface where there's no conductive zone at all.
+            <p>
+              A 400-km slice straight through Earth, west to east, with {site.name} centered on the dashed line. Real geologic layers fill the cutaway: green soil, brown crust to the Moho at 38 km, deep-red rigid mantle to the Lithosphere–Asthenosphere Boundary at 100 km, then hot ductile asthenosphere fading to peach. The yellow line traces the bottom of the conductive zone — solid where it bottoms out at real depth (fluids, melt, fault damage, or graphite), dashed and riding the surface where there's no conductive zone at all.
+            </p>
+            <p className="text-stone-300">
+              The blue line traces the top of the Piedmont Resistor — a buried Pangaea-era fragment of igneous basement along the eastern seaboard. Together, the two lines sandwich the East Coast: old, cold, igneous rock above; ancient fluid-bearing scars below.
+            </p>
           </div>
 
           <div
@@ -1261,6 +1526,7 @@ export default function App() {
   const [selectedPOI, setSelectedPOI] = useState(null);
   const [showSites, setShowSites] = useState(true);
   const [showField, setShowField] = useState(true);
+  const [showResistors, setShowResistors] = useState(true);
   const [showPOI, setShowPOI] = useState(false);
   const [showStates, setShowStates] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
@@ -1280,6 +1546,7 @@ export default function App() {
   // Precomputed contour-depth table for fast cross-section sampling
   const [contourTable, setContourTable] = useState(null);
   const [tableProgress, setTableProgress] = useState(0);
+  const [resistorTable, setResistorTable] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -1289,6 +1556,18 @@ export default function App() {
     });
     return () => { cancelled = true; };
   }, []);
+
+  // Build the resistor table after the conductor table is done so the two
+  // builds don't compete for frame budget on first paint.
+  useEffect(() => {
+    if (!contourTable) return;
+    let cancelled = false;
+    computeResistorTableAsync({
+      onProgress: () => {},
+      onDone: (data) => { if (!cancelled) setResistorTable(data); },
+    });
+    return () => { cancelled = true; };
+  }, [contourTable]);
 
   // Fetch US state boundaries once. If the CDN is unreachable, the layer
   // simply stays empty — no errors, no broken UI.
@@ -1388,6 +1667,48 @@ export default function App() {
     const sy = h / gridH;
 
     // Build SVG path strings manually for reliability
+    return features.map(f => {
+      const d = f.coordinates.map(polygon =>
+        polygon.map(ring =>
+          'M' + ring.map(([x, y]) =>
+            `${(x * sx).toFixed(1)},${(y * sy).toFixed(1)}`
+          ).join('L') + 'Z'
+        ).join('')
+      ).join('');
+      return { d, value: f.value };
+    });
+  }, [projection, w, h]);
+
+  // Parallel isolines for the resistor field. Same grid, same projection, so
+  // the two contour systems align pixel-for-pixel.
+  const resistorContours = useMemo(() => {
+    const gridW = 280;
+    const gridH = Math.round(gridW * (h / w));
+    const values = new Float32Array(gridW * gridH);
+
+    for (let gy = 0; gy < gridH; gy++) {
+      for (let gx = 0; gx < gridW; gx++) {
+        const cx = ((gx + 0.5) / gridW) * w;
+        const cy = ((gy + 0.5) / gridH) * h;
+        const coord = projection.invert([cx, cy]);
+        if (!coord) continue;
+        const [lng, lat] = coord;
+        if (lat < 23 || lat > 51 || lng < -126 || lng > -65) continue;
+        values[gy * gridW + gx] = resistorFieldAt(lat, lng);
+      }
+    }
+
+    const thresholds = [];
+    for (let t = 0.12; t <= 0.94; t += 0.10) thresholds.push(+t.toFixed(2));
+
+    const contourGen = d3.contours()
+      .size([gridW, gridH])
+      .thresholds(thresholds);
+
+    const features = contourGen(values);
+    const sx = w / gridW;
+    const sy = h / gridH;
+
     return features.map(f => {
       const d = f.coordinates.map(polygon =>
         polygon.map(ring =>
@@ -1593,10 +1914,11 @@ export default function App() {
             </span>
             <div className="md:hidden flex-1" />
             {[
-              { label: 'FIELD',  state: showField,  set: setShowField  },
-              { label: 'STATES', state: showStates, set: setShowStates },
-              { label: 'SITES',  state: showSites,  set: setShowSites  },
-              { label: 'GEO',    state: showPOI,    set: setShowPOI    },
+              { label: 'FIELD',  state: showField,     set: setShowField     },
+              { label: 'RESIST', state: showResistors, set: setShowResistors },
+              { label: 'STATES', state: showStates,    set: setShowStates    },
+              { label: 'SITES',  state: showSites,     set: setShowSites     },
+              { label: 'GEO',    state: showPOI,       set: setShowPOI       },
             ].map(c => (
               <button
                 key={c.label}
@@ -1687,6 +2009,32 @@ export default function App() {
               </g>
             )}
 
+            {/* Resistor isolines (Piedmont Resistor) — drawn first so the
+                cream conductor contours sit on top where they overlap.
+                Dashed cyan reads as the quiet undercurrent of the map. */}
+            {showField && showResistors && (
+              <g clipPath="url(#conus-clip)" fill="none">
+                {resistorContours.map((c, i) => {
+                  const t = Math.max(0, Math.min(1, (c.value - 0.12) / 0.78));
+                  const op = 0.22 + t * 0.40;
+                  const sw = 0.6 + t * 0.6;
+                  return (
+                    <path
+                      key={i}
+                      d={c.d}
+                      stroke="#7dd3fc"
+                      strokeOpacity={op}
+                      strokeWidth={sw}
+                      strokeDasharray="3 3"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  );
+                })}
+              </g>
+            )}
+
             {/* Contour isolines */}
             {showField && (
               <g clipPath="url(#conus-clip)" fill="none">
@@ -1719,87 +2067,6 @@ export default function App() {
               strokeWidth="1.4"
               vectorEffect="non-scaling-stroke"
             />
-
-            {/* Piedmont Resistor — buried Pangaea-era continental fragment
-                from Kelbert et al. (2026). Invisible at default zoom; fades
-                in once the user zooms in to find it. */}
-            {(() => {
-              const opacity = Math.max(
-                0,
-                Math.min(1, (zoomT.k - 1.2) / 0.8)
-              );
-              if (opacity < 0.02) return null;
-              const pts = PIEDMONT_RESISTOR.map((p) =>
-                projection([p.lng, p.lat])
-              ).filter(Boolean);
-              if (pts.length < 3) return null;
-              const path =
-                'M' +
-                pts
-                  .map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`)
-                  .join(' L') +
-                ' Z';
-              const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
-              const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
-              return (
-                <g opacity={opacity} style={{ pointerEvents: 'none' }}>
-                  <path d={path} fill="rgba(56, 189, 248, 0.06)" />
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke="#38bdf8"
-                    strokeOpacity="0.85"
-                    strokeWidth="0.9"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke="#7dd3fc"
-                    strokeOpacity="0.45"
-                    strokeWidth="0.4"
-                    strokeDasharray="2 1.6"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <text
-                    x={cx}
-                    y={cy - 4}
-                    textAnchor="middle"
-                    stroke="#000"
-                    strokeWidth="3"
-                    strokeOpacity="0.85"
-                    paintOrder="stroke"
-                    fill="#7dd3fc"
-                    style={{
-                      fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '11px',
-                      letterSpacing: '0.18em',
-                    }}
-                  >
-                    PIEDMONT RESISTOR
-                  </text>
-                  <text
-                    x={cx}
-                    y={cy + 9}
-                    textAnchor="middle"
-                    stroke="#000"
-                    strokeWidth="3"
-                    strokeOpacity="0.85"
-                    paintOrder="stroke"
-                    fill="#7dd3fc"
-                    fillOpacity="0.85"
-                    style={{
-                      fontFamily: 'JetBrains Mono, monospace',
-                      fontSize: '7.5px',
-                      letterSpacing: '0.18em',
-                    }}
-                  >
-                    ~200 Ma · PANGAEA FRAGMENT
-                  </text>
-                </g>
-              );
-            })()}
 
             {/* Geological POI layer (centroids of conductivity anomalies) */}
             {showPOI && projectedPOI.map((p, i) => {
@@ -2191,12 +2458,14 @@ export default function App() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
               <MiniCrossSection
                 table={contourTable}
+                resistorTable={resistorTable}
                 lat={cursor?.lat}
                 lng={cursor?.lng}
                 axis="ew"
               />
               <MiniCrossSection
                 table={contourTable}
+                resistorTable={resistorTable}
                 lat={cursor?.lat}
                 lng={cursor?.lng}
                 axis="ns"
@@ -2587,6 +2856,9 @@ export default function App() {
               <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="space-y-3 text-sm text-stone-300 leading-relaxed">
                 <p>
                   The contour field is a stylized synthesis of crustal-conductivity features documented in the USMTArray national impedance map (Kelbert et al., 2026, <span style={{fontFamily:'JetBrains Mono'}} className="text-[12px] text-amber-200/85">Reviews of Geophysics</span>) — Yellowstone, the Cascade arc, Long Valley, the Salton Trough, the Rio Grande Rift, the Mid-Continent Rift, the Appalachian conductivity anomaly, the Connecticut Valley Mesozoic rift, and others. It approximates published anomaly geometry rather than displaying raw station impedances.
+                </p>
+                <p>
+                  The dashed cyan band along the East Coast is the <span className="text-sky-200/90">Piedmont Resistor</span> — a Pangaea-era fragment of igneous basement, the same array's other signature find. Cream contours mark where rock <em>passes</em> current; cyan contours mark where it <em>blocks</em> current. In the cross-section drawer, the yellow line traces the bottom of conductive zones and the blue line traces the top of the resistor — together they sandwich the East Coast crust.
                 </p>
                 <p>
                   Each pin's halo grows with the underlying field. Sites on quiet cratonic crust glow softly; sites on geologically active zones flare bright. Where contour lines pack tightly, conductivity rises steeply.
