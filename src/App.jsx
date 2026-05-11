@@ -604,7 +604,10 @@ const MINI_LAYERS = {
 function MiniCrossSection({ table, lat, lng, axis }) {
   const HALF_KM = 200;
   const SKY = CONTOUR_SKY;
-  const MAX = CONTOUR_MAX_DEPTH;
+  // The contour line itself maxes out at CONTOUR_MAX_DEPTH (200km), but we
+  // extend the visible depth axis so there's room below the deepest excursion
+  // and the asthenosphere band has air to breathe.
+  const MAX = 300;
   const N = 80;
 
   // Sample the contour line through (lat, lng) along the chosen axis
@@ -629,7 +632,7 @@ function MiniCrossSection({ table, lat, lng, axis }) {
 
   // Geometry
   const W = 360;
-  const H = 200;
+  const H = 240;
   const PAD_LEFT = 28;
   const PAD_RIGHT = 6;
   const PAD_TOP = 8;
@@ -730,8 +733,8 @@ function MiniCrossSection({ table, lat, lng, axis }) {
           strokeDasharray="4 2 1 2"
         />
 
-        {/* Depth axis */}
-        {[0, 100, 200].map(km => (
+        {/* Depth axis ticks */}
+        {[0, 100, 200, 300].map(km => (
           <text key={km}
             x={PAD_LEFT - 4}
             y={depthToPx(km) + 3}
@@ -739,6 +742,50 @@ function MiniCrossSection({ table, lat, lng, axis }) {
             style={{fontFamily:'JetBrains Mono, monospace', fontSize:'8px', fill:'#9ca3af'}}
           >{km}</text>
         ))}
+
+        {/* Layer name labels — anchored to the right edge of each band */}
+        <g style={{fontFamily:'JetBrains Mono, monospace', letterSpacing:'0.14em'}}>
+          <text
+            x={PAD_LEFT + cw - 5}
+            y={(surfaceBotY + mohoY) / 2 + 3}
+            textAnchor="end"
+            style={{fontSize:'8px', fill:'#fed7aa', fillOpacity:0.78}}
+          >CRUST</text>
+          <text
+            x={PAD_LEFT + cw - 5}
+            y={(mohoY + labY) / 2 + 3}
+            textAnchor="end"
+            style={{fontSize:'8px', fill:'#fecaca', fillOpacity:0.78}}
+          >LITHOSPHERIC MANTLE</text>
+          <text
+            x={PAD_LEFT + cw - 5}
+            y={(labY + bottomY) / 2 + 3}
+            textAnchor="end"
+            style={{fontSize:'8px', fill:'#fef3c7', fillOpacity:0.85}}
+          >ASTHENOSPHERE</text>
+        </g>
+
+        {/* Boundary labels — pinned just above the Moho and LAB dashed lines */}
+        <g style={{fontFamily:'JetBrains Mono, monospace', letterSpacing:'0.16em'}}>
+          <text
+            x={PAD_LEFT + 4}
+            y={mohoY - 2.5}
+            style={{fontSize:'7px', fill:'#0a0a0a', fillOpacity:0.7}}
+          >── MOHO · 38 KM</text>
+          <text
+            x={PAD_LEFT + 4}
+            y={labY - 2.5}
+            style={{fontSize:'7px', fill:'#fef3c7', fillOpacity:0.55}}
+          >── LAB · 100 KM</text>
+        </g>
+
+        {/* "km depth" axis caption, bottom-left */}
+        <text
+          x={PAD_LEFT - 4}
+          y={H - 4}
+          textAnchor="end"
+          style={{fontFamily:'JetBrains Mono, monospace', fontSize:'7px', fill:'#6b6258', letterSpacing:'0.12em'}}
+        >KM</text>
       </svg>
     </div>
   );
@@ -1444,6 +1491,67 @@ export default function App() {
           <p style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="mt-2.5 sm:mt-4 max-w-xl text-[13px] sm:text-base text-stone-400 leading-relaxed">
             Sacred American sites laid over the magnetotelluric pulse of the contiguous United States. Packed isolines mark zones of strong crustal conductivity — fluids, melt, fault damage. Notice where the pins want to land.
           </p>
+
+          {/* Source CTAs — paper + raw data */}
+          <div className="mt-5 sm:mt-7 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 max-w-3xl">
+            <a
+              href="https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2024RG000850"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative overflow-hidden bg-stone-950/70 ring-1 ring-amber-200/25 hover:ring-amber-200/70 hover:bg-stone-900/80 rounded-md px-4 py-3 sm:px-5 sm:py-4 transition-all"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] sm:text-[10px] tracking-[0.22em] text-amber-300/80 mb-1">
+                    READ THE PAPER
+                  </div>
+                  <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[15px] sm:text-[17px] leading-tight">
+                    The United States Magnetotelluric Array
+                    <span className="text-stone-400"> &amp; the National Impedance Map</span>
+                  </div>
+                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[11px] text-stone-500 mt-1">
+                    Kelbert et al., <span className="italic">Reviews of Geophysics</span>, 2026
+                  </div>
+                </div>
+                <div
+                  style={{fontFamily:'JetBrains Mono, monospace'}}
+                  className="text-amber-200/70 text-lg leading-none group-hover:translate-x-1 transition-transform flex-shrink-0"
+                  aria-hidden
+                >
+                  ↗
+                </div>
+              </div>
+            </a>
+
+            <a
+              href="https://ds.iris.edu/ds/products/emtf/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative overflow-hidden bg-stone-950/70 ring-1 ring-amber-200/25 hover:ring-amber-200/70 hover:bg-stone-900/80 rounded-md px-4 py-3 sm:px-5 sm:py-4 transition-all"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] sm:text-[10px] tracking-[0.22em] text-amber-300/80 mb-1">
+                    BROWSE THE RAW DATA
+                  </div>
+                  <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[15px] sm:text-[17px] leading-tight">
+                    EarthScope MT Transfer Functions
+                    <span className="text-stone-400"> · IRIS SPUD</span>
+                  </div>
+                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[11px] text-stone-500 mt-1">
+                    1,700+ stations · XML &amp; EDI downloads
+                  </div>
+                </div>
+                <div
+                  style={{fontFamily:'JetBrains Mono, monospace'}}
+                  className="text-amber-200/70 text-lg leading-none group-hover:translate-x-1 transition-transform flex-shrink-0"
+                  aria-hidden
+                >
+                  ↗
+                </div>
+              </div>
+            </a>
+          </div>
         </div>
 
         {/* Map + depth visuals — side-by-side on desktop, stacked on mobile */}
