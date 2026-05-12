@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import * as d3 from 'd3';
-import { Eye, EyeOff, Info, X, Maximize2, Mountain, ChevronRight } from 'lucide-react';
+import { Eye, EyeOff, Info, X, Maximize2, Mountain, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 
 // Conductivity / gradient anomaly centers — stylized synthesis of features
 // documented in the USMTArray national impedance map (Kelbert et al., 2026).
@@ -1182,7 +1182,15 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
 // Earth-cutaway cross-section drawer: 400-km east-west slice with real geologic
 // layers and a yellow contour line tracing the bottom of the conductive zone.
 function SiteCrossSectionDrawer({ site, onClose }) {
-  const HALF_KM = 200;            // ±200 km swath = 400 km total
+  // Horizontal zoom: 1× = 400 km swath, 2× = 200 km, 4× = 100 km. Affects the
+  // horizontal axis only; depth stays 0–200 km. Zooming re-runs the contour
+  // useMemo with a tighter halfKm, so 121 samples now span the smaller range
+  // (i.e. higher horizontal resolution near the site).
+  const ZOOM_LEVELS = [1, 2, 4];
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const halfKm = 200 / zoomLevel; // ± km from site along the cross-section line
+  const HALF_KM = halfKm;          // kept as an alias so existing references read cleanly
+
   const MAX_DEPTH = 200;          // visible depth in km
   const SKY_KM = 80;              // visible negative-depth (sky) range
   const T = 0.32;                 // conductivity threshold for "conductive zone"
@@ -1265,7 +1273,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
       });
     }
     return { contour: out, resistorContour: resistorOut };
-  }, [site]);
+  }, [site, halfKm]);
 
   const siteContourDepth = useMemo(() => {
     const center = contour[Math.floor(contour.length / 2)];
@@ -1278,7 +1286,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
       if (p.depth >= 0) widthKm += (2 * HALF_KM) / (contour.length - 1);
     }
     return Math.round(widthKm);
-  }, [contour]);
+  }, [contour, HALF_KM]);
 
   // Inputs for the per-site narrative. Beyond the two existing stats above,
   // we also need the deepest conductor sample anywhere in the swath and
@@ -1309,7 +1317,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
       maxDepth: MAX_DEPTH,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contour, resistorContour, siteContourDepth, zoneSurfaceWidth, site]);
+  }, [contour, resistorContour, siteContourDepth, zoneSurfaceWidth, site, HALF_KM]);
 
   // SVG geometry
   const W = 480;
@@ -1381,8 +1389,42 @@ function SiteCrossSectionDrawer({ site, onClose }) {
         </div>
 
         <div className="px-5 sm:px-7 py-5 sm:py-8">
-          <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-amber-300/80 mb-2">
-            CROSS-SECTION · 400 KM E–W
+          <div className="flex items-center justify-between gap-3 mb-2 mr-7 sm:mr-9">
+            <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-amber-300/80">
+              CROSS-SECTION · {Math.round(2 * HALF_KM)} KM E–W
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  const i = ZOOM_LEVELS.indexOf(zoomLevel);
+                  if (i > 0) setZoomLevel(ZOOM_LEVELS[i - 1]);
+                }}
+                disabled={zoomLevel === ZOOM_LEVELS[0]}
+                className="p-1.5 rounded ring-1 ring-stone-700/60 text-stone-300 hover:bg-stone-900 hover:text-stone-100 active:text-stone-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Zoom out"
+                title="Zoom out"
+              >
+                <ZoomOut size={13} />
+              </button>
+              <div
+                style={{fontFamily:'JetBrains Mono, monospace'}}
+                className="text-[10px] tracking-[0.18em] text-stone-400 tabular-nums w-7 text-center"
+              >
+                {zoomLevel}×
+              </div>
+              <button
+                onClick={() => {
+                  const i = ZOOM_LEVELS.indexOf(zoomLevel);
+                  if (i < ZOOM_LEVELS.length - 1) setZoomLevel(ZOOM_LEVELS[i + 1]);
+                }}
+                disabled={zoomLevel === ZOOM_LEVELS[ZOOM_LEVELS.length - 1]}
+                className="p-1.5 rounded ring-1 ring-stone-700/60 text-stone-300 hover:bg-stone-900 hover:text-stone-100 active:text-stone-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                aria-label="Zoom in"
+                title="Zoom in"
+              >
+                <ZoomIn size={13} />
+              </button>
+            </div>
           </div>
           <h2 style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl sm:text-3xl leading-tight text-stone-100">
             {site.name}
@@ -1541,14 +1583,18 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 KM
               </text>
 
-              {/* Distance axis */}
-              {[
-                { km: -200, label: '−200 km', anchor: 'start' },
-                { km: -100, label: '−100',    anchor: 'middle' },
-                { km:    0, label: 'SITE',    anchor: 'middle' },
-                { km:  100, label: '+100',    anchor: 'middle' },
-                { km:  200, label: '+200 km', anchor: 'end' },
-              ].map(t => (
+              {/* Distance axis — scales with zoom */}
+              {(() => {
+                const full = Math.round(HALF_KM);
+                const half = Math.round(HALF_KM / 2);
+                return [
+                  { km: -full, label: `−${full} km`, anchor: 'start' },
+                  { km: -half, label: `−${half}`,    anchor: 'middle' },
+                  { km:     0, label: 'SITE',         anchor: 'middle' },
+                  { km:  half, label: `+${half}`,    anchor: 'middle' },
+                  { km:  full, label: `+${full} km`, anchor: 'end' },
+                ];
+              })().map(t => (
                 <text key={t.km}
                   x={xKmToPx(t.km)}
                   y={H - 14}
