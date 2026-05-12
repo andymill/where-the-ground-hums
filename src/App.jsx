@@ -2093,14 +2093,14 @@ export default function App() {
         {/* Header */}
         <div className="relative mb-4 sm:mb-8">
           <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[9px] sm:text-xs tracking-[0.3em] text-amber-300/70 mb-1.5 sm:mb-2">
-            FIG. 01 · CONDUCTIVITY × DEVOTION
+            An Atlas of Subsurface Conductivity
           </div>
           <h1
             style={{fontFamily:'EB Garamond, serif', fontWeight:400}}
             className="text-[2.2rem] sm:text-6xl md:text-7xl leading-[0.95] tracking-tight text-stone-100"
           >
             Where the<br/>
-            <span style={{fontStyle:'italic'}} className="text-amber-200">ground hums</span>
+            <span style={{fontStyle:'italic', color:'#e894ad'}}>ground hums</span>
           </h1>
           <p style={{fontFamily:'Titillium Web, sans-serif'}} className="mt-2.5 sm:mt-4 max-w-xl text-[13px] sm:text-base text-stone-400 leading-relaxed">
             Sacred American sites laid over the magnetotelluric pulse of the contiguous United States. Packed isolines mark zones of strong crustal conductivity — fluids, melt, fault damage. Notice where the pins want to land.
