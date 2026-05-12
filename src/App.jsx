@@ -1182,11 +1182,11 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
 // Earth-cutaway cross-section drawer: 400-km east-west slice with real geologic
 // layers and a yellow contour line tracing the bottom of the conductive zone.
 function SiteCrossSectionDrawer({ site, onClose }) {
-  // Horizontal zoom: 1× = 400 km swath, 2× = 200 km, 4× = 100 km. Affects the
-  // horizontal axis only; depth stays 0–200 km. Zooming re-runs the contour
-  // useMemo with a tighter halfKm, so 121 samples now span the smaller range
-  // (i.e. higher horizontal resolution near the site).
-  const ZOOM_LEVELS = [1, 2, 4];
+  // Horizontal zoom: 0.5× = 800 km, 1× = 400 km, 2× = 200 km, 4× = 100 km,
+  // 8× = 50 km. Affects the horizontal axis only; depth stays 0–200 km.
+  // Zooming re-runs the contour useMemo with a different halfKm, so 121
+  // samples now span the smaller (or larger) range.
+  const ZOOM_LEVELS = [0.5, 1, 2, 4, 8];
   const [zoomLevel, setZoomLevel] = useState(1);
   const halfKm = 200 / zoomLevel; // ± km from site along the cross-section line
   const HALF_KM = halfKm;          // kept as an alias so existing references read cleanly
@@ -1389,11 +1389,20 @@ function SiteCrossSectionDrawer({ site, onClose }) {
         </div>
 
         <div className="px-5 sm:px-7 py-5 sm:py-8">
-          <div className="flex items-center justify-between gap-3 mb-2 mr-7 sm:mr-9">
-            <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-amber-300/80">
-              CROSS-SECTION · {Math.round(2 * HALF_KM)} KM E–W
-            </div>
-            <div className="flex items-center gap-1">
+          <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-amber-300/80 mb-2 mr-7 sm:mr-9">
+            CROSS-SECTION · {Math.round(2 * HALF_KM)} KM E–W
+          </div>
+          <h2 style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl sm:text-3xl leading-tight text-stone-100">
+            {site.name}
+          </h2>
+          <div style={{fontFamily:'Titillium Web, sans-serif'}} className="mt-1 text-[12.5px] text-stone-400">
+            {site.note}
+          </div>
+
+          {/* Earth cutaway visualization */}
+          <div className="mt-5 -mx-1">
+            {/* Zoom toolbar — sits right above the SVG it controls. */}
+            <div className="flex items-center justify-end gap-1 mb-1.5 px-1">
               <button
                 onClick={() => {
                   const i = ZOOM_LEVELS.indexOf(zoomLevel);
@@ -1408,7 +1417,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
               </button>
               <div
                 style={{fontFamily:'JetBrains Mono, monospace'}}
-                className="text-[10px] tracking-[0.18em] text-stone-400 tabular-nums w-7 text-center"
+                className="text-[10px] tracking-[0.18em] text-stone-400 tabular-nums min-w-[2.5rem] text-center"
               >
                 {zoomLevel}×
               </div>
@@ -1425,16 +1434,6 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 <ZoomIn size={13} />
               </button>
             </div>
-          </div>
-          <h2 style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl sm:text-3xl leading-tight text-stone-100">
-            {site.name}
-          </h2>
-          <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="mt-1 text-[12.5px] text-stone-400">
-            {site.note}
-          </div>
-
-          {/* Earth cutaway visualization */}
-          <div className="mt-5 -mx-1">
             <svg
               viewBox={`0 0 ${W} ${H}`}
               className="block w-full h-auto"
@@ -1628,7 +1627,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                   className="inline-block w-3 h-3 rounded-sm flex-shrink-0"
                   style={{background: l.color}}
                 />
-                <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-300 truncate">
+                <span style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-300 truncate">
                   {l.name}
                 </span>
                 <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500 tabular-nums whitespace-nowrap">
@@ -1641,7 +1640,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 <svg width="20" height="6" className="flex-shrink-0">
                   <line x1="0" y1="3" x2="20" y2="3" stroke="#f4f76f" strokeWidth="2.2" strokeLinecap="round" />
                 </svg>
-                <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-300">
+                <span style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-300">
                   Conductive zone — line at its bottom
                 </span>
                 <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500">
@@ -1652,7 +1651,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 <svg width="20" height="6" className="flex-shrink-0">
                   <line x1="0" y1="3" x2="20" y2="3" stroke="#f4f76f" strokeOpacity="0.65" strokeWidth="1.8" strokeDasharray="5 4" strokeLinecap="round" />
                 </svg>
-                <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-400">
+                <span style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-400">
                   No conductive zone — riding the surface
                 </span>
               </div>
@@ -1661,7 +1660,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                   <rect x="0" y="0" width="20" height="10" fill="#7dd3fc" fillOpacity="0.18" />
                   <line x1="0" y1="1" x2="20" y2="1" stroke="#7dd3fc" strokeWidth="2.2" strokeLinecap="round" />
                 </svg>
-                <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-300">
+                <span style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-300">
                   Resistive body — band fills its depth extent
                 </span>
                 <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500">
@@ -1672,7 +1671,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 <svg width="20" height="10" className="flex-shrink-0">
                   <line x1="0" y1="5" x2="20" y2="5" stroke="#7dd3fc" strokeOpacity="0.60" strokeWidth="1.8" strokeDasharray="5 4" strokeLinecap="round" />
                 </svg>
-                <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-400">
+                <span style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-400">
                   No resistive body — riding the depth floor
                 </span>
               </div>
@@ -1690,7 +1689,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                   ? <>{siteContourDepth}<span className="text-[12px] text-stone-500 ml-1">km deep</span></>
                   : <span className="text-stone-600">— <span className="text-[12px]">no zone</span></span>}
               </div>
-              <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[10.5px] text-stone-500 italic mt-1">
+              <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[10.5px] text-stone-500 italic mt-1">
                 directly below site
               </div>
             </div>
@@ -1703,7 +1702,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                   ? <>{zoneSurfaceWidth}<span className="text-[12px] text-stone-500 ml-1">km wide</span></>
                   : <span className="text-stone-600">— <span className="text-[12px]">no zone</span></span>}
               </div>
-              <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[10.5px] text-stone-500 italic mt-1">
+              <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[10.5px] text-stone-500 italic mt-1">
                 across the swath
               </div>
             </div>
@@ -1711,7 +1710,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
 
           {/* Reading guide */}
           <div
-            style={{fontFamily:'IBM Plex Sans, sans-serif'}}
+            style={{fontFamily:'Titillium Web, sans-serif'}}
             className="mt-5 text-[12.5px] text-stone-300 leading-relaxed border-l-2 border-amber-300/30 pl-3"
           >
             {narrative}
@@ -2103,7 +2102,7 @@ export default function App() {
             Where the<br/>
             <span style={{fontStyle:'italic'}} className="text-amber-200">ground hums</span>
           </h1>
-          <p style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="mt-2.5 sm:mt-4 max-w-xl text-[13px] sm:text-base text-stone-400 leading-relaxed">
+          <p style={{fontFamily:'Titillium Web, sans-serif'}} className="mt-2.5 sm:mt-4 max-w-xl text-[13px] sm:text-base text-stone-400 leading-relaxed">
             Sacred American sites laid over the magnetotelluric pulse of the contiguous United States. Packed isolines mark zones of strong crustal conductivity — fluids, melt, fault damage. Notice where the pins want to land.
           </p>
         </div>
@@ -2115,7 +2114,7 @@ export default function App() {
           <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.28em] text-amber-300/70 mb-2 sm:mb-3">
             READING THE GROUND
           </div>
-          <p style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[13.5px] sm:text-[15.5px] text-stone-300 leading-relaxed">
+          <p style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[13.5px] sm:text-[15.5px] text-stone-300 leading-relaxed">
             You&rsquo;re looking at the United States rendered as an electrical body. Hot, wet, fractured rock &mdash; magma chambers, fault damage, fluid-bearing scars &mdash; passes electrical current easily; those zones glow as <span className="text-amber-200">yellow contours</span> on the map, and the <span className="text-amber-200">yellow line</span> in each depth chart traces how far down the conductive rock reaches, sometimes 5&nbsp;km, sometimes 200. Old, cold igneous rock blocks current. Those zones appear as <span className="text-sky-300">cyan dashed contours</span> along the East Coast, where a Pangaea-era slab runs from Maine to Georgia; the <span className="text-sky-300">cyan band</span> in each depth chart fills its depth extent. At their most concentrated centers, these features don&rsquo;t stay shallow &mdash; they thread down through the crust into the deep mantle, tying the surface to the same interior that moves continents and feeds volcanoes. Yellow is where the Earth conducts. Cyan is where it doesn&rsquo;t.
           </p>
         </div>
@@ -2642,7 +2641,7 @@ export default function App() {
               <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.22em] text-amber-300/70">
                 LIVE BENEATH CURSOR
               </div>
-              <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-500 mt-0.5">
+              <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-500 mt-0.5">
                 {cursor ? (
                   <>
                     <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-stone-400 tabular-nums">
@@ -2816,7 +2815,7 @@ export default function App() {
                   <h2 style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl sm:text-3xl leading-tight text-stone-100">
                     {selectedPOI.label}
                   </h2>
-                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="mt-1 text-[12.5px] text-sky-200/80 italic">
+                  <div style={{fontFamily:'Titillium Web, sans-serif'}} className="mt-1 text-[12.5px] text-sky-200/80 italic">
                     {profile.signature}
                   </div>
 
@@ -2904,7 +2903,7 @@ export default function App() {
                     </div>
 
                     {/* Layer labels */}
-                    <div className="flex-1 relative" style={{height: chartH, fontFamily:'IBM Plex Sans, sans-serif'}}>
+                    <div className="flex-1 relative" style={{height: chartH, fontFamily:'Titillium Web, sans-serif'}}>
                       {profile.layers.map((l, i) => {
                         const y = depthToY(l.topKm);
                         const h = depthToY(l.botKm) - y;
@@ -2938,7 +2937,7 @@ export default function App() {
 
                   {/* Note */}
                   <div
-                    style={{fontFamily:'IBM Plex Sans, sans-serif'}}
+                    style={{fontFamily:'Titillium Web, sans-serif'}}
                     className="mt-5 text-[13px] text-stone-300 leading-relaxed border-l-2 border-sky-400/30 pl-3"
                   >
                     {profile.note}
@@ -2960,7 +2959,7 @@ export default function App() {
                                 <div style={{fontFamily:'Fraunces, serif'}} className="text-[14px] text-stone-100 leading-tight">
                                   {s.name}
                                 </div>
-                                <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[11px] text-stone-500 mt-0.5">
+                                <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[11px] text-stone-500 mt-0.5">
                                   {s.note}
                                 </div>
                               </div>
@@ -3011,7 +3010,7 @@ export default function App() {
                     The United States Magnetotelluric Array
                     <span className="text-stone-400"> &amp; the National Impedance Map</span>
                   </div>
-                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] sm:text-[13px] text-stone-500 mt-2">
+                  <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] sm:text-[13px] text-stone-500 mt-2">
                     Kelbert et al., <span className="italic">Reviews of Geophysics</span>, 2026
                   </div>
                 </div>
@@ -3040,7 +3039,7 @@ export default function App() {
                     EarthScope MT Transfer Functions
                     <span className="text-stone-400"> · IRIS SPUD</span>
                   </div>
-                  <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] sm:text-[13px] text-stone-500 mt-2">
+                  <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] sm:text-[13px] text-stone-500 mt-2">
                     1,700+ stations · XML &amp; EDI downloads
                   </div>
                 </div>
@@ -3078,7 +3077,7 @@ export default function App() {
               <h2 style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl sm:text-3xl mb-4 leading-tight">
                 What you're <span style={{fontStyle:'italic'}}>looking at</span>
               </h2>
-              <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="space-y-3 text-sm text-stone-300 leading-relaxed">
+              <div style={{fontFamily:'Titillium Web, sans-serif'}} className="space-y-3 text-sm text-stone-300 leading-relaxed">
                 <p>
                   The contour field is a stylized synthesis of crustal-conductivity features documented in the USMTArray national impedance map (Kelbert et al., 2026, <span style={{fontFamily:'JetBrains Mono'}} className="text-[12px] text-amber-200/85">Reviews of Geophysics</span>) — Yellowstone, the Cascade arc, Long Valley, the Salton Trough, the Rio Grande Rift, the Mid-Continent Rift, the Appalachian conductivity anomaly, the Connecticut Valley Mesozoic rift, and others. It approximates published anomaly geometry rather than displaying raw station impedances.
                 </p>

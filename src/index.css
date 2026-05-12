@@ -10,7 +10,7 @@ body,
 }
 
 body {
-  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  font-family: "Titillium Web", system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
