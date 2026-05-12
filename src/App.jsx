@@ -830,6 +830,81 @@ function buildBandPath(points, floorKm, xKmToPx, depthToPx) {
   return d;
 }
 
+// Rough regional descriptor used to add geographic flavor to the narrative.
+// Not exact tectonic provinces — just enough variation so two quiet sites
+// in different parts of the country don't read identically.
+function regionFor(lat, lng) {
+  if (lng < -119 && lat >= 40)   return 'the Pacific Northwest';
+  if (lng < -119)                return 'coastal California';
+  if (lng < -114 && lat >= 37)   return 'the Great Basin';
+  if (lng < -114)                return 'the Mojave / desert Southwest';
+  if (lng < -109 && lat >= 41)   return 'the Northern Rockies';
+  if (lng < -109)                return 'the Colorado Plateau';
+  if (lng < -103 && lat >= 41)   return 'the Northern Plains';
+  if (lng < -103)                return 'the Southern Rockies and high desert';
+  if (lng < -97)                 return 'the Great Plains';
+  if (lng < -89)                 return 'the heart of the craton';
+  if (lng < -82)                 return 'the mid-South';
+  if (lat >= 42)                 return 'northern New England';
+  if (lat >= 38)                 return 'the Appalachian foothills';
+  return 'the Southeast';
+}
+
+// Compose a 2–3 sentence per-site narrative from the actual cross-section
+// data plus a regional descriptor. Two halves: a conductor sentence (what
+// yellow tells us) and a resistor sentence (what cyan tells us). Different
+// sites with different signal patterns hit different sentence shapes.
+function getSiteNarrative({
+  site,
+  conductorCenterDepth,    // depth (km) of conductor at site center; 0 if absent
+  conductorMaxDepth,        // deepest conductor sample anywhere in swath
+  conductorOffsetKm,        // signed km from center where deepest sample occurs
+  conductorWidthKm,         // total swath km where conductor is real
+  resistorTop,              // top depth (km) of resistor at site center; null if absent
+  resistorWidthKm,          // total swath km where resistor is real
+  maxDepth,                 // chart floor in km
+}) {
+  const region = regionFor(site.lat, site.lng);
+
+  // Conductor half
+  let cond;
+  if (conductorCenterDepth >= 150) {
+    const tail = conductorMaxDepth >= maxDepth - 4
+      ? `the body continues past the visible 200 km — magma, hot fluids, or partial melt threading from upper crust into the mantle`
+      : `the body bottoms out in the lower crust or upper mantle, fed by fluids or melt`;
+    cond = `A strong conductor sits directly beneath ${site.name}: the yellow line reaches ${conductorCenterDepth} km deep, and ${tail}.`;
+  } else if (conductorCenterDepth >= 30) {
+    cond = `A moderate conductor reaches ${conductorCenterDepth} km below the site — shallow enough to live in the crust, not deep enough to tap the mantle directly.`;
+  } else if (conductorCenterDepth > 0) {
+    cond = `A faint conductor sits ${conductorCenterDepth} km below the site — barely above threshold, mostly hovering near the surface.`;
+  } else if (conductorWidthKm >= 60) {
+    const dir = conductorOffsetKm > 30 ? 'east' : conductorOffsetKm < -30 ? 'west' : 'just off-center';
+    cond = `Nothing conductive directly below, but the slice catches a ${conductorWidthKm}-km stretch of conductive crust ${dir} of the site — yellow dips to ${Math.round(conductorMaxDepth)} km at its peak.`;
+  } else if (conductorWidthKm > 0) {
+    cond = `Almost no conductor in this 400-km slice — a sliver grazes the swath edge, but the rock right below ${site.name} is electrically quiet.`;
+  } else {
+    cond = `Nothing conductive anywhere in this 400-km slice — quiet, old rock typical of ${region}.`;
+  }
+
+  // Resistor half
+  let res;
+  if (resistorTop !== null && resistorTop <= 12) {
+    res = `Cyan fills the column: ${site.name} sits squarely on the Piedmont Resistor, a Pangaea-era slab of frozen igneous basement whose top edge is just ${resistorTop} km below the surface.`;
+  } else if (resistorTop !== null && resistorTop <= 40) {
+    res = `The cyan band starts ${resistorTop} km down — you're inside the Piedmont Resistor, but near its margin where the slab top dips below the upper crust.`;
+  } else if (resistorTop !== null) {
+    res = `The cyan band only kicks in at ${resistorTop} km below the surface — you're at the deep edge of the Piedmont Resistor.`;
+  } else if (resistorWidthKm > 50) {
+    res = `No resistor below the site itself, but cyan brackets the swath on one side — you're just outside the Piedmont Resistor's main body.`;
+  } else if (resistorWidthKm > 0) {
+    res = `A trace of resistor on the swath edge — Piedmont rock is somewhere east of here, but not under ${site.name}.`;
+  } else {
+    res = `No Pangaea-era slab below — the resistor is an East Coast feature, and ${site.name} is in ${region}.`;
+  }
+
+  return cond + ' ' + res;
+}
+
 function segmentsToPaths(segments, xKmToPx, depthToPx) {
   let solidD = '';
   let dashedD = '';
@@ -1205,6 +1280,37 @@ function SiteCrossSectionDrawer({ site, onClose }) {
     return Math.round(widthKm);
   }, [contour]);
 
+  // Inputs for the per-site narrative. Beyond the two existing stats above,
+  // we also need the deepest conductor sample anywhere in the swath and
+  // where it occurs, plus the resistor's situation under the site.
+  const narrative = useMemo(() => {
+    let conductorMaxDepth = 0;
+    let conductorOffsetKm = 0;
+    for (const p of contour) {
+      if (p.depth > conductorMaxDepth) {
+        conductorMaxDepth = p.depth;
+        conductorOffsetKm = p.xKm;
+      }
+    }
+    const resCenter = resistorContour[Math.floor(resistorContour.length / 2)];
+    const resistorTop = resCenter.depth <= MAX_DEPTH ? Math.round(resCenter.depth) : null;
+    let resistorWidthKm = 0;
+    for (const p of resistorContour) {
+      if (p.depth <= MAX_DEPTH) resistorWidthKm += (2 * HALF_KM) / (resistorContour.length - 1);
+    }
+    return getSiteNarrative({
+      site,
+      conductorCenterDepth: siteContourDepth,
+      conductorMaxDepth: Math.max(0, conductorMaxDepth),
+      conductorOffsetKm,
+      conductorWidthKm: zoneSurfaceWidth,
+      resistorTop,
+      resistorWidthKm: Math.round(resistorWidthKm),
+      maxDepth: MAX_DEPTH,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contour, resistorContour, siteContourDepth, zoneSurfaceWidth, site]);
+
   // SVG geometry
   const W = 480;
   const H = 320;
@@ -1534,7 +1640,9 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 ZONE REACHES
               </div>
               <div style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl text-amber-200 tabular-nums leading-none">
-                {siteContourDepth}<span className="text-[12px] text-stone-500 ml-1">km deep</span>
+                {siteContourDepth > 0
+                  ? <>{siteContourDepth}<span className="text-[12px] text-stone-500 ml-1">km deep</span></>
+                  : <span className="text-stone-600">— <span className="text-[12px]">no zone</span></span>}
               </div>
               <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[10.5px] text-stone-500 italic mt-1">
                 directly below site
@@ -1545,7 +1653,9 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 ZONE WIDTH
               </div>
               <div style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl text-amber-200 tabular-nums leading-none">
-                {zoneSurfaceWidth}<span className="text-[12px] text-stone-500 ml-1">km wide</span>
+                {zoneSurfaceWidth > 0
+                  ? <>{zoneSurfaceWidth}<span className="text-[12px] text-stone-500 ml-1">km wide</span></>
+                  : <span className="text-stone-600">— <span className="text-[12px]">no zone</span></span>}
               </div>
               <div style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[10.5px] text-stone-500 italic mt-1">
                 across the swath
@@ -1556,14 +1666,9 @@ function SiteCrossSectionDrawer({ site, onClose }) {
           {/* Reading guide */}
           <div
             style={{fontFamily:'IBM Plex Sans, sans-serif'}}
-            className="mt-5 text-[12.5px] text-stone-400 leading-relaxed border-l-2 border-amber-300/30 pl-3 space-y-2"
+            className="mt-5 text-[12.5px] text-stone-300 leading-relaxed border-l-2 border-amber-300/30 pl-3"
           >
-            <p>
-              A 400-km slice straight through Earth, west to east, with {site.name} centered on the dashed line. Real geologic layers fill the cutaway: green soil, brown crust to the Moho at 38 km, deep-red rigid mantle to the Lithosphere–Asthenosphere Boundary at 100 km, then hot ductile asthenosphere fading to peach. The yellow line traces the bottom of the conductive zone — solid where it bottoms out at real depth (fluids, melt, fault damage, or graphite), dashed and riding the surface where there's no conductive zone at all.
-            </p>
-            <p className="text-stone-300">
-              The cyan band is the Piedmont Resistor — a buried Pangaea-era fragment of igneous basement along the eastern seaboard. Its top edge traces where the body starts; the band fills its full depth extent. (The body continues past the visible 200&nbsp;km — the band anchors to the chart floor where it does.) Together, the yellow conductor line and the cyan resistor body tell the East Coast's two-layer story: rock that blocks current sitting alongside ancient fluid-bearing scars.
-            </p>
+            {narrative}
           </div>
 
           <div
@@ -1954,6 +2059,18 @@ export default function App() {
           </h1>
           <p style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="mt-2.5 sm:mt-4 max-w-xl text-[13px] sm:text-base text-stone-400 leading-relaxed">
             Sacred American sites laid over the magnetotelluric pulse of the contiguous United States. Packed isolines mark zones of strong crustal conductivity — fluids, melt, fault damage. Notice where the pins want to land.
+          </p>
+        </div>
+
+        {/* Plain-English explainer — what the colors mean, how deep they go,
+            why they matter. Sits between the hero and the visualization so a
+            new reader knows what to look for. */}
+        <div className="mb-6 sm:mb-10 max-w-2xl">
+          <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.28em] text-amber-300/70 mb-2 sm:mb-3">
+            READING THE GROUND
+          </div>
+          <p style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[13.5px] sm:text-[15.5px] text-stone-300 leading-relaxed">
+            You&rsquo;re looking at the United States rendered as an electrical body. Hot, wet, fractured rock &mdash; magma chambers, fault damage, fluid-bearing scars &mdash; passes electrical current easily; those zones glow as <span className="text-amber-200">yellow contours</span> on the map, and the <span className="text-amber-200">yellow line</span> in each depth chart traces how far down the conductive rock reaches, sometimes 5&nbsp;km, sometimes 200. Old, cold igneous rock blocks current. Those zones appear as <span className="text-sky-300">cyan dashed contours</span> along the East Coast, where a Pangaea-era slab runs from Maine to Georgia; the <span className="text-sky-300">cyan band</span> in each depth chart fills its depth extent. At their most concentrated centers, these features don&rsquo;t stay shallow &mdash; they thread down through the crust into the deep mantle, tying the surface to the same interior that moves continents and feeds volcanoes. Yellow is where the Earth conducts. Cyan is where it doesn&rsquo;t.
           </p>
         </div>
 
@@ -2921,9 +3038,6 @@ export default function App() {
                 </p>
                 <p>
                   The dashed cyan band along the East Coast is the <span className="text-sky-200/90">Piedmont Resistor</span> — a Pangaea-era fragment of igneous basement, the same array's other signature find. Cream contours mark where rock <em>passes</em> current; cyan contours mark where it <em>blocks</em> current. In the cross-section drawer, the yellow line traces the bottom of conductive zones and the cyan band fills the depth extent of the resistor.
-                </p>
-                <p>
-                  <span className="text-amber-200/90">Yellowstone vs. Brattleboro</span> tells the story in one comparison. Yellowstone sits on an active mantle plume — molten rock, hot fluids, melt from upper crust into the mantle. Wet and hot conducts electricity: the yellow line plunges deep, the cyan band is empty (no Pangaea-era slab here). Brattleboro is the inverse — a ~200 Ma fragment of igneous basement that froze in place during the Pangaea breakup and now blocks current. The cyan band fills the column. But Brattleboro also sits on a Mesozoic rift basin with ancient fluid-bearing scars in the mantle below, so the yellow line dips into the mantle too. One place where the Earth still <em>hums</em>; one place where the Earth <em>remembers</em>.
                 </p>
                 <p>
                   Each pin's halo grows with the underlying field. Sites on quiet cratonic crust glow softly; sites on geologically active zones flare bright. Where contour lines pack tightly, conductivity rises steeply.
