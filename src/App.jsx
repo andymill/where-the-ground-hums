@@ -1028,10 +1028,10 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
   return (
     <div className="bg-stone-950/60 ring-1 ring-stone-800/60 rounded p-2.5 sm:p-3">
       <div className="flex items-baseline justify-between mb-1.5">
-        <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] tracking-[0.22em] text-amber-300/70">
+        <span style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[9px] tracking-[0.22em] text-amber-300/70">
           {axisLabel}
         </span>
-        <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] text-stone-600 tabular-nums">
+        <span style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[9px] text-stone-600 tabular-nums">
           ±200 km
         </span>
       </div>
@@ -1126,12 +1126,12 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
             x={PAD_LEFT - 4}
             y={depthToPx(km) + 3}
             textAnchor="end"
-            style={{fontFamily:'JetBrains Mono, monospace', fontSize:'8px', fill:'#9ca3af'}}
+            style={{fontFamily:'IBM Plex Mono, monospace', fontSize:'8px', fill:'#9ca3af'}}
           >{km}</text>
         ))}
 
         {/* Layer name labels — anchored to the right edge of each band */}
-        <g style={{fontFamily:'JetBrains Mono, monospace', letterSpacing:'0.14em'}}>
+        <g style={{fontFamily:'IBM Plex Mono, monospace', letterSpacing:'0.14em'}}>
           <text
             x={PAD_LEFT + cw - 5}
             y={(surfaceBotY + mohoY) / 2 + 3}
@@ -1153,7 +1153,7 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
         </g>
 
         {/* Boundary labels — pinned just above the Moho and LAB dashed lines */}
-        <g style={{fontFamily:'JetBrains Mono, monospace', letterSpacing:'0.16em'}}>
+        <g style={{fontFamily:'IBM Plex Mono, monospace', letterSpacing:'0.16em'}}>
           <text
             x={PAD_LEFT + 4}
             y={mohoY - 2.5}
@@ -1171,7 +1171,7 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
           x={PAD_LEFT - 4}
           y={H - 4}
           textAnchor="end"
-          style={{fontFamily:'JetBrains Mono, monospace', fontSize:'7px', fill:'#6b6258', letterSpacing:'0.12em'}}
+          style={{fontFamily:'IBM Plex Mono, monospace', fontSize:'7px', fill:'#6b6258', letterSpacing:'0.12em'}}
         >KM</text>
       </svg>
     </div>
@@ -1389,10 +1389,10 @@ function SiteCrossSectionDrawer({ site, onClose }) {
         </div>
 
         <div className="px-5 sm:px-7 py-5 sm:py-8">
-          <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-amber-300/80 mb-2 mr-7 sm:mr-9">
+          <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-amber-300/80 mb-2 mr-7 sm:mr-9">
             CROSS-SECTION · {Math.round(2 * HALF_KM)} KM E–W
           </div>
-          <h2 style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl sm:text-3xl leading-tight text-stone-100">
+          <h2 style={{fontFamily:'EB Garamond, serif', fontWeight:400}} className="text-2xl sm:text-3xl leading-tight text-stone-100">
             {site.name}
           </h2>
           <div style={{fontFamily:'Titillium Web, sans-serif'}} className="mt-1 text-[12.5px] text-stone-400">
@@ -1416,7 +1416,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 <ZoomOut size={13} />
               </button>
               <div
-                style={{fontFamily:'JetBrains Mono, monospace'}}
+                style={{fontFamily:'IBM Plex Mono, monospace'}}
                 className="text-[10px] tracking-[0.18em] text-stone-400 tabular-nums min-w-[2.5rem] text-center"
               >
                 {zoomLevel}×
@@ -1547,18 +1547,18 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 x={xKmToPx(0)}
                 y={PAD_TOP + 24}
                 textAnchor="middle"
-                style={{fontFamily:'Fraunces, serif', fontStyle:'italic', fontSize:'18px', fill:'#fef9e7'}}
+                style={{fontFamily:'Titillium Web, sans-serif', fontStyle:'italic', fontSize:'18px', fill:'#fef9e7'}}
               >
                 {site.name}
               </text>
 
               {/* Boundary callouts */}
               <text x={PAD_LEFT + 4} y={mohoY - 3}
-                style={{fontFamily:'JetBrains Mono, monospace', fontSize:'7.5px', fill:'#fcd34d', letterSpacing:'0.18em', fillOpacity:0.85}}>
+                style={{fontFamily:'IBM Plex Mono, monospace', fontSize:'7.5px', fill:'#fcd34d', letterSpacing:'0.18em', fillOpacity:0.85}}>
                 — MOHO
               </text>
               <text x={PAD_LEFT + 4} y={labY - 3}
-                style={{fontFamily:'JetBrains Mono, monospace', fontSize:'7.5px', fill:'#fcd34d', letterSpacing:'0.18em', fillOpacity:0.6}}>
+                style={{fontFamily:'IBM Plex Mono, monospace', fontSize:'7.5px', fill:'#fcd34d', letterSpacing:'0.18em', fillOpacity:0.6}}>
                 — LAB
               </text>
 
@@ -1568,7 +1568,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                   x={PAD_LEFT - 6}
                   y={depthToPx(km) + 3}
                   textAnchor="end"
-                  style={{fontFamily:'JetBrains Mono, monospace', fontSize:'9px', fill:'#9ca3af'}}
+                  style={{fontFamily:'IBM Plex Mono, monospace', fontSize:'9px', fill:'#9ca3af'}}
                 >
                   {km}
                 </text>
@@ -1577,7 +1577,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 x={PAD_LEFT - 6}
                 y={depthToPx(-SKY_KM) + 14}
                 textAnchor="end"
-                style={{fontFamily:'JetBrains Mono, monospace', fontSize:'7.5px', fill:'#6b7280', letterSpacing:'0.18em'}}
+                style={{fontFamily:'IBM Plex Mono, monospace', fontSize:'7.5px', fill:'#6b7280', letterSpacing:'0.18em'}}
               >
                 KM
               </text>
@@ -1599,7 +1599,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                   y={H - 14}
                   textAnchor={t.anchor}
                   style={{
-                    fontFamily:'JetBrains Mono, monospace',
+                    fontFamily:'IBM Plex Mono, monospace',
                     fontSize:'9px',
                     fill: t.km === 0 ? '#fbbf24' : '#9ca3af',
                     letterSpacing: t.km === 0 ? '0.18em' : 0,
@@ -1609,11 +1609,11 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 </text>
               ))}
               <text x={PAD_LEFT}      y={H - 2} textAnchor="start"
-                style={{fontFamily:'JetBrains Mono, monospace', fontSize:'7.5px', fill:'#6b7280', letterSpacing:'0.2em'}}>
+                style={{fontFamily:'IBM Plex Mono, monospace', fontSize:'7.5px', fill:'#6b7280', letterSpacing:'0.2em'}}>
                 WEST
               </text>
               <text x={PAD_LEFT + cw} y={H - 2} textAnchor="end"
-                style={{fontFamily:'JetBrains Mono, monospace', fontSize:'7.5px', fill:'#6b7280', letterSpacing:'0.2em'}}>
+                style={{fontFamily:'IBM Plex Mono, monospace', fontSize:'7.5px', fill:'#6b7280', letterSpacing:'0.2em'}}>
                 EAST
               </text>
             </svg>
@@ -1630,7 +1630,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 <span style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-300 truncate">
                   {l.name}
                 </span>
-                <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500 tabular-nums whitespace-nowrap">
+                <span style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] text-stone-500 tabular-nums whitespace-nowrap">
                   {l.range}
                 </span>
               </div>
@@ -1643,7 +1643,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 <span style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-300">
                   Conductive zone — line at its bottom
                 </span>
-                <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500">
+                <span style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] text-stone-500">
                   · σ ≥ {Math.round(T * 100)}
                 </span>
               </div>
@@ -1663,7 +1663,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 <span style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-300">
                   Resistive body — band fills its depth extent
                 </span>
-                <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500">
+                <span style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] text-stone-500">
                   · ρ ≥ {Math.round(T * 100)}
                 </span>
               </div>
@@ -1681,10 +1681,10 @@ function SiteCrossSectionDrawer({ site, onClose }) {
           {/* Headline metrics */}
           <div className="mt-5 grid grid-cols-2 gap-3">
             <div className="bg-stone-950/70 ring-1 ring-stone-800/70 rounded p-3">
-              <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] tracking-[0.18em] text-stone-500 mb-1">
+              <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[9px] tracking-[0.18em] text-stone-500 mb-1">
                 ZONE REACHES
               </div>
-              <div style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl text-amber-200 tabular-nums leading-none">
+              <div style={{fontFamily:'EB Garamond, serif', fontWeight:400}} className="text-2xl text-amber-200 tabular-nums leading-none">
                 {siteContourDepth > 0
                   ? <>{siteContourDepth}<span className="text-[12px] text-stone-500 ml-1">km deep</span></>
                   : <span className="text-stone-600">— <span className="text-[12px]">no zone</span></span>}
@@ -1694,10 +1694,10 @@ function SiteCrossSectionDrawer({ site, onClose }) {
               </div>
             </div>
             <div className="bg-stone-950/70 ring-1 ring-stone-800/70 rounded p-3">
-              <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] tracking-[0.18em] text-stone-500 mb-1">
+              <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[9px] tracking-[0.18em] text-stone-500 mb-1">
                 ZONE WIDTH
               </div>
-              <div style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl text-amber-200 tabular-nums leading-none">
+              <div style={{fontFamily:'EB Garamond, serif', fontWeight:400}} className="text-2xl text-amber-200 tabular-nums leading-none">
                 {zoneSurfaceWidth > 0
                   ? <>{zoneSurfaceWidth}<span className="text-[12px] text-stone-500 ml-1">km wide</span></>
                   : <span className="text-stone-600">— <span className="text-[12px]">no zone</span></span>}
@@ -1717,7 +1717,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
           </div>
 
           <div
-            style={{fontFamily:'JetBrains Mono, monospace'}}
+            style={{fontFamily:'IBM Plex Mono, monospace'}}
             className="mt-6 pt-4 border-t border-stone-800/80 text-[9.5px] tracking-wider text-stone-600 leading-relaxed"
           >
             STYLIZED CROSS-SECTION · DEPTHS SYNTHESIZED FROM USMTARRAY LITERATURE · LAYERS AT REAL CONTINENTAL AVERAGES
@@ -2064,9 +2064,9 @@ export default function App() {
   }, [cursor, projection]);
 
   return (
-    <div className="min-h-screen w-full bg-black text-stone-200 overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[var(--ink)] text-stone-200 overflow-x-hidden">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300;1,9..144,500&family=JetBrains+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Titillium+Web:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
         @keyframes pulse-scale {
           0%, 100% { transform: scale(1); }
           50%      { transform: scale(1.18); }
@@ -2092,11 +2092,11 @@ export default function App() {
 
         {/* Header */}
         <div className="relative mb-4 sm:mb-8">
-          <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] sm:text-xs tracking-[0.3em] text-amber-300/70 mb-1.5 sm:mb-2">
+          <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[9px] sm:text-xs tracking-[0.3em] text-amber-300/70 mb-1.5 sm:mb-2">
             FIG. 01 · CONDUCTIVITY × DEVOTION
           </div>
           <h1
-            style={{fontFamily:'Fraunces, serif', fontWeight:300}}
+            style={{fontFamily:'EB Garamond, serif', fontWeight:400}}
             className="text-[2.2rem] sm:text-6xl md:text-7xl leading-[0.95] tracking-tight text-stone-100"
           >
             Where the<br/>
@@ -2111,7 +2111,7 @@ export default function App() {
             why they matter. Sits between the hero and the visualization so a
             new reader knows what to look for. */}
         <div className="mb-6 sm:mb-10 max-w-2xl">
-          <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.28em] text-amber-300/70 mb-2 sm:mb-3">
+          <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.28em] text-amber-300/70 mb-2 sm:mb-3">
             READING THE GROUND
           </div>
           <p style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[13.5px] sm:text-[15.5px] text-stone-300 leading-relaxed">
@@ -2131,7 +2131,7 @@ export default function App() {
           {/* TOP BAR — toggles, about, reset */}
           <div className="flex items-center gap-1.5 px-2 sm:px-3 py-2 bg-stone-950/80 border-b border-stone-800/60">
             <span
-              style={{fontFamily:'JetBrains Mono, monospace'}}
+              style={{fontFamily:'IBM Plex Mono, monospace'}}
               className="text-[9px] tracking-[0.22em] text-stone-500 mr-auto hidden md:inline-block"
             >
               UNITED STATES · MT FIELD
@@ -2148,7 +2148,7 @@ export default function App() {
                 key={c.label}
                 onClick={(e) => { e.stopPropagation(); c.set(v => !v); }}
                 className="px-2 py-1.5 rounded ring-1 ring-stone-700/60 text-[10px] tracking-[0.18em] text-stone-300 hover:bg-stone-900 hover:text-stone-100 active:text-stone-100 transition-colors flex items-center gap-1.5"
-                style={{fontFamily:'JetBrains Mono, monospace'}}
+                style={{fontFamily:'IBM Plex Mono, monospace'}}
                 aria-label={c.label}
               >
                 {c.state ? <Eye size={12} /> : <EyeOff size={12} />}
@@ -2158,7 +2158,7 @@ export default function App() {
             <button
               onClick={(e) => { e.stopPropagation(); setShowInfo(true); }}
               className="px-2 py-1.5 rounded ring-1 ring-stone-700/60 text-[10px] tracking-[0.18em] text-stone-300 hover:bg-stone-900 hover:text-stone-100 active:text-stone-100 transition-colors flex items-center gap-1.5"
-              style={{fontFamily:'JetBrains Mono, monospace'}}
+              style={{fontFamily:'IBM Plex Mono, monospace'}}
               aria-label="About"
             >
               <Info size={12} />
@@ -2168,7 +2168,7 @@ export default function App() {
               <button
                 onClick={(e) => { e.stopPropagation(); resetZoom(); }}
                 className="px-2 py-1.5 rounded bg-amber-200/15 ring-1 ring-amber-200/40 text-[10px] tracking-[0.18em] text-amber-100 hover:bg-amber-200/25 active:bg-amber-200/30 transition-colors flex items-center gap-1.5"
-                style={{fontFamily:'JetBrains Mono, monospace'}}
+                style={{fontFamily:'IBM Plex Mono, monospace'}}
                 aria-label="Reset zoom"
               >
                 <Maximize2 size={12} />
@@ -2345,7 +2345,7 @@ export default function App() {
                     y={p.y + 3}
                     textAnchor={anchor}
                     style={{
-                      fontFamily: 'JetBrains Mono, monospace',
+                      fontFamily: 'IBM Plex Mono, monospace',
                       fontSize: '10.625px',
                       letterSpacing: '0.06em',
                       fill: '#000',
@@ -2363,7 +2363,7 @@ export default function App() {
                     y={p.y + 3}
                     textAnchor={anchor}
                     style={{
-                      fontFamily: 'JetBrains Mono, monospace',
+                      fontFamily: 'IBM Plex Mono, monospace',
                       fontSize: '10.625px',
                       letterSpacing: '0.06em',
                       fill: '#bae6fd',
@@ -2497,7 +2497,7 @@ export default function App() {
                   className="backdrop-blur-md bg-black/85 ring-1 ring-amber-200/25 rounded overflow-hidden"
                   style={{
                     boxShadow: '0 10px 40px -10px rgba(255,200,100,0.30)',
-                    fontFamily: 'IBM Plex Sans, sans-serif'
+                    fontFamily: 'Titillium Web, sans-serif'
                   }}
                 >
                   {SITE_IMAGES[activeSite.name] && (
@@ -2513,7 +2513,7 @@ export default function App() {
                     </div>
                   )}
                   <div className="px-3 py-2.5">
-                  <div style={{fontFamily:'Fraunces, serif', fontWeight:500}} className="text-stone-100 text-base leading-tight">
+                  <div style={{fontFamily:'Titillium Web, sans-serif', fontWeight:500}} className="text-stone-100 text-base leading-tight">
                     {activeSite.name}
                   </div>
                   <div className="text-stone-400 text-[11.5px] mt-1 leading-snug">{activeSite.note}</div>
@@ -2527,7 +2527,7 @@ export default function App() {
                         }}
                       />
                     </div>
-                    <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-amber-200/85 tabular-nums">
+                    <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] text-amber-200/85 tabular-nums">
                       {fieldPct.toString().padStart(2, '0')}
                     </div>
                   </div>
@@ -2546,7 +2546,7 @@ export default function App() {
                   className="backdrop-blur-md bg-black/85 ring-1 ring-amber-200/25 px-3.5 py-3 rounded"
                   style={{
                     boxShadow: '0 10px 40px -10px rgba(255,200,100,0.30)',
-                    fontFamily: 'IBM Plex Sans, sans-serif'
+                    fontFamily: 'Titillium Web, sans-serif'
                   }}
                 >
                   <div className="flex items-start gap-3">
@@ -2562,7 +2562,7 @@ export default function App() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <div style={{fontFamily:'Fraunces, serif', fontWeight:500}} className="text-stone-100 text-base leading-tight">
+                      <div style={{fontFamily:'Titillium Web, sans-serif', fontWeight:500}} className="text-stone-100 text-base leading-tight">
                         {activeSite.name}
                       </div>
                       <div className="text-stone-400 text-[12px] mt-1 leading-snug">{activeSite.note}</div>
@@ -2576,7 +2576,7 @@ export default function App() {
                             }}
                           />
                         </div>
-                        <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-amber-200/85 tabular-nums">
+                        <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] text-amber-200/85 tabular-nums">
                           {fieldPct.toString().padStart(2, '0')}
                         </div>
                       </div>
@@ -2600,13 +2600,13 @@ export default function App() {
           {/* BOTTOM BAR — full-width legend */}
           <div className="flex items-center gap-2 sm:gap-3 px-3 py-2 bg-stone-950/80 border-t border-stone-800/60">
             <span
-              style={{fontFamily:'JetBrains Mono, monospace'}}
+              style={{fontFamily:'IBM Plex Mono, monospace'}}
               className="text-[9px] tracking-[0.22em] text-stone-500 hidden md:inline-block"
             >
               ISOLINES · DENSITY = INTENSITY
             </span>
             <span
-              style={{fontFamily:'JetBrains Mono, monospace'}}
+              style={{fontFamily:'IBM Plex Mono, monospace'}}
               className="text-[9px] tracking-[0.2em] text-stone-500 md:ml-auto"
             >
               CRATONIC
@@ -2624,7 +2624,7 @@ export default function App() {
               ))}
             </svg>
             <span
-              style={{fontFamily:'JetBrains Mono, monospace'}}
+              style={{fontFamily:'IBM Plex Mono, monospace'}}
               className="text-[9px] tracking-[0.2em] text-amber-200/85"
             >
               UNREST
@@ -2638,13 +2638,13 @@ export default function App() {
         <div className="mt-6 lg:mt-0">
           <div className="flex items-center justify-between mb-3 gap-3">
             <div className="min-w-0 flex-1">
-              <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.22em] text-amber-300/70">
+              <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] tracking-[0.22em] text-amber-300/70">
                 LIVE BENEATH CURSOR
               </div>
               <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[12px] text-stone-500 mt-0.5">
                 {cursor ? (
                   <>
-                    <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-stone-400 tabular-nums">
+                    <span style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-stone-400 tabular-nums">
                       {cursor.lat.toFixed(2)}°N · {Math.abs(cursor.lng).toFixed(2)}°W
                     </span>
                     <span className="ml-2 text-stone-600">
@@ -2664,7 +2664,7 @@ export default function App() {
                 <button
                   onClick={() => setCursorLocked(false)}
                   className="px-2 py-1.5 rounded bg-amber-200/15 ring-1 ring-amber-200/40 text-[10px] tracking-[0.18em] text-amber-100 hover:bg-amber-200/25 transition-colors"
-                  style={{fontFamily:'JetBrains Mono, monospace'}}
+                  style={{fontFamily:'IBM Plex Mono, monospace'}}
                 >
                   UNLOCK
                 </button>
@@ -2672,7 +2672,7 @@ export default function App() {
               <button
                 onClick={() => setShowLive(v => !v)}
                 className="px-2 py-1.5 rounded bg-stone-950/70 ring-1 ring-stone-700/60 text-[10px] tracking-[0.18em] text-stone-300 hover:bg-stone-900 transition-colors"
-                style={{fontFamily:'JetBrains Mono, monospace'}}
+                style={{fontFamily:'IBM Plex Mono, monospace'}}
               >
                 {showLive ? 'HIDE' : 'SHOW'}
               </button>
@@ -2708,7 +2708,7 @@ export default function App() {
             const list = [...projectedSites].sort((a,b) => sort * (a.field - b.field)).slice(0,5);
             return (
               <div key={label} className="bg-stone-950/60 ring-1 ring-stone-800/60 rounded-md p-4">
-                <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.22em] text-amber-300/70 mb-3">
+                <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] tracking-[0.22em] text-amber-300/70 mb-3">
                   {label}
                 </div>
                 <ul className="space-y-1.5">
@@ -2721,7 +2721,7 @@ export default function App() {
                       className="flex items-center gap-3 cursor-pointer group"
                     >
                       <div className="flex-1 min-w-0">
-                        <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[15px] leading-tight group-hover:text-amber-100 transition-colors truncate">
+                        <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-stone-100 text-[15px] leading-tight group-hover:text-amber-100 transition-colors truncate">
                           {s.name}
                         </div>
                       </div>
@@ -2734,7 +2734,7 @@ export default function App() {
                           }}
                         />
                       </div>
-                      <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500 tabular-nums w-7 text-right">
+                      <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] text-stone-500 tabular-nums w-7 text-right">
                         {Math.round(s.field * 100).toString().padStart(2,'0')}
                       </div>
                     </li>
@@ -2746,7 +2746,7 @@ export default function App() {
         </div>
 
         {/* Footer */}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2" style={{fontFamily:'JetBrains Mono, monospace'}}>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2" style={{fontFamily:'IBM Plex Mono, monospace'}}>
           <div className="text-[10px] tracking-wider text-stone-600">
             FIELD AFTER USMTARRAY · KELBERT ET AL. 2026 · ILLUSTRATIVE
           </div>
@@ -2809,10 +2809,10 @@ export default function App() {
                 </div>
 
                 <div className="px-5 sm:px-7 py-5 sm:py-8">
-                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-sky-300/70 mb-2">
+                  <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-sky-300/70 mb-2">
                     DEPTH PROFILE
                   </div>
-                  <h2 style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl sm:text-3xl leading-tight text-stone-100">
+                  <h2 style={{fontFamily:'EB Garamond, serif', fontWeight:400}} className="text-2xl sm:text-3xl leading-tight text-stone-100">
                     {selectedPOI.label}
                   </h2>
                   <div style={{fontFamily:'Titillium Web, sans-serif'}} className="mt-1 text-[12.5px] text-sky-200/80 italic">
@@ -2822,7 +2822,7 @@ export default function App() {
                   {/* Profile chart */}
                   <div className="mt-5 flex gap-3">
                     {/* Depth axis */}
-                    <div className="flex flex-col justify-between" style={{height: chartH, fontFamily:'JetBrains Mono, monospace'}}>
+                    <div className="flex flex-col justify-between" style={{height: chartH, fontFamily:'IBM Plex Mono, monospace'}}>
                       {[0, 50, 100, 150, 200].map(km => (
                         <div key={km} className="text-[9px] text-stone-500 tabular-nums leading-none">
                           {km}<span className="text-stone-700"> km</span>
@@ -2874,7 +2874,7 @@ export default function App() {
                           y={depthToY(MOHO_KM) - 3}
                           textAnchor="end"
                           style={{
-                            fontFamily:'JetBrains Mono, monospace',
+                            fontFamily:'IBM Plex Mono, monospace',
                             fontSize:'8px',
                             letterSpacing:'0.1em',
                             fill:'#fbbf24',
@@ -2917,7 +2917,7 @@ export default function App() {
                               <div className="text-[11px] text-stone-200 leading-tight">
                                 {l.label}
                               </div>
-                              <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[9px] text-stone-500 mt-0.5 tabular-nums">
+                              <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[9px] text-stone-500 mt-0.5 tabular-nums">
                                 {l.topKm}–{l.botKm} km · σ {Math.round(l.intensity * 100)}
                               </div>
                             </div>
@@ -2928,7 +2928,7 @@ export default function App() {
                   </div>
 
                   {/* Legend strip */}
-                  <div className="mt-4 flex items-center gap-2 text-[10px] text-stone-500" style={{fontFamily:'JetBrains Mono, monospace'}}>
+                  <div className="mt-4 flex items-center gap-2 text-[10px] text-stone-500" style={{fontFamily:'IBM Plex Mono, monospace'}}>
                     <span className="inline-block w-3 h-[2px] bg-sky-300 rounded" />
                     <span>CONDUCTIVITY →</span>
                     <span className="ml-auto inline-block w-3 h-[1px] bg-amber-400 opacity-70" />
@@ -2946,7 +2946,7 @@ export default function App() {
                   {/* Nearby sacred sites */}
                   {nearby.length > 0 && (
                     <div className="mt-6">
-                      <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.22em] text-amber-300/70 mb-2.5">
+                      <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] tracking-[0.22em] text-amber-300/70 mb-2.5">
                         NEARBY SACRED SITES
                       </div>
                       <ul className="space-y-1">
@@ -2956,14 +2956,14 @@ export default function App() {
                             <li key={s.name} className="flex items-baseline gap-2 py-1 border-b border-stone-900 last:border-b-0">
                               <ChevronRight size={11} className="text-amber-300/60 flex-shrink-0 self-center" />
                               <div className="flex-1 min-w-0">
-                                <div style={{fontFamily:'Fraunces, serif'}} className="text-[14px] text-stone-100 leading-tight">
+                                <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[14px] text-stone-100 leading-tight">
                                   {s.name}
                                 </div>
                                 <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-[11px] text-stone-500 mt-0.5">
                                   {s.note}
                                 </div>
                               </div>
-                              <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-600 tabular-nums whitespace-nowrap">
+                              <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] text-stone-600 tabular-nums whitespace-nowrap">
                                 ~{km} km
                               </div>
                             </li>
@@ -2975,7 +2975,7 @@ export default function App() {
 
                   {/* Footer caveat */}
                   <div
-                    style={{fontFamily:'JetBrains Mono, monospace'}}
+                    style={{fontFamily:'IBM Plex Mono, monospace'}}
                     className="mt-6 pt-4 border-t border-stone-800/80 text-[9.5px] tracking-wider text-stone-600 leading-relaxed"
                   >
                     PROFILE STYLIZED · AFTER PUBLISHED MT INVERSIONS · BEDROSIAN, KIM, MURPHY, KELBERT ET AL.
@@ -2989,7 +2989,7 @@ export default function App() {
         {/* Sources — full-width CTA section, pinned to the bottom of the page */}
         <section className="mt-12 sm:mt-16 pt-8 sm:pt-10 border-t border-stone-800/60">
           <div className="flex items-center gap-3 mb-5 sm:mb-6">
-            <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.28em] text-amber-300/70">
+            <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.28em] text-amber-300/70">
               SOURCES
             </div>
             <div className="flex-1 h-px bg-stone-800/60" />
@@ -3003,10 +3003,10 @@ export default function App() {
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.24em] text-amber-300/80 mb-2">
+                  <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.24em] text-amber-300/80 mb-2">
                     READ THE PAPER
                   </div>
-                  <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[17px] sm:text-[20px] leading-tight">
+                  <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-stone-100 text-[17px] sm:text-[20px] leading-tight">
                     The United States Magnetotelluric Array
                     <span className="text-stone-400"> &amp; the National Impedance Map</span>
                   </div>
@@ -3015,7 +3015,7 @@ export default function App() {
                   </div>
                 </div>
                 <div
-                  style={{fontFamily:'JetBrains Mono, monospace'}}
+                  style={{fontFamily:'IBM Plex Mono, monospace'}}
                   className="text-amber-200/70 text-2xl leading-none group-hover:translate-x-1 transition-transform flex-shrink-0"
                   aria-hidden
                 >
@@ -3032,10 +3032,10 @@ export default function App() {
             >
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.24em] text-amber-300/80 mb-2">
+                  <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] sm:text-[11px] tracking-[0.24em] text-amber-300/80 mb-2">
                     BROWSE THE RAW DATA
                   </div>
-                  <div style={{fontFamily:'Fraunces, serif'}} className="text-stone-100 text-[17px] sm:text-[20px] leading-tight">
+                  <div style={{fontFamily:'Titillium Web, sans-serif'}} className="text-stone-100 text-[17px] sm:text-[20px] leading-tight">
                     EarthScope MT Transfer Functions
                     <span className="text-stone-400"> · IRIS SPUD</span>
                   </div>
@@ -3044,7 +3044,7 @@ export default function App() {
                   </div>
                 </div>
                 <div
-                  style={{fontFamily:'JetBrains Mono, monospace'}}
+                  style={{fontFamily:'IBM Plex Mono, monospace'}}
                   className="text-amber-200/70 text-2xl leading-none group-hover:translate-x-1 transition-transform flex-shrink-0"
                   aria-hidden
                 >
@@ -3071,15 +3071,15 @@ export default function App() {
               >
                 <X size={16} />
               </button>
-              <div style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-amber-300/70 mb-2">
+              <div style={{fontFamily:'IBM Plex Mono, monospace'}} className="text-[10px] tracking-[0.3em] text-amber-300/70 mb-2">
                 METHODS · CAVEATS
               </div>
-              <h2 style={{fontFamily:'Fraunces, serif', fontWeight:300}} className="text-2xl sm:text-3xl mb-4 leading-tight">
+              <h2 style={{fontFamily:'EB Garamond, serif', fontWeight:400}} className="text-2xl sm:text-3xl mb-4 leading-tight">
                 What you're <span style={{fontStyle:'italic'}}>looking at</span>
               </h2>
               <div style={{fontFamily:'Titillium Web, sans-serif'}} className="space-y-3 text-sm text-stone-300 leading-relaxed">
                 <p>
-                  The contour field is a stylized synthesis of crustal-conductivity features documented in the USMTArray national impedance map (Kelbert et al., 2026, <span style={{fontFamily:'JetBrains Mono'}} className="text-[12px] text-amber-200/85">Reviews of Geophysics</span>) — Yellowstone, the Cascade arc, Long Valley, the Salton Trough, the Rio Grande Rift, the Mid-Continent Rift, the Appalachian conductivity anomaly, the Connecticut Valley Mesozoic rift, and others. It approximates published anomaly geometry rather than displaying raw station impedances.
+                  The contour field is a stylized synthesis of crustal-conductivity features documented in the USMTArray national impedance map (Kelbert et al., 2026, <span style={{fontFamily:'IBM Plex Mono'}} className="text-[12px] text-amber-200/85">Reviews of Geophysics</span>) — Yellowstone, the Cascade arc, Long Valley, the Salton Trough, the Rio Grande Rift, the Mid-Continent Rift, the Appalachian conductivity anomaly, the Connecticut Valley Mesozoic rift, and others. It approximates published anomaly geometry rather than displaying raw station impedances.
                 </p>
                 <p>
                   The dashed cyan band along the East Coast is the <span className="text-sky-200/90">Piedmont Resistor</span> — a Pangaea-era fragment of igneous basement, the same array's other signature find. Cream contours mark where rock <em>passes</em> current; cyan contours mark where it <em>blocks</em> current. In the cross-section drawer, the yellow line traces the bottom of conductive zones and the cyan band fills the depth extent of the resistor.

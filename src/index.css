@@ -1,11 +1,15 @@
 @import "tailwindcss";
 
+:root {
+  --ink: oklch(0.135 0.008 65);
+}
+
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
-  background: #0a0908;
+  background: var(--ink);
   color: #e8e6e1;
 }
 
