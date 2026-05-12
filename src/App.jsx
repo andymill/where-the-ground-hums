@@ -2100,7 +2100,7 @@ export default function App() {
             className="text-[2.2rem] sm:text-6xl md:text-7xl leading-[0.95] tracking-tight text-stone-100"
           >
             Where the<br/>
-            <span style={{fontStyle:'italic', color:'#e894ad'}}>ground hums</span>
+            <span style={{fontStyle:'italic', color:'#E89A4D'}}>ground hums</span>
           </h1>
           <p style={{fontFamily:'Titillium Web, sans-serif'}} className="mt-2.5 sm:mt-4 max-w-xl text-[13px] sm:text-base text-stone-400 leading-relaxed">
             Sacred American sites laid over the magnetotelluric pulse of the contiguous United States. Packed isolines mark zones of strong crustal conductivity — fluids, melt, fault damage. Notice where the pins want to land.
