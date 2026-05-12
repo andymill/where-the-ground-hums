@@ -792,6 +792,44 @@ function buildResistorSegments(points, floorKm) {
   return segments;
 }
 
+// Build a single SVG fill path describing the resistor BODY: a polygon per
+// contiguous "real" run, top edge tracing the top-of-zone curve, bottom edge
+// pinned to floorKm. Where the resistor doesn't exist, no polygon is emitted.
+// (For the current profile, the resistor's modeled bottom is always at or
+// below floorKm, so the band visually anchors to the floor rather than
+// resolving a separate bottom-of-zone curve.)
+function buildBandPath(points, floorKm, xKmToPx, depthToPx) {
+  if (!points || points.length === 0) return '';
+  let d = '';
+  let runStart = -1;
+  const n = points.length;
+  for (let i = 0; i < n; i++) {
+    const real = points[i].depth <= floorKm;
+    if (real && runStart < 0) runStart = i;
+    const flush = (!real && runStart >= 0) || (real && runStart >= 0 && i === n - 1);
+    if (flush) {
+      const end = real ? i : i - 1;
+      if (end > runStart) {
+        let poly = '';
+        for (let j = runStart; j <= end; j++) {
+          const x = xKmToPx(points[j].off).toFixed(1);
+          const y = depthToPx(points[j].depth).toFixed(1);
+          poly += (j === runStart ? 'M' : 'L') + x + ',' + y;
+        }
+        const yFloor = depthToPx(floorKm).toFixed(1);
+        const xRight = xKmToPx(points[end].off).toFixed(1);
+        const xLeft = xKmToPx(points[runStart].off).toFixed(1);
+        poly += 'L' + xRight + ',' + yFloor;
+        poly += 'L' + xLeft + ',' + yFloor;
+        poly += 'Z';
+        d += poly;
+      }
+      runStart = -1;
+    }
+  }
+  return d;
+}
+
 function segmentsToPaths(segments, xKmToPx, depthToPx) {
   let solidD = '';
   let dashedD = '';
@@ -904,6 +942,12 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resistorPoints]);
 
+  const resistBandD = useMemo(() => {
+    if (!resistorPoints) return '';
+    return buildBandPath(resistorPoints, CONTOUR_MAX_DEPTH, xKmToPx, depthToPx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resistorPoints]);
+
   const axisLabel = axis === 'ew' ? 'WEST ↔ EAST' : 'SOUTH ↔ NORTH';
 
   return (
@@ -955,9 +999,13 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
         <line x1={PAD_LEFT} y1={mohoY} x2={PAD_LEFT + cw} y2={mohoY} stroke="#000" strokeOpacity="0.5" strokeWidth="0.5" strokeDasharray="2 3" />
         <line x1={PAD_LEFT} y1={labY} x2={PAD_LEFT + cw} y2={labY} stroke="#000" strokeOpacity="0.35" strokeWidth="0.4" strokeDasharray="1 3" />
 
-        {/* Resistor line — drawn first so the yellow conductor line sits on
-            top where they cross. Solid where a resistive zone is real (top
-            of zone), dashed at the chart floor where there's no resistor. */}
+        {/* Resistor body — soft cyan band from top-of-zone down to the
+            data floor (CONTOUR_MAX_DEPTH = 200 km). The band IS the depth
+            extent of the body. */}
+        {resistBandD && (
+          <path d={resistBandD} fill="#7dd3fc" fillOpacity="0.12" stroke="none" />
+        )}
+        {/* Top edge of the resistor — same weight as the yellow line. */}
         {resistSolidD && (
           <>
             <path d={resistSolidD} fill="none" stroke="#bae6fd" strokeOpacity="0.45" strokeWidth="4"
@@ -966,6 +1014,7 @@ function MiniCrossSection({ table, resistorTable, lat, lng, axis }) {
               strokeLinejoin="round" strokeLinecap="round" />
           </>
         )}
+        {/* No-resistor stretches — dashed line at the data floor. */}
         {resistDashedD && (
           <path d={resistDashedD} fill="none" stroke="#7dd3fc" strokeOpacity="0.55" strokeWidth="1.4"
             strokeLinejoin="round" strokeLinecap="round" strokeDasharray="3 3" />
@@ -1190,6 +1239,12 @@ function SiteCrossSectionDrawer({ site, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resistorContour]);
 
+  const resistBandD = useMemo(() => {
+    const pts = resistorContour.map(p => ({ off: p.xKm, depth: p.depth }));
+    return buildBandPath(pts, MAX_DEPTH, xKmToPx, depthToPx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resistorContour]);
+
   const layers = [
     { name: 'Surface',             range: '0–3 km',     color: '#3d6e3a' },
     { name: 'Crust',               range: '3–38 km',    color: '#7a5532' },
@@ -1283,9 +1338,14 @@ function SiteCrossSectionDrawer({ site, onClose }) {
               <line x1={PAD_LEFT} y1={labY} x2={PAD_LEFT + cw} y2={labY}
                 stroke="#000" strokeOpacity="0.35" strokeWidth="0.5" strokeDasharray="1 3" />
 
-              {/* Resistor contour — solid at the TOP of the resistive zone,
-                  dashed at the chart floor where no resistor exists. Drawn
-                  first so the yellow conductor line sits on top at crossings. */}
+              {/* Resistor body — soft cyan band from top-of-zone down to
+                  the chart floor. The band IS the depth extent of the body. */}
+              {resistBandD && (
+                <path d={resistBandD} fill="#7dd3fc" fillOpacity="0.13" stroke="none" />
+              )}
+              {/* Top edge of the resistor — solid where the zone is real.
+                  Drawn first so the yellow conductor line sits on top at
+                  crossings. */}
               {resistSolidD && (
                 <>
                   <path d={resistSolidD} fill="none"
@@ -1297,6 +1357,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                     strokeLinejoin="round" strokeLinecap="round" />
                 </>
               )}
+              {/* No-resistor stretches — dashed at the chart floor. */}
               {resistDashedD && (
                 <path d={resistDashedD} fill="none"
                   stroke="#7dd3fc" strokeOpacity="0.60" strokeWidth="1.8"
@@ -1444,19 +1505,20 @@ function SiteCrossSectionDrawer({ site, onClose }) {
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <svg width="20" height="6" className="flex-shrink-0">
-                  <line x1="0" y1="3" x2="20" y2="3" stroke="#7dd3fc" strokeWidth="2.2" strokeLinecap="round" />
+                <svg width="20" height="10" className="flex-shrink-0">
+                  <rect x="0" y="0" width="20" height="10" fill="#7dd3fc" fillOpacity="0.18" />
+                  <line x1="0" y1="1" x2="20" y2="1" stroke="#7dd3fc" strokeWidth="2.2" strokeLinecap="round" />
                 </svg>
                 <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-300">
-                  Resistive body — line at its top
+                  Resistive body — band fills its depth extent
                 </span>
                 <span style={{fontFamily:'JetBrains Mono, monospace'}} className="text-[10px] text-stone-500">
                   · ρ ≥ {Math.round(T * 100)}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <svg width="20" height="6" className="flex-shrink-0">
-                  <line x1="0" y1="3" x2="20" y2="3" stroke="#7dd3fc" strokeOpacity="0.60" strokeWidth="1.8" strokeDasharray="5 4" strokeLinecap="round" />
+                <svg width="20" height="10" className="flex-shrink-0">
+                  <line x1="0" y1="5" x2="20" y2="5" stroke="#7dd3fc" strokeOpacity="0.60" strokeWidth="1.8" strokeDasharray="5 4" strokeLinecap="round" />
                 </svg>
                 <span style={{fontFamily:'IBM Plex Sans, sans-serif'}} className="text-[12px] text-stone-400">
                   No resistive body — riding the depth floor
@@ -1500,7 +1562,7 @@ function SiteCrossSectionDrawer({ site, onClose }) {
               A 400-km slice straight through Earth, west to east, with {site.name} centered on the dashed line. Real geologic layers fill the cutaway: green soil, brown crust to the Moho at 38 km, deep-red rigid mantle to the Lithosphere–Asthenosphere Boundary at 100 km, then hot ductile asthenosphere fading to peach. The yellow line traces the bottom of the conductive zone — solid where it bottoms out at real depth (fluids, melt, fault damage, or graphite), dashed and riding the surface where there's no conductive zone at all.
             </p>
             <p className="text-stone-300">
-              The blue line traces the top of the Piedmont Resistor — a buried Pangaea-era fragment of igneous basement along the eastern seaboard. Together, the two lines sandwich the East Coast: old, cold, igneous rock above; ancient fluid-bearing scars below.
+              The cyan band is the Piedmont Resistor — a buried Pangaea-era fragment of igneous basement along the eastern seaboard. Its top edge traces where the body starts; the band fills its full depth extent. (The body continues past the visible 200&nbsp;km — the band anchors to the chart floor where it does.) Together, the yellow conductor line and the cyan resistor body tell the East Coast's two-layer story: rock that blocks current sitting alongside ancient fluid-bearing scars.
             </p>
           </div>
 
@@ -2858,7 +2920,10 @@ export default function App() {
                   The contour field is a stylized synthesis of crustal-conductivity features documented in the USMTArray national impedance map (Kelbert et al., 2026, <span style={{fontFamily:'JetBrains Mono'}} className="text-[12px] text-amber-200/85">Reviews of Geophysics</span>) — Yellowstone, the Cascade arc, Long Valley, the Salton Trough, the Rio Grande Rift, the Mid-Continent Rift, the Appalachian conductivity anomaly, the Connecticut Valley Mesozoic rift, and others. It approximates published anomaly geometry rather than displaying raw station impedances.
                 </p>
                 <p>
-                  The dashed cyan band along the East Coast is the <span className="text-sky-200/90">Piedmont Resistor</span> — a Pangaea-era fragment of igneous basement, the same array's other signature find. Cream contours mark where rock <em>passes</em> current; cyan contours mark where it <em>blocks</em> current. In the cross-section drawer, the yellow line traces the bottom of conductive zones and the blue line traces the top of the resistor — together they sandwich the East Coast crust.
+                  The dashed cyan band along the East Coast is the <span className="text-sky-200/90">Piedmont Resistor</span> — a Pangaea-era fragment of igneous basement, the same array's other signature find. Cream contours mark where rock <em>passes</em> current; cyan contours mark where it <em>blocks</em> current. In the cross-section drawer, the yellow line traces the bottom of conductive zones and the cyan band fills the depth extent of the resistor.
+                </p>
+                <p>
+                  <span className="text-amber-200/90">Yellowstone vs. Brattleboro</span> tells the story in one comparison. Yellowstone sits on an active mantle plume — molten rock, hot fluids, melt from upper crust into the mantle. Wet and hot conducts electricity: the yellow line plunges deep, the cyan band is empty (no Pangaea-era slab here). Brattleboro is the inverse — a ~200 Ma fragment of igneous basement that froze in place during the Pangaea breakup and now blocks current. The cyan band fills the column. But Brattleboro also sits on a Mesozoic rift basin with ancient fluid-bearing scars in the mantle below, so the yellow line dips into the mantle too. One place where the Earth still <em>hums</em>; one place where the Earth <em>remembers</em>.
                 </p>
                 <p>
                   Each pin's halo grows with the underlying field. Sites on quiet cratonic crust glow softly; sites on geologically active zones flare bright. Where contour lines pack tightly, conductivity rises steeply.
