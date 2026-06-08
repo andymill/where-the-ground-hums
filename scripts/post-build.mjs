@@ -24,12 +24,19 @@ for (const entry of fs.readdirSync(distDir)) {
   fs.renameSync(path.join(distDir, entry), path.join(humDir, entry))
 }
 
-// Write Netlify redirects: SPA fallback for /hum/*, no rules at apex.
+// Write Netlify redirects: SPA fallback for /hum/*, friendly route for
+// /mortgage so the URL stays clean (the edge function at
+// netlify/edge-functions/mortgage-auth.js gates access with Basic Auth
+// before this rewrite resolves).
 fs.writeFileSync(
   path.join(distDir, '_redirects'),
   `# SPA fallback so deep links under /hum/ load the app shell.
 /hum         /hum/index.html   200
 /hum/*       /hum/index.html   200
+
+# Clean URL for the (basic-auth-gated) mortgage calculator. Source lives
+# in mortgage/index.html at the project root; copied below.
+/mortgage    /mortgage/index.html   200
 `,
 )
 
@@ -51,4 +58,16 @@ if (fs.existsSync(faviconSrc)) {
   fs.copyFileSync(faviconSrc, path.join(distDir, 'favicon.svg'))
 }
 
-console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage.')
+// Copy the mortgage calculator (a standalone HTML file, no build step)
+// into dist/mortgage/. Access is gated by basic auth via
+// netlify/edge-functions/mortgage-auth.js — the static file itself is
+// public if you know the path, but the edge function intercepts every
+// request to /mortgage* and rejects without credentials.
+const mortgageSrc = path.resolve(__dirname, '..', 'mortgage', 'index.html')
+if (fs.existsSync(mortgageSrc)) {
+  const mortgageDest = path.join(distDir, 'mortgage')
+  fs.mkdirSync(mortgageDest, { recursive: true })
+  fs.copyFileSync(mortgageSrc, path.join(mortgageDest, 'index.html'))
+}
+
+console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the calculator.')

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brattleboro House-Hack Calculator</title>
+  <meta name="description" content="Owner-occupied triplex finance calculator" />
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100%; background: #F6F2E9; }
+    * { box-sizing: border-box; }
+
+    /* Two-column layouts used throughout the calculator. Stack to single
+       column under 760px so the form is readable on phones. */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .two-col-tight {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 32px;
+    }
+    @media (max-width: 760px) {
+      .two-col, .two-col-tight {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      /* Tighten the page wrapper padding on small screens so panels get
+         more horizontal room. */
+      .calc-wrap {
+        padding: 20px 14px !important;
+      }
+    }
+  </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo } = React;
+
+
+// ---------------------------------------------------------------------------
+// Brattleboro Triplex — House-Hack Finance Calculator (Light Mode)
+// Prefilled from EastRise pre-approval + Itemized Fee Worksheet (06/08/2026).
+// Live in the main house; two units above the garage pay rent.
+// ---------------------------------------------------------------------------
+
+const GOLD = "#A07B2B";        // text / accents (dark bronze for light bg)
+const GOLD_FILL = "#C9A24B";   // slider fills, bars
+const GOLD_DIM = "#8A7338";
+const BG = "#F6F2E9";          // warm cream page
+const PANEL = "#FFFFFF";
+const PANEL_2 = "#F3EFE4";     // input wells
+const LINE = "#E4DECE";
+const TEXT = "#262219";
+const MUTED = "#8C8472";
+const POS = "#4E8A46";
+const NEG = "#B45438";
+const SHADOW = "0 1px 2px rgba(60,50,20,0.05), 0 10px 30px rgba(60,50,20,0.05)";
+
+const fmt = (n) =>
+  isFinite(n)
+    ? n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
+    : "—";
+const pct = (n) => (isFinite(n) ? `${n.toFixed(1)}%` : "—");
+
+function Slider({ label, value, min, max, step, onChange, format, hint }) {
+  const fillPct = ((value - min) / (max - min)) * 100;
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <span style={{ color: MUTED, fontSize: 13, letterSpacing: 0.3 }}>{label}</span>
+        <span style={{ color: GOLD, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 17 }}>
+          {format(value)}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{
+          width: "100%",
+          height: 5,
+          borderRadius: 4,
+          appearance: "none",
+          WebkitAppearance: "none",
+          outline: "none",
+          background: `linear-gradient(90deg, ${GOLD_FILL} 0%, ${GOLD_FILL} ${fillPct}%, ${LINE} ${fillPct}%, ${LINE} 100%)`,
+          cursor: "pointer",
+        }}
+      />
+      {hint && <div style={{ color: MUTED, fontSize: 11, marginTop: 6 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function NumField({ label, value, onChange, hint, prefix = "$" }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ color: MUTED, fontSize: 12, marginBottom: 6, letterSpacing: 0.3 }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "center", background: PANEL_2, border: `1px solid ${LINE}`, borderRadius: 8, padding: "8px 12px" }}>
+        <span style={{ color: GOLD_DIM, fontSize: 14, marginRight: 6 }}>{prefix}</span>
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          style={{
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            color: TEXT,
+            fontSize: 15,
+            fontFamily: "'Funnel Display', sans-serif",
+            fontWeight: 500,
+            width: "100%",
+          }}
+        />
+      </div>
+      {hint && <div style={{ color: MUTED, fontSize: 11, marginTop: 5 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function Panel({ title, kicker, children, accent }) {
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: "26px 26px 22px", position: "relative", overflow: "hidden", boxShadow: SHADOW }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: accent || `linear-gradient(90deg, ${GOLD_FILL}, transparent)` }} />
+      {kicker && <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>{kicker}</div>}
+      <h2 style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 20, color: TEXT, margin: "0 0 20px" }}>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Row({ label, value, color, strong, sub }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "7px 0", borderBottom: `1px solid ${LINE}` }}>
+      <span style={{ color: strong ? TEXT : MUTED, fontSize: strong ? 14 : 13, fontWeight: strong ? 600 : 400 }}>
+        {label}
+        {sub && <span style={{ color: MUTED, fontSize: 11, marginLeft: 6, opacity: 0.8 }}>{sub}</span>}
+      </span>
+      <span style={{ color: color || TEXT, fontFamily: "'Funnel Display', sans-serif", fontWeight: strong ? 700 : 500, fontSize: strong ? 16 : 14 }}>{value}</span>
+    </div>
+  );
+}
+
+function BigStat({ label, value, color, sub }) {
+  return (
+    <div style={{ flex: "1 1 0", minWidth: 150 }}>
+      <div style={{ color: MUTED, fontSize: 12, letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 30, color: color || TEXT, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ color: MUTED, fontSize: 12, marginTop: 6 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function Chip({ label, value }) {
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 10, padding: "10px 14px", flex: "1 1 0", minWidth: 130 }}>
+      <div style={{ color: MUTED, fontSize: 10.5, letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ color: TEXT, fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 16, marginTop: 3 }}>{value}</div>
+    </div>
+  );
+}
+
+function Calculator() {
+  // New triplex — defaults from EastRise worksheet
+  const [price, setPrice] = useState(525000);
+  const [down, setDown] = useState(150000);   // dollars; loan = $375,000
+  const [rate, setRate] = useState(6.25);
+  const [term, setTerm] = useState(30);
+  const [rentPerUnit, setRentPerUnit] = useState(1600);
+
+  // Carrying costs — actuals from worksheet escrow
+  const [propTax, setPropTax] = useState(11850);   // $987.50/mo
+  const [insurance, setInsurance] = useState(1800); // $150/mo hazard
+  const [rentalUtils, setRentalUtils] = useState(5287);
+  const [maintPct, setMaintPct] = useState(8);
+  const [vacancyPct, setVacancyPct] = useState(5);
+
+  // Cash to close — actuals from worksheet
+  const [closing, setClosing] = useState(13931);    // $13,930.75
+  const [prepaids, setPrepaids] = useState(6299);   // $6,299.48 reserves/prepaid
+  const [repairs, setRepairs] = useState(25000);    // pre-move-in repairs (placeholder)
+
+  // Current property
+  const [curCost, setCurCost] = useState(1800);
+  const [curRent, setCurRent] = useState(2800);
+
+  // Other building operating costs (annual) — placeholders, edit to actuals
+  const [rentalElec, setRentalElec] = useState(0);   // $0 if tenant-paid / separately metered
+  const [snow, setSnow] = useState(1000);
+  const [trash, setTrash] = useState(450);
+  const [bWaterSewer, setBWaterSewer] = useState(0); // $0 if already in the $5,287
+  const [pest, setPest] = useState(300);
+
+  // Your unit — personal living costs (annual) — placeholders, edit to actuals
+  const [pHeat, setPHeat] = useState(2400);
+  const [pElec, setPElec] = useState(1400);
+  const [pWaterSewer, setPWaterSewer] = useState(900);
+  const [pInternet, setPInternet] = useState(840);
+
+  const m = useMemo(() => {
+    const loan = Math.max(0, price - down);
+    const downPct = (down / price) * 100;
+    const r = rate / 100 / 12;
+    const n = term * 12;
+    const pi = r > 0 ? (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : loan / n;
+
+    const grossRentMo = rentPerUnit * 2;
+    const grossRentYr = grossRentMo * 12;
+    const vac = (grossRentYr * vacancyPct) / 100;
+    const maint = (grossRentYr * maintPct) / 100;
+
+    const taxMo = propTax / 12;
+    const insMo = insurance / 12;
+    const utilMo = rentalUtils / 12;
+    const maintMo = maint / 12;
+    const vacMo = vac / 12;
+
+    const piti = pi + taxMo + insMo;             // matches lender PITI
+    const otherBldgYr = rentalElec + snow + trash + bWaterSewer + pest;
+    const otherBldgMo = otherBldgYr / 12;
+    const totalNut = piti + utilMo + maintMo + vacMo + otherBldgMo;
+    const netHousingCost = totalNut - grossRentMo;
+    const tenantsCoverPct = (grossRentMo / totalNut) * 100;
+
+    // Your unit's personal utilities (you'd pay these anywhere you live)
+    const personalYr = pHeat + pElec + pWaterSewer + pInternet;
+    const personalMo = personalYr / 12;
+    const trueAllInMo = netHousingCost + personalMo;
+
+    // Investor lens
+    const egi = grossRentYr - vac;
+    const opEx = propTax + insurance + rentalUtils + maint + otherBldgYr;
+    const noi = egi - opEx;
+    const capRate = (noi / price) * 100;
+    const rentalCashFlow = noi - pi * 12;
+
+    const cashToClose = down + closing + prepaids;
+    const totalCashIn = cashToClose + repairs;
+    const curNetMo = curRent - curCost;
+    const combinedMo = curNetMo - netHousingCost;
+
+    return { loan, downPct, pi, piti, grossRentMo, grossRentYr, taxMo, insMo, utilMo, maintMo, vacMo, otherBldgMo, totalNut, netHousingCost, tenantsCoverPct, personalMo, trueAllInMo, noi, capRate, rentalCashFlow, cashToClose, totalCashIn, curNetMo, combinedMo, maint, vac };
+  }, [price, down, rate, term, rentPerUnit, propTax, insurance, rentalUtils, maintPct, vacancyPct, closing, prepaids, repairs, curCost, curRent, rentalElec, snow, trash, bWaterSewer, pest, pHeat, pElec, pWaterSewer, pInternet]);
+
+  const segs = [
+    { label: "Mortgage (P&I)", v: m.pi, c: GOLD_FILL },
+    { label: "Property tax", v: m.taxMo, c: "#B8863C" },
+    { label: "Insurance", v: m.insMo, c: "#9E6F33" },
+    { label: "Rental utilities", v: m.utilMo, c: "#7E5E3A" },
+    { label: "Maint. reserve", v: m.maintMo, c: "#A89A7A" },
+    { label: "Vacancy reserve", v: m.vacMo, c: "#C7BEA6" },
+    { label: "Other bldg ops", v: m.otherBldgMo, c: "#8C8A78" },
+  ];
+
+  return (
+    <div className="calc-wrap" style={{ background: BG, minHeight: "100%", padding: "32px 20px", fontFamily: "'Funnel Sans', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700&display=swap');
+        input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:${GOLD_FILL}; border:3px solid ${PANEL}; box-shadow:0 0 0 1px ${GOLD_FILL}, 0 1px 3px rgba(0,0,0,0.2); cursor:pointer; }
+        input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:${GOLD_FILL}; border:3px solid ${PANEL}; box-shadow:0 0 0 1px ${GOLD_FILL}; cursor:pointer; }
+        input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+      `}</style>
+
+      <div style={{ maxWidth: 1040, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ color: GOLD_DIM, fontSize: 12, letterSpacing: 3, textTransform: "uppercase" }}>Brattleboro, VT · Owner-Occupied Triplex</div>
+          <h1 style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 38, color: TEXT, margin: "8px 0 6px", letterSpacing: -0.5 }}>House-Hack Calculator</h1>
+          <p style={{ color: MUTED, fontSize: 15, margin: 0, maxWidth: 640 }}>
+            Live in the main house; two units above the garage pay rent. Loaded with your <span style={{ color: GOLD }}>EastRise pre-approval</span> numbers — the headline is your net cost to live after tenants.
+          </p>
+        </div>
+
+        {/* Worksheet chips */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>From your EastRise worksheet · 06/08/2026</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <Chip label="Rate (est.)" value="6.250%" />
+            <Chip label="Loan amount" value={fmt(m.loan)} />
+            <Chip label="Lender PITI" value={`${fmt(m.piti)}/mo`} />
+            <Chip label="Cash to close" value={fmt(m.cashToClose)} />
+          </div>
+          <div style={{ color: MUTED, fontSize: 11, marginTop: 8 }}>Rate not yet locked (lockable at P&S). Pre-approval valid through 10/05/2026.</div>
+        </div>
+
+        {/* TOP SUMMARY */}
+        <div style={{ background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)", border: `1px solid ${LINE}`, borderRadius: 18, padding: "28px 30px", marginBottom: 24, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", boxShadow: SHADOW }}>
+          <BigStat label="True all-in cost to live" value={`${fmt(m.trueAllInMo)}/mo`} color={m.trueAllInMo < 0 ? POS : GOLD} sub={`Building ${fmt(m.netHousingCost)} + your utilities ${fmt(m.personalMo)} · tenants cover ${pct(m.tenantsCoverPct)} of the building`} />
+          <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
+          <BigStat label="Total cash needed" value={fmt(m.totalCashIn)} sub={`${fmt(m.cashToClose)} to close + ${fmt(repairs)} repairs`} />
+          <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
+          <BigStat label="Combined monthly position" value={`${m.combinedMo >= 0 ? "+" : ""}${fmt(m.combinedMo)}/mo`} color={m.combinedMo >= 0 ? POS : NEG} sub="New home + current property net" />
+        </div>
+
+        <div className="two-col">
+          {/* LEFT: purchase */}
+          <Panel kicker="The Purchase" title="New Triplex — $525K">
+            <Slider label="Purchase price" value={price} min={350000} max={750000} step={5000} onChange={setPrice} format={fmt} />
+            <Slider label="Down payment" value={down} min={0} max={Math.min(400000, price)} step={5000} onChange={setDown} format={(v) => `${fmt(v)}  ·  ${pct((v / price) * 100)}`} hint="Your worksheet shows $150,000 down (71% LTV). Below 20% would add PMI." />
+            <Slider label="Mortgage rate" value={rate} min={5} max={9} step={0.05} onChange={setRate} format={(v) => `${v.toFixed(2)}%`} hint="EastRise estimated 6.250% (not yet locked). 30-yr fixed conventional." />
+            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+              {[15, 30].map((t) => (
+                <button key={t} onClick={() => setTerm(t)} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${term === t ? GOLD : LINE}`, background: term === t ? "rgba(201,162,75,0.15)" : "transparent", color: term === t ? GOLD : MUTED, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{t}-year</button>
+              ))}
+            </div>
+            <Slider label="Rent per unit (×2 units)" value={rentPerUnit} min={1000} max={2600} step={50} onChange={setRentPerUnit} format={(v) => `${fmt(v)}  ·  ${fmt(v * 2)}/mo total`} hint="Utilities included in rent (gas, heat, water)." />
+          </Panel>
+
+          {/* RIGHT: costs */}
+          <Panel kicker="Carrying Costs" title="Escrow & Reserves" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            <NumField label="Property tax (annual)" value={propTax} onChange={setPropTax} hint="From worksheet escrow: $987.50/mo. Vermont taxes run high — this is the real figure." />
+            <NumField label="Hazard insurance (annual)" value={insurance} onChange={setInsurance} hint="From worksheet escrow: $150/mo. Confirm it covers a 3-unit building." />
+            <NumField label="Rental units utilities (annual)" value={rentalUtils} onChange={setRentalUtils} hint="Your figure: $5,287/yr gas, heat & water for the two units." />
+            <Slider label="Maintenance / capex reserve" value={maintPct} min={0} max={20} step={1} onChange={setMaintPct} format={(v) => `${v}% of rent  ·  ${fmt(m.maint)}/yr`} hint="Sized off rental income only — for big-ticket items covering all 3 units (roof, boiler), consider bumping this or budgeting ~1% of value/yr." />
+            <Slider label="Vacancy reserve" value={vacancyPct} min={0} max={15} step={1} onChange={setVacancyPct} format={(v) => `${v}% of rent  ·  ${fmt(m.vac)}/yr`} />
+          </Panel>
+        </div>
+
+        {/* Breakdown */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="Where the money goes" title="Monthly Breakdown — New Building">
+            <div style={{ display: "flex", height: 30, borderRadius: 8, overflow: "hidden", marginBottom: 16, border: `1px solid ${LINE}` }}>
+              {segs.map((s, i) => (<div key={i} title={`${s.label}: ${fmt(s.v)}`} style={{ width: `${(s.v / m.totalNut) * 100}%`, background: s.c }} />))}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", marginBottom: 18 }}>
+              {segs.map((s, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: MUTED }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: s.c, display: "inline-block" }} />
+                  {s.label} <span style={{ color: TEXT }}>{fmt(s.v)}</span>
+                </div>
+              ))}
+            </div>
+            <Row label="Lender PITI" sub="P&I + tax + insurance" value={`${fmt(m.piti)}/mo`} />
+            <Row label="Total building nut" sub="incl. utilities, reserves, other ops" value={`${fmt(m.totalNut)}/mo`} strong />
+            <Row label="Less: rental income" sub="2 units" value={`– ${fmt(m.grossRentMo)}/mo`} color={POS} />
+            <Row label="Net cost to carry the building" value={`${fmt(m.netHousingCost)}/mo`} color={m.netHousingCost < 0 ? POS : GOLD} strong />
+            <Row label="+ Your unit's own utilities" sub="heat, electric, water, internet" value={`${fmt(m.personalMo)}/mo`} />
+            <Row label="True all-in cost to live" value={`${fmt(m.trueAllInMo)}/mo`} color={m.trueAllInMo < 0 ? POS : GOLD} strong />
+          </Panel>
+        </div>
+
+        {/* Other operating costs + personal living */}
+        <div className="two-col" style={{ marginTop: 24 }}>
+          <Panel kicker="Whole-building ops" title="Other Operating Costs" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            <NumField label="Rental units electricity (annual)" value={rentalElec} onChange={setRentalElec} hint="$0 if tenants are separately metered. Add it if it's on your meter." />
+            <NumField label="Snow removal / plowing (annual)" value={snow} onChange={setSnow} hint="Vermont winters — placeholder ~$1,000 if hired out." />
+            <NumField label="Trash & recycling (annual)" value={trash} onChange={setTrash} hint="If not already on the tax bill." />
+            <NumField label="Water / sewer (annual)" value={bWaterSewer} onChange={setBWaterSewer} hint="$0 if already inside the $5,287 rental-utilities figure." />
+            <NumField label="Pest control (annual)" value={pest} onChange={setPest} hint="Given the carpenter-ant history." />
+          </Panel>
+
+          <Panel kicker="Your unit only" title="Your Personal Living Costs" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
+            <NumField label="Heat (annual)" value={pHeat} onChange={setPHeat} hint="Oil / propane / gas for the main house — placeholder." />
+            <NumField label="Electricity (annual)" value={pElec} onChange={setPElec} hint="Placeholder — replace with your actual." />
+            <NumField label="Water / sewer (annual)" value={pWaterSewer} onChange={setPWaterSewer} />
+            <NumField label="Internet (annual)" value={pInternet} onChange={setPInternet} />
+            <div style={{ marginTop: 6 }}>
+              <Row label="Your unit total" value={`${fmt(m.personalMo)}/mo`} strong />
+              <div style={{ color: MUTED, fontSize: 11.5, marginTop: 10, lineHeight: 1.5 }}>You'd pay these living anywhere — they're separated so the building economics stay clean, but folded into the "true all-in cost to live" above.</div>
+            </div>
+          </Panel>
+        </div>
+
+        {/* Cash to close detail + current property */}
+        <div className="two-col" style={{ marginTop: 24 }}>
+          <Panel kicker="Cash out of pocket" title="Cash Needed Upfront">
+            <Row label="Down payment" value={fmt(down)} />
+            <NumField label="Closing costs" value={closing} onChange={setClosing} hint="Worksheet total: $13,930.75 (appraisal, title, transfer tax, fees)." />
+            <NumField label="Prepaids & reserves" value={prepaids} onChange={setPrepaids} hint="Worksheet total: $6,299.48 (prepaid interest, insurance, tax escrow)." />
+            <Row label="Cash to close" sub="lender table" value={fmt(m.cashToClose)} />
+            <div style={{ height: 14 }} />
+            <Slider label="Pre-move-in repairs" value={repairs} min={0} max={100000} step={1000} onChange={setRepairs} format={fmt} hint="Work needed before you can move in. Placeholder — set to your actual scope of work." />
+            <Row label="Total cash needed" value={fmt(m.totalCashIn)} strong color={GOLD} />
+          </Panel>
+
+          <Panel kicker="Existing Asset" title="Current Property (89 Clark St?)" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
+            <NumField label="Monthly carrying cost (all-in)" value={curCost} onChange={setCurCost} hint="Mortgage + insurance + utilities, per your figure." />
+            <Slider label="Rent if you let it" value={curRent} min={0} max={5000} step={100} onChange={setCurRent} format={(v) => `${fmt(v)}/mo`} hint="Slide up to test what the stunning place could command; $0 = just hold it." />
+            <div style={{ marginTop: 10 }}>
+              <Row label="Net monthly" value={`${m.curNetMo >= 0 ? "+" : ""}${fmt(m.curNetMo)}/mo`} color={m.curNetMo >= 0 ? POS : NEG} strong />
+              <Row label="Net annual" value={`${m.curNetMo >= 0 ? "+" : ""}${fmt(m.curNetMo * 12)}/yr`} color={m.curNetMo >= 0 ? POS : NEG} />
+            </div>
+          </Panel>
+        </div>
+
+        {/* Investor lens */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="Investor Lens (approx.)" title="If You Viewed the Building as a Pure Rental" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            <div className="two-col-tight">
+              <Row label="Gross rent" value={`${fmt(m.grossRentYr)}/yr`} />
+              <Row label="Net operating income" value={`${fmt(m.noi)}/yr`} color={m.noi >= 0 ? POS : NEG} />
+              <Row label="Cap rate" sub="NOI ÷ price" value={pct(m.capRate)} />
+              <Row label="Building cash flow" sub="after debt" value={`${m.rentalCashFlow >= 0 ? "+" : ""}${fmt(m.rentalCashFlow)}/yr`} color={m.rentalCashFlow >= 0 ? POS : NEG} strong />
+            </div>
+            <div style={{ color: MUTED, fontSize: 11.5, marginTop: 14, lineHeight: 1.55 }}>
+              In a house-hack, the mortgage, taxes and insurance cover all three units but only two pay rent — so cap rate and building cash flow are charged the whole building against two units' income and will read low. Your real win is the <span style={{ color: GOLD }}>net cost to live</span> figure up top.
+            </div>
+          </Panel>
+        </div>
+
+        {/* Notes */}
+        <div style={{ color: MUTED, fontSize: 12, marginTop: 24, lineHeight: 1.6, borderTop: `1px solid ${LINE}`, paddingTop: 16 }}>
+          <strong style={{ color: TEXT }}>Two things worth confirming with Mike Bouffard:</strong> (1) Your pre-approval lists the property type as <em>Single-Family home</em>, but you described three units. If the two rentals are accessory units that may be fine — but verify whether the lender will count rental income toward qualifying, since that changes for a 2–4 unit. (2) Rate is an estimate, not locked. Everything else (tax, insurance, P&I, closing, cash to close) is taken directly from your 06/08/2026 worksheet. Estimate only — not financial advice. Your unit's own utilities are now folded into the "true all-in cost to live," but kept separate from the building economics; the other-ops and personal figures are placeholders — replace with your actuals.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Calculator />);
+  </script>
+</body>
+</html>
