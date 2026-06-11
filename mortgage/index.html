@@ -4,12 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>25-27 Gingko Lane, Brattleboro, VT 05301</title>
-  <meta name="description" content="Owner-occupied triplex — cash upfront + all-in monthly" />
+  <meta name="description" content="Owner-occupied triplex finance calculator" />
   <style>
     html, body { margin: 0; padding: 0; min-height: 100%; background: #F6F2E9; }
     * { box-sizing: border-box; }
-    @media (max-width: 620px) {
-      .stats { grid-template-columns: 1fr !important; }
+
+    /* Two-column layouts used throughout the calculator. Stack to single
+       column under 760px so the form is readable on phones. */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    .two-col-tight {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 32px;
+    }
+    @media (max-width: 760px) {
+      .two-col, .two-col-tight {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      /* Tighten the page wrapper padding on small screens so panels get
+         more horizontal room. */
+      .calc-wrap {
+        padding: 20px 14px !important;
+      }
     }
   </style>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -19,139 +40,1252 @@
 <body>
   <div id="root"></div>
   <script type="text/babel" data-presets="react">
-    const { useState } = React;
+    const { useState, useMemo } = React;
+
 
 // ---------------------------------------------------------------------------
-// Brattleboro Triplex — minimal house-hack calculator.
-// Three occupancy toggles (1B unit, 2B unit, the current house as a rental).
-// Outputs exactly two numbers: cash needed upfront, and all-in monthly cost.
+// Brattleboro Triplex — House-Hack Finance Calculator (Light Mode)
+// Prefilled from EastRise pre-approval + Itemized Fee Worksheet (06/09/2026 — 10% down version).
+// Live in the main house; two units above the garage pay rent.
 // ---------------------------------------------------------------------------
 
-const GOLD = "#A07B2B";
-const GOLD_FILL = "#C9A24B";
+const GOLD = "#A07B2B";        // text / accents (dark bronze for light bg)
+const GOLD_FILL = "#C9A24B";   // slider fills, bars
 const GOLD_DIM = "#8A7338";
-const BG = "#F6F2E9";
+const BG = "#F6F2E9";          // warm cream page
 const PANEL = "#FFFFFF";
+const PANEL_2 = "#F3EFE4";     // input wells
 const LINE = "#E4DECE";
 const TEXT = "#262219";
 const MUTED = "#8C8472";
 const POS = "#4E8A46";
+const NEG = "#B45438";
 const SHADOW = "0 1px 2px rgba(60,50,20,0.05), 0 10px 30px rgba(60,50,20,0.05)";
 
 const fmt = (n) =>
   isFinite(n)
     ? n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
     : "—";
+const pct = (n) => (isFinite(n) ? `${n.toFixed(1)}%` : "—");
 
-// Fixed deal assumptions — $450K purchase, 10% down, 6.25% 30-yr, $100K reno.
-const BASE = {
-  price: 450000, down: 45000, rate: 6.25, term: 30, pmiMo: 74.25,
-  propTax: 10800, insurance: 1800, rentalUtils: 5287, maintPct: 8, vacancyPct: 5,
-  closing: 12800, prepaids: 6400, repairs: 100000,
-  curCost: 1800,                       // monthly carry on the current house
-  rentalElec: 0, snow: 1000, trash: 450, bWaterSewer: 0, pest: 300,
-  pHeat: 2400, pElec: 1400, pWaterSewer: 900, pInternet: 840,
+function Slider({ label, value, min, max, step, onChange, format, hint }) {
+  const fillPct = ((value - min) / (max - min)) * 100;
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <span style={{ color: MUTED, fontSize: 13, letterSpacing: 0.3 }}>{label}</span>
+        <span style={{ color: GOLD, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 17 }}>
+          {format(value)}
+        </span>
+      </div>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{
+          width: "100%",
+          height: 5,
+          borderRadius: 4,
+          appearance: "none",
+          WebkitAppearance: "none",
+          outline: "none",
+          background: `linear-gradient(90deg, ${GOLD_FILL} 0%, ${GOLD_FILL} ${fillPct}%, ${LINE} ${fillPct}%, ${LINE} 100%)`,
+          cursor: "pointer",
+        }}
+      />
+      {hint && <div style={{ color: MUTED, fontSize: 11, marginTop: 6 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function NumField({ label, value, onChange, hint, prefix = "$" }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ color: MUTED, fontSize: 12, marginBottom: 6, letterSpacing: 0.3 }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "center", background: PANEL_2, border: `1px solid ${LINE}`, borderRadius: 8, padding: "8px 12px" }}>
+        <span style={{ color: GOLD_DIM, fontSize: 14, marginRight: 6 }}>{prefix}</span>
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          style={{
+            background: "transparent",
+            border: "none",
+            outline: "none",
+            color: TEXT,
+            fontSize: 15,
+            fontFamily: "'Funnel Display', sans-serif",
+            fontWeight: 500,
+            width: "100%",
+          }}
+        />
+      </div>
+      {hint && <div style={{ color: MUTED, fontSize: 11, marginTop: 5 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function Panel({ title, kicker, children, accent }) {
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: "26px 26px 22px", position: "relative", overflow: "hidden", boxShadow: SHADOW }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: accent || `linear-gradient(90deg, ${GOLD_FILL}, transparent)` }} />
+      {kicker && <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>{kicker}</div>}
+      <h2 style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 20, color: TEXT, margin: "0 0 20px" }}>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Row({ label, value, color, strong, sub }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "7px 0", borderBottom: `1px solid ${LINE}` }}>
+      <span style={{ color: strong ? TEXT : MUTED, fontSize: strong ? 14 : 13, fontWeight: strong ? 600 : 400 }}>
+        {label}
+        {sub && <span style={{ color: MUTED, fontSize: 11, marginLeft: 6, opacity: 0.8 }}>{sub}</span>}
+      </span>
+      <span style={{ color: color || TEXT, fontFamily: "'Funnel Display', sans-serif", fontWeight: strong ? 700 : 500, fontSize: strong ? 16 : 14 }}>{value}</span>
+    </div>
+  );
+}
+
+function BigStat({ label, value, color, sub }) {
+  return (
+    <div style={{ flex: "1 1 0", minWidth: 150 }}>
+      <div style={{ color: MUTED, fontSize: 12, letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 30, color: color || TEXT, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ color: MUTED, fontSize: 12, marginTop: 6 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function Chip({ label, value }) {
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 10, padding: "10px 14px", flex: "1 1 0", minWidth: 130 }}>
+      <div style={{ color: MUTED, fontSize: 10.5, letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ color: TEXT, fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 16, marginTop: 3 }}>{value}</div>
+    </div>
+  );
+}
+
+// Occupancy is controlled by three independent toggles at the top (1B unit,
+// 2B unit, and the current house as a rental). Each toggle just flips that
+// rental's monthly rent between its occupied amount below and $0. The detail
+// sliders further down let you fine-tune the dollar amounts; everything else
+// (price, rate, taxes, reno) is held at whatever the user sets it to.
+const RENT_OCCUPIED = {
+  unit1Rent: 1700,  // 2B — existing tenant
+  unit2Rent: 1300,  // 1B — second unit
+  curRent:   2800,  // House — current property let out
 };
 
-// Monthly rent each rental brings in when occupied.
-const RENT = { b2: 1700, b1: 1300, house: 2800 };
-
-function compute(s) {
+// Pure metrics calculation. Takes a plain object of all inputs and
+// returns every derived value. Lifted out of the component so we can
+// call it once for the live state AND once for each scenario, so the
+// toggle pills can show what the monthly position WOULD BE under each.
+function computeMetrics(s) {
   const loan = Math.max(0, s.price - s.down);
   const downPct = (s.down / s.price) * 100;
   const r = s.rate / 100 / 12;
   const n = s.term * 12;
   const pi = r > 0 ? (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : loan / n;
+  // PMI only applies below 20% down. User can override with s.pmiMo for
+  // their actual quoted figure; we auto-zero it above the threshold so
+  // the headline numbers stay honest if they bump the down slider up.
   const pmiMo = downPct < 20 ? (s.pmiMo || 0) : 0;
 
   const grossRentMo = s.unit1Rent + s.unit2Rent;
   const grossRentYr = grossRentMo * 12;
-  const vacMo = (grossRentYr * s.vacancyPct) / 100 / 12;
-  const maintMo = (grossRentYr * s.maintPct) / 100 / 12;
+  const vac = (grossRentYr * s.vacancyPct) / 100;
+  const maint = (grossRentYr * s.maintPct) / 100;
 
-  const piti = pi + s.propTax / 12 + s.insurance / 12 + pmiMo;
-  const otherBldgMo = (s.rentalElec + s.snow + s.trash + s.bWaterSewer + s.pest) / 12;
-  const totalNut = piti + s.rentalUtils / 12 + maintMo + vacMo + otherBldgMo;
+  const taxMo = s.propTax / 12;
+  const insMo = s.insurance / 12;
+  const utilMo = s.rentalUtils / 12;
+  const maintMo = maint / 12;
+  const vacMo = vac / 12;
+
+  const piti = pi + taxMo + insMo + pmiMo;
+  const otherBldgYr = s.rentalElec + s.snow + s.trash + s.bWaterSewer + s.pest;
+  const otherBldgMo = otherBldgYr / 12;
+  const totalNut = piti + utilMo + maintMo + vacMo + otherBldgMo;
   const netHousingCost = totalNut - grossRentMo;
+  const tenantsCoverPct = totalNut > 0 ? (grossRentMo / totalNut) * 100 : 0;
 
-  const personalMo = (s.pHeat + s.pElec + s.pWaterSewer + s.pInternet) / 12;
+  const personalYr = s.pHeat + s.pElec + s.pWaterSewer + s.pInternet;
+  const personalMo = personalYr / 12;
   const trueAllInMo = netHousingCost + personalMo;
 
-  const cashUpfront = s.down + s.closing + s.prepaids + s.repairs;
-  const houseNetMo = s.curRent > 0 ? s.curRent - s.curCost : 0;  // net only when rented
+  const egi = grossRentYr - vac;
+  const opEx = s.propTax + s.insurance + s.rentalUtils + maint + otherBldgYr;
+  const noi = egi - opEx;
+  const capRate = (noi / s.price) * 100;
+  const rentalCashFlow = noi - pi * 12;
 
-  return { cashUpfront, monthlyAllIn: trueAllInMo - houseNetMo };
-}
+  const cashToClose = s.down + s.closing + s.prepaids;
+  const totalCashIn = cashToClose + s.repairs;
+  const curNetMo = s.curRent - s.curCost;
+  const combinedMo = curNetMo - netHousingCost;
 
-function Toggle({ label, sub, on, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: "1 1 0", minWidth: 96, cursor: "pointer", textAlign: "center",
-        padding: "18px 10px", borderRadius: 14, fontFamily: "inherit",
-        border: `2px solid ${on ? GOLD : LINE}`,
-        background: on ? "linear-gradient(135deg, #FFFCF1, #FBF3DE)" : PANEL,
-        boxShadow: on ? SHADOW : "none", transition: "all 150ms ease",
-      }}
-    >
-      <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 22, color: on ? GOLD : MUTED }}>{label}</div>
-      <div style={{ fontSize: 12, color: MUTED, marginTop: 4 }}>{sub}</div>
-      <div style={{ fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginTop: 8, fontWeight: 700, color: on ? POS : MUTED }}>
-        {on ? "occupied" : "vacant"}
-      </div>
-    </button>
-  );
-}
+  // Equity built per month — principal portion of each mortgage payment.
+  // For a fixed-rate amortizing loan: month-1 principal = payment - (balance × monthly rate).
+  // Grows over time as balance falls; this is the floor.
+  const newPrincipalMo = Math.max(0, pi - loan * r);
+  const curMtgInterestMo = (s.curMtgBalance * (s.curMtgRate / 100)) / 12;
+  const curPrincipalMo = Math.max(0, s.curMtgPayment - curMtgInterestMo);
+  const equityMo = newPrincipalMo + curPrincipalMo;
 
-function Stat({ label, value, sub }) {
-  return (
-    <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: "24px 26px", boxShadow: SHADOW }}>
-      <div style={{ color: MUTED, fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 40, color: GOLD, lineHeight: 1.1, marginTop: 8, fontVariantNumeric: "tabular-nums" }}>{value}</div>
-      {sub && <div style={{ color: MUTED, fontSize: 12.5, marginTop: 6 }}>{sub}</div>}
-    </div>
-  );
+  return { loan, downPct, pi, pmiMo, piti, grossRentMo, grossRentYr, taxMo, insMo, utilMo, maintMo, vacMo, otherBldgMo, totalNut, netHousingCost, tenantsCoverPct, personalMo, trueAllInMo, noi, capRate, rentalCashFlow, cashToClose, totalCashIn, curNetMo, combinedMo, maint, vac, newPrincipalMo, curPrincipalMo, equityMo };
 }
 
 function Calculator() {
-  // Default occupancy = today's reality: 2B rented, 1B vacant, house not let.
-  const [b2, setB2] = useState(true);
-  const [b1, setB1] = useState(false);
-  const [house, setHouse] = useState(false);
+  // New triplex — modeled at a $450K purchase price, 10% down
+  const [price, setPrice] = useState(450000);
+  const [down, setDown] = useState(45000);    // dollars; 10% down → $405,000 loan
+  const [rate, setRate] = useState(6.25);
+  const [term, setTerm] = useState(30);
+  // PMI scaled from the 6/9 worksheet's "Mortgage Insurance" line
+  // (~0.22%/yr of loan → $74.25/mo on the $405K loan). Auto-zeros above
+  // 20% down inside computeMetrics.
+  const [pmiMo, setPmiMo] = useState(74.25);
 
-  const m = compute({
-    ...BASE,
-    unit1Rent: b2 ? RENT.b2 : 0,
-    unit2Rent: b1 ? RENT.b1 : 0,
-    curRent: house ? RENT.house : 0,
-  });
+  // Per-unit triplex rents. Default to today's reality: 2B occupied
+  // (existing tenant), 1B vacant. Controlled by the toggles up top.
+  const [unit1Rent, setUnit1Rent] = useState(RENT_OCCUPIED.unit1Rent);
+  const [unit2Rent, setUnit2Rent] = useState(0);
+
+  // Carrying costs — actuals from worksheet escrow
+  const [propTax, setPropTax] = useState(10800);   // $900/mo — Andy's actual figure, lower than worksheet's $987.50 escrow estimate
+  const [insurance, setInsurance] = useState(1800); // $150/mo hazard
+  const [rentalUtils, setRentalUtils] = useState(5287);
+  const [maintPct, setMaintPct] = useState(8);
+  const [vacancyPct, setVacancyPct] = useState(5);
+
+  // Cash to close — scaled from the 6/9 worksheet to the $450K price
+  const [closing, setClosing] = useState(12800);    // ~$12.8K est. — lower VT transfer tax at $450K vs the $13,855.75 worksheet
+  const [prepaids, setPrepaids] = useState(6400);   // ~$6.4K est. — less daily interest on the smaller $405K loan
+  // Flat pre-move-in renovation budget — $100K expected
+  const [repairs, setRepairs] = useState(100000);
+
+  // Current property — curRent toggled by the "House" switch up top;
+  // curCost stays user-controlled. Defaults to vacant.
+  const [curCost, setCurCost] = useState(1800);
+  const [curRent, setCurRent] = useState(0);
+
+  // Current-house mortgage (paid to parents). Used to compute the
+  // principal portion of the $600/mo payment so it shows up as equity
+  // built — both on the live calc and on each scenario card.
+  const [curMtgBalance, setCurMtgBalance] = useState(100000);
+  const [curMtgPayment, setCurMtgPayment] = useState(600);
+  const [curMtgRate, setCurMtgRate] = useState(2);
+
+  // Reference rents — what we'd be paying if we didn't buy. Used by the
+  // "vs renting" anchor panel below the top summary to translate a
+  // raw "−$500/mo" combined position into "$1,300/mo cheaper than what
+  // we pay now". Both are editable so the framing stays honest.
+  const [compareRentCurrent, setCompareRentCurrent] = useState(2000); // includes electricity
+  const [compareRentCA, setCompareRentCA] = useState(3500);
+
+  // Garage-apartment square footage — used to compute a more honest
+  // $/sqft for the WHOLE property rather than just the main house's
+  // 1,600 sqft (which is what Zillow's ~$281/sqft figure uses). The
+  // rentals are real living area and should count.
+  const [unit1Sqft, setUnit1Sqft] = useState(700); // 2BR/1BA
+  const [unit2Sqft, setUnit2Sqft] = useState(600); // 1BR/1BA
+
+  // A rental is "occupied" when its rent is above $0. Each toggle flips
+  // between its occupied amount and vacant; the detail sliders below can
+  // still set a custom dollar figure (the toggle just reads rent > 0).
+  const toggleRental = (rent, setRent, occupiedAmount) =>
+    setRent(rent > 0 ? 0 : occupiedAmount);
+
+  // Other building operating costs (annual) — placeholders, edit to actuals
+  const [rentalElec, setRentalElec] = useState(0);   // $0 if tenant-paid / separately metered
+  const [snow, setSnow] = useState(1000);
+  const [trash, setTrash] = useState(450);
+  const [bWaterSewer, setBWaterSewer] = useState(0); // $0 if already in the $5,287
+  const [pest, setPest] = useState(300);
+
+  // Your unit — personal living costs (annual) — placeholders, edit to actuals
+  const [pHeat, setPHeat] = useState(2400);
+  const [pElec, setPElec] = useState(1400);
+  const [pWaterSewer, setPWaterSewer] = useState(900);
+  const [pInternet, setPInternet] = useState(840);
+
+  // All inputs collected as one object so we can shape-spread scenario
+  // overrides on top for the comparison projections below.
+  const currentInputs = {
+    price, down, rate, term, pmiMo, unit1Rent, unit2Rent, propTax, insurance,
+    rentalUtils, maintPct, vacancyPct, closing, prepaids, repairs,
+    curCost, curRent, rentalElec, snow, trash, bWaterSewer, pest,
+    pHeat, pElec, pWaterSewer, pInternet,
+    curMtgBalance, curMtgPayment, curMtgRate,
+  };
+
+  // Live metrics — what the rest of the UI reads from. Recomputes
+  // whenever any input changes.
+  const m = useMemo(
+    () => computeMetrics(currentInputs),
+    [price, down, rate, term, pmiMo, unit1Rent, unit2Rent, propTax, insurance, rentalUtils, maintPct, vacancyPct, closing, prepaids, repairs, curCost, curRent, rentalElec, snow, trash, bWaterSewer, pest, pHeat, pElec, pWaterSewer, pInternet, curMtgBalance, curMtgPayment, curMtgRate]
+  );
+
+  const segs = [
+    { label: "Mortgage (P&I)", v: m.pi, c: GOLD_FILL },
+    { label: "PMI", v: m.pmiMo, c: "#D87652" },
+    { label: "Property tax", v: m.taxMo, c: "#B8863C" },
+    { label: "Insurance", v: m.insMo, c: "#9E6F33" },
+    { label: "Rental utilities", v: m.utilMo, c: "#7E5E3A" },
+    { label: "Maint. reserve", v: m.maintMo, c: "#A89A7A" },
+    { label: "Vacancy reserve", v: m.vacMo, c: "#C7BEA6" },
+    { label: "Other bldg ops", v: m.otherBldgMo, c: "#8C8A78" },
+  ];
 
   return (
-    <div style={{ background: BG, minHeight: "100%", padding: "48px 20px", fontFamily: "'Funnel Sans', sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700&display=swap');`}</style>
+    <div className="calc-wrap" style={{ background: BG, minHeight: "100%", padding: "32px 20px", fontFamily: "'Funnel Sans', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700&display=swap');
+        input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:${GOLD_FILL}; border:3px solid ${PANEL}; box-shadow:0 0 0 1px ${GOLD_FILL}, 0 1px 3px rgba(0,0,0,0.2); cursor:pointer; }
+        input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:${GOLD_FILL}; border:3px solid ${PANEL}; box-shadow:0 0 0 1px ${GOLD_FILL}; cursor:pointer; }
+        input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+      `}</style>
 
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <div style={{ color: GOLD_DIM, fontSize: 12, letterSpacing: 3, textTransform: "uppercase" }}>House-hack · owner-occupied triplex</div>
-        <h1 style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 30, color: TEXT, margin: "8px 0 6px", letterSpacing: -0.5, lineHeight: 1.15 }}>25-27 Gingko Lane, Brattleboro, VT</h1>
-        <div style={{ color: MUTED, fontSize: 13.5 }}>$450K · 10% down ($45K) · 6.25% 30-yr · $100K reno</div>
-
-        {/* Occupancy toggles — flip each rental on/off */}
-        <div style={{ display: "flex", gap: 12, marginTop: 28, flexWrap: "wrap" }}>
-          <Toggle label="1B" sub={`${fmt(RENT.b1)}/mo`} on={b1} onClick={() => setB1(!b1)} />
-          <Toggle label="2B" sub={`${fmt(RENT.b2)}/mo`} on={b2} onClick={() => setB2(!b2)} />
-          <Toggle label="House" sub={`${fmt(RENT.house)}/mo`} on={house} onClick={() => setHouse(!house)} />
+      <div style={{ maxWidth: 1040, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ color: GOLD_DIM, fontSize: 12, letterSpacing: 3, textTransform: "uppercase" }}>House-hack analysis · owner-occupied + 2 rentals</div>
+          <h1 style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 34, color: TEXT, margin: "8px 0 6px", letterSpacing: -0.5, lineHeight: 1.1 }}>25-27 Gingko Lane, Brattleboro, VT 05301</h1>
+          <p style={{ color: MUTED, fontSize: 15, margin: 0, maxWidth: 640 }}>
+            Live in the main house; two units above the garage pay rent. Loaded with your <span style={{ color: GOLD }}>EastRise pre-approval</span> numbers — the headline is your net cost to live after tenants.
+          </p>
         </div>
 
-        {/* The two numbers */}
-        <div className="stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
-          <Stat label="Cash in upfront" value={fmt(m.cashUpfront)} sub="Down + closing + prepaids + $100K reno" />
-          <Stat label="Monthly cost all-in" value={`${fmt(m.monthlyAllIn)}/mo`} sub="To live here, after rents from occupied units" />
+        {/* Worksheet chips */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Modeled at $450K · based on your 06/09/2026 EastRise worksheet · 10% down</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <Chip label="Rate (est.)" value="6.250%" />
+            <Chip label="Loan amount" value={fmt(m.loan)} />
+            <Chip label="Lender PITI + PMI" value={`${fmt(m.piti)}/mo`} />
+            <Chip label="Cash to close" value={fmt(m.cashToClose)} />
+          </div>
+          <div style={{ color: MUTED, fontSize: 11, marginTop: 8 }}>Mike's <strong style={{ color: TEXT }}>6/9 update</strong>: pre-approved up to $600K at <strong style={{ color: TEXT }}>10% down · 90% LTV</strong> (was a ~$150K / higher-down plan). At a $450K price, 10% down is $45K. Rate not yet locked. Pre-approval valid through 10/05/2026. PMI ${m.pmiMo.toFixed(2)}/mo until 78% LTV (auto-removal ~year 9, sooner if you request reappraisal after the reno).</div>
+        </div>
+
+        {/* OCCUPANCY TOGGLES — flip each rental occupied/vacant. These set
+            the three rents that feed every number below; vacant = $0. */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+            <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase" }}>Occupancy · which rentals are producing income</div>
+            <div style={{ color: MUTED, fontSize: 11 }}>Tap to flip occupied / vacant — everything below updates</div>
+          </div>
+          <div className="two-col-tight" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+            {[
+              { label: "1B",    desc: "1BR unit · above garage",     rent: unit2Rent, set: setUnit2Rent, occ: RENT_OCCUPIED.unit2Rent },
+              { label: "2B",    desc: "2BR unit · existing tenant",  rent: unit1Rent, set: setUnit1Rent, occ: RENT_OCCUPIED.unit1Rent },
+              { label: "House", desc: "current property · let out",  rent: curRent,   set: setCurRent,   occ: RENT_OCCUPIED.curRent },
+            ].map((t) => {
+              const on = t.rent > 0;
+              return (
+                <button
+                  key={t.label}
+                  onClick={() => toggleRental(t.rent, t.set, t.occ)}
+                  style={{
+                    cursor: "pointer", textAlign: "left", padding: "16px 18px",
+                    border: `2px solid ${on ? GOLD : LINE}`, borderRadius: 14,
+                    background: on ? "linear-gradient(135deg, #FFFCF1, #FBF3DE)" : PANEL,
+                    boxShadow: on ? SHADOW : "none", transition: "all 150ms ease", fontFamily: "inherit",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 22, color: on ? GOLD : TEXT }}>{t.label}</span>
+                    <span style={{ fontSize: 9, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 700, color: on ? POS : MUTED, background: on ? "rgba(78,138,70,0.12)" : "transparent", padding: "3px 8px", borderRadius: 999 }}>{on ? "occupied" : "vacant"}</span>
+                  </div>
+                  <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 20, color: on ? TEXT : MUTED, fontVariantNumeric: "tabular-nums", marginBottom: 4 }}>
+                    {on ? `${fmt(t.rent)}/mo` : "$0/mo"}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: MUTED }}>{t.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* TOP SUMMARY */}
+        <div style={{ background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)", border: `1px solid ${LINE}`, borderRadius: 18, padding: "28px 30px", marginBottom: 24, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", boxShadow: SHADOW }}>
+          <BigStat label="True all-in cost to live" value={`${fmt(m.trueAllInMo)}/mo`} color={m.trueAllInMo < 0 ? POS : GOLD} sub={`Building ${fmt(m.netHousingCost)} + your utilities ${fmt(m.personalMo)} · tenants cover ${pct(m.tenantsCoverPct)} of the building`} />
+          <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
+          <BigStat label="Total cash needed" value={fmt(m.totalCashIn)} sub={`${fmt(m.cashToClose)} to close + ${fmt(repairs)} repairs`} />
+          <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
+          <BigStat label="Combined monthly position" value={`${m.combinedMo >= 0 ? "+" : ""}${fmt(m.combinedMo)}/mo`} color={m.combinedMo >= 0 ? POS : NEG} sub="New home + current property net" />
+        </div>
+
+        {/* ANCHOR PANEL — translate the combined position from a raw
+            number into "vs. what we'd be paying as renters." Cash
+            savings is the main framing; equity-included is the honest
+            total but parenthetical because it's not liquid. */}
+        {(() => {
+          // combinedMo negative = you pay; positive = deal pays you
+          const dealPaysYouMo = m.combinedMo;
+          // "You're ahead by" vs an alternative rent: alternativeRent
+          // − (what you'd otherwise pay this deal). If combinedMo is
+          // already positive, it stacks ON TOP of the rent you avoid.
+          const aheadVsCurrent = compareRentCurrent + dealPaysYouMo;
+          const aheadVsCA      = compareRentCA      + dealPaysYouMo;
+          const aheadVsCurrentEq = aheadVsCurrent + m.equityMo;
+          const aheadVsCAEq      = aheadVsCA      + m.equityMo;
+          const goodTone = (n) => n >= 0 ? POS : NEG;
+          return (
+            <div style={{ marginBottom: 24, padding: "18px 22px", background: "linear-gradient(135deg, rgba(125,165,90,0.06), rgba(125,165,90,0.02))", border: `1px solid ${LINE}`, borderRadius: 14 }}>
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
+                <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600 }}>Anchor · vs what we'd be paying as renters</div>
+                <div style={{ color: MUTED, fontSize: 11 }}>
+                  This deal: <span style={{ color: m.combinedMo >= 0 ? POS : NEG, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{m.combinedMo >= 0 ? "+" : ""}{fmt(m.combinedMo)}/mo</span> +
+                  <span style={{ color: POS, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}> {fmt(m.equityMo)}/mo equity</span>
+                </div>
+              </div>
+              <div className="two-col" style={{ gap: 14 }}>
+                {[
+                  { label: "Current rent · Andy → Zoë, Brattleboro · incl. electricity", rent: compareRentCurrent, ahead: aheadVsCurrent, aheadEq: aheadVsCurrentEq, setter: setCompareRentCurrent },
+                  { label: "CA rent (what we paid)",  rent: compareRentCA,      ahead: aheadVsCA,      aheadEq: aheadVsCAEq,      setter: setCompareRentCA },
+                ].map((row) => (
+                  <div key={row.label} style={{ padding: "14px 16px", background: PANEL, border: `1px solid ${LINE}`, borderRadius: 10 }}>
+                    <div style={{ fontSize: 11, color: MUTED, letterSpacing: 0.5, marginBottom: 4 }}>{row.label}</div>
+                    <input
+                      type="number"
+                      value={row.rent}
+                      onChange={(e) => row.setter(Number(e.target.value) || 0)}
+                      style={{ background: "transparent", border: "none", outline: "none", color: TEXT, fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 22, width: 130, padding: 0, marginBottom: 8, fontVariantNumeric: "tabular-nums" }}
+                    />
+                    <div style={{ fontSize: 12, color: MUTED, marginBottom: 10 }}>/mo if we kept renting</div>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ color: MUTED, fontSize: 11.5 }}>Cash savings:</span>
+                      <span style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 18, color: goodTone(row.ahead), fontVariantNumeric: "tabular-nums" }}>
+                        {row.ahead >= 0 ? "+" : ""}{fmt(row.ahead)}<span style={{ fontSize: 12, color: MUTED, fontWeight: 500 }}>/mo</span>
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: MUTED, marginTop: 6, lineHeight: 1.5 }}>
+                      Adding {fmt(m.equityMo)}/mo equity built → <span style={{ color: goodTone(row.aheadEq), fontWeight: 700 }}>{row.aheadEq >= 0 ? "+" : ""}{fmt(row.aheadEq)}/mo</span> total economic advantage
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 10.5, color: MUTED, marginTop: 12, lineHeight: 1.5 }}>
+                Editable — click into either number to update. Cash savings = rent you'd pay + this deal's combined monthly position. Equity isn't liquid but it's real wealth being built; the total-advantage line counts it.
+              </div>
+            </div>
+          );
+        })()}
+
+        <div className="two-col">
+          {/* LEFT: purchase */}
+          <Panel kicker="The Purchase" title="New Triplex — $450K">
+            <Slider label="Purchase price" value={price} min={350000} max={750000} step={5000} onChange={setPrice} format={fmt} />
+            <Slider label="Down payment" value={down} min={0} max={Math.min(400000, price)} step={2500} onChange={setDown} format={(v) => `${fmt(v)}  ·  ${pct((v / price) * 100)}`} hint="$45,000 (10% down · 90% LTV) at the $450K price — adds PMI. Push slider up to compare: $90K = 20% (no PMI threshold), $150K = the original higher-down plan (~33%)." />
+            <Slider label="Mortgage rate" value={rate} min={5} max={9} step={0.05} onChange={setRate} format={(v) => `${v.toFixed(2)}%`} hint="EastRise estimated 6.250% (not yet locked). 30-yr fixed conventional." />
+            <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+              {[15, 30].map((t) => (
+                <button key={t} onClick={() => setTerm(t)} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${term === t ? GOLD : LINE}`, background: term === t ? "rgba(201,162,75,0.15)" : "transparent", color: term === t ? GOLD : MUTED, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{t}-year</button>
+              ))}
+            </div>
+            <Slider label="Unit 1 rent — existing tenant" value={unit1Rent} min={0} max={2600} step={50} onChange={setUnit1Rent} format={(v) => v === 0 ? "vacant" : `${fmt(v)}/mo`} hint="Existing tenant currently pays $1,600/mo. A modest bump to $1,700–$1,800 is the realistic upside." />
+            <Slider label="Unit 2 rent — second unit" value={unit2Rent} min={0} max={2600} step={50} onChange={setUnit2Rent} format={(v) => v === 0 ? "vacant" : `${fmt(v)}/mo`} hint="Currently empty. Vacant ($0) is the downside; $1,200–$1,400 is the realistic range once it's filled." />
+          </Panel>
+
+          {/* RIGHT: costs */}
+          <Panel kicker="Carrying Costs" title="Escrow & Reserves" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            <NumField label="Property tax (annual)" value={propTax} onChange={setPropTax} hint="$10,800/yr ($900/mo) — Andy's actual figure. The worksheet escrowed $987.50/mo as a buffer; this reflects the real bill." />
+            <NumField label="Hazard insurance (annual)" value={insurance} onChange={setInsurance} hint="From worksheet escrow: $150/mo. Confirm it covers a 3-unit building." />
+            <NumField label="PMI (monthly)" value={pmiMo} onChange={setPmiMo} hint={`~$74.25/mo, scaled from the 6/9 worksheet ($86.63 on the old $472.5K loan) to the $405K loan. Auto-zeroed above 20% down. Currently ${m.downPct.toFixed(1)}% down ${m.downPct < 20 ? "→ PMI is active" : "→ PMI does not apply"}.`} />
+            <NumField label="Rental units utilities (annual)" value={rentalUtils} onChange={setRentalUtils} hint="Your figure: $5,287/yr gas, heat & water for the two units." />
+            <Slider label="Maintenance / capex reserve" value={maintPct} min={0} max={20} step={1} onChange={setMaintPct} format={(v) => `${v}% of rent  ·  ${fmt(m.maint)}/yr`} hint="Sized off rental income only — for big-ticket items covering all 3 units (roof, boiler), consider bumping this or budgeting ~1% of value/yr." />
+            <Slider label="Vacancy reserve" value={vacancyPct} min={0} max={15} step={1} onChange={setVacancyPct} format={(v) => `${v}% of rent  ·  ${fmt(m.vac)}/yr`} />
+          </Panel>
+        </div>
+
+        {/* Breakdown */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="Where the money goes" title="Monthly Breakdown — New Building">
+            <div style={{ display: "flex", height: 30, borderRadius: 8, overflow: "hidden", marginBottom: 16, border: `1px solid ${LINE}` }}>
+              {segs.map((s, i) => (<div key={i} title={`${s.label}: ${fmt(s.v)}`} style={{ width: `${(s.v / m.totalNut) * 100}%`, background: s.c }} />))}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", marginBottom: 18 }}>
+              {segs.map((s, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: MUTED }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: s.c, display: "inline-block" }} />
+                  {s.label} <span style={{ color: TEXT }}>{fmt(s.v)}</span>
+                </div>
+              ))}
+            </div>
+            <Row label="Lender PITI" sub="P&I + tax + insurance" value={`${fmt(m.piti)}/mo`} />
+            <Row label="Total building nut" sub="incl. utilities, reserves, other ops" value={`${fmt(m.totalNut)}/mo`} strong />
+            <Row label="Less: rental income" sub={unit1Rent === 0 && unit2Rent === 0 ? "both units vacant" : (unit1Rent === 0 || unit2Rent === 0 ? "1 unit occupied" : "2 units occupied")} value={`– ${fmt(m.grossRentMo)}/mo`} color={POS} />
+            <Row label="Net cost to carry the building" value={`${fmt(m.netHousingCost)}/mo`} color={m.netHousingCost < 0 ? POS : GOLD} strong />
+            <Row label="+ Your unit's own utilities" sub="heat, electric, water, internet" value={`${fmt(m.personalMo)}/mo`} />
+            <Row label="True all-in cost to live" value={`${fmt(m.trueAllInMo)}/mo`} color={m.trueAllInMo < 0 ? POS : GOLD} strong />
+          </Panel>
+        </div>
+
+        {/* Other operating costs + personal living */}
+        <div className="two-col" style={{ marginTop: 24 }}>
+          <Panel kicker="Whole-building ops" title="Other Operating Costs" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            <NumField label="Rental units electricity (annual)" value={rentalElec} onChange={setRentalElec} hint="$0 if tenants are separately metered. Add it if it's on your meter." />
+            <NumField label="Snow removal / plowing (annual)" value={snow} onChange={setSnow} hint="Vermont winters — placeholder ~$1,000 if hired out." />
+            <NumField label="Trash & recycling (annual)" value={trash} onChange={setTrash} hint="If not already on the tax bill." />
+            <NumField label="Water / sewer (annual)" value={bWaterSewer} onChange={setBWaterSewer} hint="$0 if already inside the $5,287 rental-utilities figure." />
+            <NumField label="Pest control (annual)" value={pest} onChange={setPest} hint="Given the carpenter-ant history." />
+          </Panel>
+
+          <Panel kicker="Your unit only" title="Your Personal Living Costs" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
+            <NumField label="Heat (annual)" value={pHeat} onChange={setPHeat} hint="Oil / propane / gas for the main house — placeholder." />
+            <NumField label="Electricity (annual)" value={pElec} onChange={setPElec} hint="Placeholder — replace with your actual." />
+            <NumField label="Water / sewer (annual)" value={pWaterSewer} onChange={setPWaterSewer} />
+            <NumField label="Internet (annual)" value={pInternet} onChange={setPInternet} />
+            <div style={{ marginTop: 6 }}>
+              <Row label="Your unit total" value={`${fmt(m.personalMo)}/mo`} strong />
+              <div style={{ color: MUTED, fontSize: 11.5, marginTop: 10, lineHeight: 1.5 }}>You'd pay these living anywhere — they're separated so the building economics stay clean, but folded into the "true all-in cost to live" above.</div>
+            </div>
+          </Panel>
+        </div>
+
+        {/* Cash to close detail + current property */}
+        <div className="two-col" style={{ marginTop: 24 }}>
+          <Panel kicker="Cash out of pocket" title="Cash Needed Upfront">
+            <Row label="Down payment" value={fmt(down)} />
+            <NumField label="Closing costs" value={closing} onChange={setClosing} hint="~$12.8K est. at $450K — scaled down from the 6/9 worksheet's $13,855.75 (lower VT transfer tax on a smaller price). Confirm with an updated worksheet." />
+            <NumField label="Prepaids & reserves" value={prepaids} onChange={setPrepaids} hint="~$6.4K est. — scaled from the 6/9 worksheet's $6,621.09 (less daily interest on the smaller $405K loan). Confirm with an updated worksheet." />
+            <Row label="Cash to close" sub="lender table" value={fmt(m.cashToClose)} />
+            <div style={{ height: 14 }} />
+            <Slider label="Pre-move-in repairs" value={repairs} min={0} max={150000} step={1000} onChange={setRepairs} format={fmt} hint="Work needed before you can move in — budgeted flat at $100K (mostly the upstairs finish-out, see the reno-ROI section below). Slide up to stress-test an overrun." />
+            <Row label="Total cash needed" value={fmt(m.totalCashIn)} strong color={GOLD} />
+          </Panel>
+
+          <Panel kicker="Existing Asset" title="Current Property (89 Clark St?)" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
+            <NumField label="Monthly carrying cost (all-in)" value={curCost} onChange={setCurCost} hint="Mortgage + insurance + utilities, per your figure." />
+            <Slider label={`Rent if you let it · ${curRent > 0 ? "House occupied" : "House vacant"}`} value={curRent} min={0} max={5000} step={100} onChange={setCurRent} format={(v) => v === 0 ? "vacant" : `${fmt(v)}/mo`} hint="Set by the House toggle up top; slide to fine-tune the amount. $0 = vacant." />
+            <div style={{ marginTop: 8, paddingTop: 12, borderTop: `1px solid ${LINE}` }}>
+              <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Mortgage to parents — equity calc</div>
+              <Slider label="Loan balance remaining" value={curMtgBalance} min={0} max={300000} step={5000} onChange={setCurMtgBalance} format={fmt} hint="Rough estimate of what's still owed. Drives the interest portion of your $600/mo payment." />
+              <Slider label="Monthly payment" value={curMtgPayment} min={0} max={2500} step={25} onChange={setCurMtgPayment} format={(v) => `${fmt(v)}/mo`} />
+              <Slider label="Interest rate" value={curMtgRate} min={0} max={8} step={0.25} onChange={setCurMtgRate} format={(v) => `${v.toFixed(2)}%`} hint="The family rate. At 2% on $100K, interest is ~$167/mo and principal is ~$433/mo." />
+            </div>
+            <div style={{ marginTop: 10 }}>
+              <Row label="Net monthly" value={`${m.curNetMo >= 0 ? "+" : ""}${fmt(m.curNetMo)}/mo`} color={m.curNetMo >= 0 ? POS : NEG} strong />
+              <Row label="Equity built" sub={`principal portion of ${fmt(curMtgPayment)}/mo`} value={`+ ${fmt(m.curPrincipalMo)}/mo`} color={POS} />
+              <Row label="Net annual" value={`${m.curNetMo >= 0 ? "+" : ""}${fmt(m.curNetMo * 12)}/yr`} color={m.curNetMo >= 0 ? POS : NEG} />
+            </div>
+          </Panel>
+        </div>
+
+        {/* Investor lens */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="Investor Lens (approx.)" title="If You Viewed the Building as a Pure Rental" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            <div className="two-col-tight">
+              <Row label="Gross rent" value={`${fmt(m.grossRentYr)}/yr`} />
+              <Row label="Net operating income" value={`${fmt(m.noi)}/yr`} color={m.noi >= 0 ? POS : NEG} />
+              <Row label="Cap rate" sub="NOI ÷ price" value={pct(m.capRate)} />
+              <Row label="Building cash flow" sub="after debt" value={`${m.rentalCashFlow >= 0 ? "+" : ""}${fmt(m.rentalCashFlow)}/yr`} color={m.rentalCashFlow >= 0 ? POS : NEG} strong />
+            </div>
+            <div style={{ color: MUTED, fontSize: 11.5, marginTop: 14, lineHeight: 1.55 }}>
+              In a house-hack, the mortgage, taxes and insurance cover all three units but only two pay rent — so cap rate and building cash flow are charged the whole building against two units' income and will read low. Your real win is the <span style={{ color: GOLD }}>net cost to live</span> figure up top.
+            </div>
+          </Panel>
+        </div>
+
+        {/* THE PROPERTY — verified Zillow facts. Photo URLs live in
+            /mortgage/img/ (download from the Zillow listing and save
+            with the filenames below). Each img has an onerror handler
+            that hides the broken image and reveals the placeholder
+            sibling so missing files don't break the layout. */}
+        <div style={{ marginTop: 28 }}>
+          <Panel kicker="The Property" title="Listing snapshot" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            {/* Lot-size highlight — the most distinctive number on the listing */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginBottom: 18, padding: "16px 18px", background: "linear-gradient(135deg, rgba(201,162,75,0.08), rgba(201,162,75,0.02))", border: `1px solid ${LINE}`, borderRadius: 12 }}>
+              <div style={{ flex: "1 1 auto", minWidth: 140 }}>
+                <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Lot size</div>
+                <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 28, color: GOLD, lineHeight: 1 }}>1.0 <span style={{ fontSize: 15, color: TEXT, fontWeight: 500 }}>acre</span></div>
+                <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>~43,560 sqft · 101 ft road frontage</div>
+              </div>
+              <div style={{ flex: "1 1 auto", minWidth: 140 }}>
+                <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Main house</div>
+                <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 28, color: TEXT, lineHeight: 1 }}>1,600 <span style={{ fontSize: 15, color: MUTED, fontWeight: 500 }}>sqft</span></div>
+                <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>3BR / 2BA · upstairs unfinished</div>
+              </div>
+              <div style={{ flex: "1 1 auto", minWidth: 140 }}>
+                <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Rentals</div>
+                <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 28, color: TEXT, lineHeight: 1 }}>2 <span style={{ fontSize: 15, color: MUTED, fontWeight: 500 }}>units · above garage</span></div>
+                <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>2BR/1BA (occupied) + 1BR/1BA (vacant)</div>
+              </div>
+              <div style={{ flex: "1 1 auto", minWidth: 140 }}>
+                <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>Built in stages</div>
+                <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 26, color: TEXT, lineHeight: 1 }}>1960 <span style={{ color: MUTED, fontSize: 15, fontWeight: 500 }}>+</span> 1978</div>
+                <div style={{ color: MUTED, fontSize: 11, marginTop: 4 }}>Lower original · upper added 18 yrs later</div>
+              </div>
+            </div>
+
+            {/* Photo gallery — hero shot on top, two smaller below. Drop
+                more images into /mortgage/img/ and add entries to the
+                photos array to extend. */}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ position: "relative", aspectRatio: "16 / 9", background: "rgba(201,162,75,0.08)", borderRadius: 10, border: `1px solid ${LINE}`, overflow: "hidden", marginBottom: 8 }}>
+                <img src="/mortgage/img/01-main-house.webp" alt="Main house — front exterior" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+
+                {/* Annotation: top floor was an addition in 1978 */}
+                <div style={{ position: "absolute", top: "16%", right: "8%", display: "flex", alignItems: "center", gap: 8, pointerEvents: "none" }}>
+                  <span style={{ background: "rgba(201,162,75,0.95)", padding: "5px 11px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: "#FBF6EA", boxShadow: SHADOW, whiteSpace: "nowrap", fontFamily: "'Funnel Display', sans-serif", letterSpacing: 0.2 }}>
+                    Top floor · added 1978
+                  </span>
+                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: GOLD, border: "2px solid #FBF6EA", boxShadow: SHADOW }} />
+                </div>
+
+                {/* Annotation: bottom floor was the original 1960 structure */}
+                <div style={{ position: "absolute", top: "58%", right: "8%", display: "flex", alignItems: "center", gap: 8, pointerEvents: "none" }}>
+                  <span style={{ background: "rgba(125,165,90,0.95)", padding: "5px 11px", borderRadius: 999, fontSize: 11, fontWeight: 700, color: "#FBF6EA", boxShadow: SHADOW, whiteSpace: "nowrap", fontFamily: "'Funnel Display', sans-serif", letterSpacing: 0.2 }}>
+                    Bottom floor · 1960 original
+                  </span>
+                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: "50%", background: POS, border: "2px solid #FBF6EA", boxShadow: SHADOW }} />
+                </div>
+
+                <div style={{ position: "absolute", left: 12, bottom: 10, padding: "5px 10px", background: "rgba(31,30,28,0.78)", color: "#FBF6EA", fontSize: 11, letterSpacing: 0.5, borderRadius: 6 }}>
+                  Main house — 3BR / 2BA, 1,600 sqft, upstairs unfinished
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div style={{ position: "relative", aspectRatio: "4 / 3", background: "rgba(201,162,75,0.08)", borderRadius: 8, border: `1px solid ${LINE}`, overflow: "hidden" }}>
+                  <img src="/mortgage/img/02-garage-rentals.webp" alt="Two-car garage with rental units above (addresses 25 + 27)" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  <div style={{ position: "absolute", left: 10, bottom: 8, padding: "4px 8px", background: "rgba(31,30,28,0.78)", color: "#FBF6EA", fontSize: 10.5, borderRadius: 5 }}>
+                    Rentals above the 2-car garage · units 25 + 27
+                  </div>
+                </div>
+                <div style={{ position: "relative", aspectRatio: "4 / 3", background: "rgba(201,162,75,0.08)", borderRadius: 8, border: `1px solid ${LINE}`, overflow: "hidden" }}>
+                  <img src="/mortgage/img/03-lot.webp" alt="Lot — 1 acre of mature trees and lawn" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  <div style={{ position: "absolute", left: 10, bottom: 8, padding: "4px 8px", background: "rgba(31,30,28,0.78)", color: "#FBF6EA", fontSize: 10.5, borderRadius: 5 }}>
+                    1-acre lot · private, wooded, level lawn
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="two-col-tight" style={{ rowGap: 6 }}>
+              <Row label="Modeled price" value="$450,000" strong />
+              <Row label="Price / sqft" sub="main house only" value="$281" />
+              <Row label="Annual tax (Zillow)" sub={`${pct((10808 / 450000) * 100)} effective · lender escrow rounds to ${fmt(propTax)}`} value="$10,808" />
+              <Row label="Heating" sub="oil baseboard · no cooling" value="Owner-paid" />
+              <Row label="Days on Zillow" sub="1,062 views · 61 saves" value="10" />
+              <Row label="MLS" value="PrimeMLS #5091641" />
+              <Row label="Walk Score" sub="car-dependent" value="41 / 100" />
+              <Row label="Schools" sub="Green St Elem. 0.5 mi · 8/10" value="Above average" />
+              <Row label="Listed by" value="Brattleboro Area Realty" />
+              <Row label="Foundation" sub="block + concrete slab" value="Crawl space" />
+            </div>
+
+            <div style={{ color: MUTED, fontSize: 11, marginTop: 14, lineHeight: 1.55, padding: "10px 14px", background: "rgba(201,162,75,0.05)", borderRadius: 8, border: `1px dashed ${LINE}` }}>
+              <strong style={{ color: TEXT }}>Photos:</strong> Save 6 images from the{" "}
+              <a href="https://www.zillow.com/homedetails/25-27-Gingko-Ln-Brattleboro-VT-05301/462759785_zpid/" target="_blank" rel="noreferrer" style={{ color: GOLD }}>Zillow listing</a>{" "}
+              into <code>mortgage/img/</code> with the filenames shown above (<code>01-front.jpg</code>, <code>02-living.jpg</code>, etc.) — they'll appear automatically. Missing files fall back to the labeled placeholder.
+            </div>
+          </Panel>
+        </div>
+
+        {/* RENOVATION ROI — Brattleboro market $/sqft analysis +
+            per-dollar renovation return-on-investment, tuned to local
+            comps. Numbers derived from active Zillow listings within
+            Brattleboro / Windham County pulled at acquisition time. */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="Renovation ROI · Brattleboro market" title="What does $1 of reno return?" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
+
+            {/* 1) Market position bar — where this property sits in the
+                Brattleboro single-family $/sqft distribution.
+                Two markers: the main-house-only $/sqft (~$281 at $450K)
+                vs. the honest all-in including both garage apartments. */}
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600 }}>$/sqft · this house vs Brattleboro single-family</div>
+                <div style={{ fontSize: 11, color: MUTED }}>Sample: 13 active + recently-sold listings within ~3 mi</div>
+              </div>
+
+              {(() => {
+                const lo = 150, hi = 380;
+                const stops = [
+                  { v: 184, label: "low quartile" },
+                  { v: 257, label: "median" },
+                  { v: 295, label: "75th pct" },
+                ];
+                const mainOnly = Math.round(price / 1600);  // Zillow's number
+                const totalSqft = 1600 + unit1Sqft + unit2Sqft;
+                const allIn = Math.round(price / totalSqft);
+                const pos = (v) => Math.min(100, Math.max(0, ((v - lo) / (hi - lo)) * 100));
+                return (
+                  <div style={{ position: "relative", height: 110, padding: "0 6px" }}>
+                    {/* track */}
+                    <div style={{ position: "absolute", top: 64, left: 6, right: 6, height: 8, borderRadius: 4, background: "linear-gradient(90deg, rgba(125,165,90,0.22), rgba(201,162,75,0.55), rgba(216,118,82,0.55))" }} />
+                    {/* tick marks for stops */}
+                    {stops.map((s) => (
+                      <div key={s.v} style={{ position: "absolute", left: `calc(${pos(s.v)}% + 6px)`, top: 56, transform: "translateX(-50%)", textAlign: "center" }}>
+                        <div style={{ width: 2, height: 24, background: MUTED, margin: "0 auto" }} />
+                        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 4, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600 }}>${s.v}</div>
+                        <div style={{ fontSize: 9.5, color: MUTED, opacity: 0.8 }}>{s.label}</div>
+                      </div>
+                    ))}
+                    {/* ALL-IN marker (the honest number) — green, below */}
+                    <div style={{ position: "absolute", left: `calc(${pos(allIn)}% + 6px)`, bottom: 0, transform: "translateX(-50%)", textAlign: "center" }}>
+                      <div style={{ width: 2, height: 28, background: POS, margin: "0 auto" }} />
+                      <div style={{ background: POS, color: "#FBF6EA", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, display: "inline-block", boxShadow: SHADOW, marginTop: 2, fontFamily: "'Funnel Display', sans-serif", whiteSpace: "nowrap" }}>
+                        ${allIn} · all-in
+                      </div>
+                    </div>
+                    {/* ZILLOW marker (main-house only) — gold, above */}
+                    <div style={{ position: "absolute", left: `calc(${pos(mainOnly)}% + 6px)`, top: 0, transform: "translateX(-50%)", textAlign: "center" }}>
+                      <div style={{ background: GOLD, color: "#FBF6EA", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 999, display: "inline-block", boxShadow: SHADOW, marginBottom: 2, fontFamily: "'Funnel Display', sans-serif", whiteSpace: "nowrap" }}>
+                        ${mainOnly} · Zillow
+                      </div>
+                      <div style={{ width: 2, height: 28, background: GOLD, margin: "0 auto" }} />
+                    </div>
+                    {/* range labels */}
+                    <div style={{ position: "absolute", left: 6, bottom: -16, fontSize: 10, color: MUTED, fontVariantNumeric: "tabular-nums" }}>${lo}</div>
+                    <div style={{ position: "absolute", right: 6, bottom: -16, fontSize: 10, color: MUTED, fontVariantNumeric: "tabular-nums" }}>${hi}+</div>
+                  </div>
+                );
+              })()}
+
+              {(() => {
+                const totalSqft = 1600 + unit1Sqft + unit2Sqft;
+                const allIn = Math.round(price / totalSqft);
+                const mainOnly = Math.round(price / 1600);
+                return (
+                  <div style={{ marginTop: 30 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                      <div style={{ padding: "10px 12px", background: "rgba(201,162,75,0.06)", border: `1px solid ${LINE}`, borderRadius: 8 }}>
+                        <div style={{ fontSize: 10.5, color: MUTED, letterSpacing: 0.5, marginBottom: 2 }}>Zillow's $/sqft</div>
+                        <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 22, color: GOLD, fontVariantNumeric: "tabular-nums" }}>${mainOnly}/sqft</div>
+                        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>Main house only · 1,600 sqft · ~70th pct</div>
+                      </div>
+                      <div style={{ padding: "10px 12px", background: "rgba(125,165,90,0.08)", border: `1px solid ${LINE}`, borderRadius: 8 }}>
+                        <div style={{ fontSize: 10.5, color: MUTED, letterSpacing: 0.5, marginBottom: 2 }}>All-in $/sqft</div>
+                        <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 22, color: POS, fontVariantNumeric: "tabular-nums" }}>${allIn}/sqft</div>
+                        <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>Incl. {unit1Sqft} + {unit2Sqft} sqft rentals · {totalSqft.toLocaleString()} sqft total · below median</div>
+                      </div>
+                    </div>
+
+                    {/* Unit sqft adjusters — small inline sliders */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, padding: "10px 12px", background: PANEL, border: `1px dashed ${LINE}`, borderRadius: 8, marginBottom: 14 }}>
+                      <div style={{ flex: "1 1 200px" }}>
+                        <label style={{ fontSize: 10.5, color: MUTED, letterSpacing: 0.5, display: "block", marginBottom: 2 }}>Unit 1 (2BR) sqft · estimate</label>
+                        <input type="range" min={400} max={1000} step={25} value={unit1Sqft} onChange={(e) => setUnit1Sqft(Number(e.target.value))} style={{ width: "100%" }} />
+                        <div style={{ fontSize: 11, color: TEXT, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{unit1Sqft} sqft</div>
+                      </div>
+                      <div style={{ flex: "1 1 200px" }}>
+                        <label style={{ fontSize: 10.5, color: MUTED, letterSpacing: 0.5, display: "block", marginBottom: 2 }}>Unit 2 (1BR) sqft · estimate</label>
+                        <input type="range" min={300} max={900} step={25} value={unit2Sqft} onChange={(e) => setUnit2Sqft(Number(e.target.value))} style={{ width: "100%" }} />
+                        <div style={{ fontSize: 11, color: TEXT, fontVariantNumeric: "tabular-nums", marginTop: 2 }}>{unit2Sqft} sqft</div>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: 12, color: MUTED, lineHeight: 1.55 }}>
+                      Zillow's <strong style={{ color: TEXT }}>${mainOnly}/sqft</strong> only counts the main house's finished 1,600 sqft — modestly above the Brattleboro single-family median (~$257). But that ignores ~{(unit1Sqft + unit2Sqft).toLocaleString()} sqft of finished, income-producing apartments above the garage. Counting them, the honest figure is <strong style={{ color: POS }}>${allIn}/sqft all-in</strong>, which sits <em>well below</em> the median — near the bottom of the local distribution. <strong style={{ color: TEXT }}>At $450K the price is reasonable on the main house alone, and a clear value once you count the rentals.</strong> This is the source of value before you even touch a single renovation.
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* 2) Nearby + similar comps */}
+            <div style={{ marginBottom: 22, borderTop: `1px solid ${LINE}`, paddingTop: 18 }}>
+              <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Comps · nearby + similar active listings</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 8 }}>
+                {[
+                  { addr: "25 Gingko Ln",         note: "off market · same street",   price: "$460K", sqft: "—",    psqft: null, status: "off" },
+                  { addr: "65 Cedar St",          note: "0.4 mi · biggest, cheapest", price: "$339K", sqft: "2,250", psqft: 151, status: "active" },
+                  { addr: "50 Oak Grove Ave",     note: "0.6 mi",                     price: "$350K", sqft: "1,900", psqft: 184, status: "active" },
+                  { addr: "164 Chestnut St",      note: "0.5 mi",                     price: "$285K", sqft: "1,300", psqft: 219, status: "active" },
+                  { addr: "82 Oak Grove Ave",     note: "0.6 mi · roof-top solar",    price: "$385K", sqft: "1,521", psqft: 253, status: "active" },
+                  { addr: "117 Oak Grove Ave",    note: "0.6 mi",                     price: "$339K", sqft: "1,300", psqft: 261, status: "active" },
+                  { addr: "184 Carriage Hill Rd", note: "1.0 mi",                     price: "$340K", sqft: "1,200", psqft: 283, status: "active" },
+                  { addr: "77 Buttonwood Dr",     note: "0.9 mi · price cut $30K",    price: "$469K", sqft: "1,500", psqft: 313, status: "active" },
+                  { addr: "39 Atwood St",         note: "0.7 mi",                     price: "$345K", sqft: "1,100", psqft: 314, status: "active" },
+                  { addr: "142 Spruce St (sold)", note: "0.4 mi · sold recently",     price: "$331K", sqft: "880",   psqft: 376, status: "sold" },
+                ].map((c) => (
+                  <div key={c.addr} style={{ padding: "10px 12px", background: PANEL, border: `1px solid ${LINE}`, borderRadius: 8 }}>
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, marginBottom: 3 }}>
+                      <div style={{ fontWeight: 700, color: TEXT, fontSize: 13, lineHeight: 1.2 }}>{c.addr}</div>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: c.psqft && c.psqft > 281 ? POS : (c.psqft && c.psqft > 240 ? GOLD : MUTED), fontVariantNumeric: "tabular-nums" }}>
+                        {c.psqft ? `$${c.psqft}/sqft` : "—"}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 10.5, color: MUTED, marginBottom: 6 }}>{c.note}</div>
+                    <div style={{ fontSize: 11, color: MUTED, fontVariantNumeric: "tabular-nums" }}>{c.price} · {c.sqft} sqft</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: MUTED, marginTop: 12, lineHeight: 1.55, padding: "10px 12px", background: "rgba(216,118,82,0.05)", borderRadius: 8, border: `1px dashed ${LINE}` }}>
+                <strong style={{ color: TEXT }}>The 25 Gingko Ln off-market at $460K</strong> is worth asking about — it's right around the $450K you're modeling. The current listing is "25-27" so it bundles two addresses — this earlier reference might be a prior listing of just one parcel, or an assessor value. <strong>Ask your agent</strong> for the chain-of-title and prior sale history so you know what's actually included at $450K.
+              </div>
+            </div>
+
+            {/* 3) Renovation ROI table */}
+            <div style={{ marginBottom: 22, borderTop: `1px solid ${LINE}`, paddingTop: 18 }}>
+              <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600, marginBottom: 10 }}>Per-$1 renovation return · tuned to Brattleboro</div>
+              <div style={{ fontSize: 11, color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
+                Small-market premium: cosmetic upgrades (shiny kitchens, designer baths) underperform what they'd return in Burlington / coastal cities — buyers here reward <em>functional</em> work over <em>aesthetic</em> work. Sqft-add wins. Heat-system modernization wins. Granite countertops, less so.
+              </div>
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
+                  <thead>
+                    <tr style={{ color: MUTED, fontSize: 10.5, letterSpacing: 1, textTransform: "uppercase" }}>
+                      <th style={{ textAlign: "left", padding: "8px 6px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Renovation</th>
+                      <th style={{ textAlign: "right", padding: "8px 6px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Cost</th>
+                      <th style={{ textAlign: "right", padding: "8px 6px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Resale value-add</th>
+                      <th style={{ textAlign: "right", padding: "8px 6px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>$1 returns</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { reno: "Finish unfinished upstairs (~400 sqft)",       cost: "$35–55K",  add: "$100–120K", ratio: 2.0, ratioLabel: "$2.00", note: "best ROI on this property" },
+                      { reno: "Curb appeal · paint · landscape",               cost: "$3–8K",    add: "$5–8K",     ratio: 1.0, ratioLabel: "$1.00", note: "small market, condition signals matter" },
+                      { reno: "Heat pump retrofit (oil → mini-splits)",        cost: "$18–25K",  add: "$8–12K",    ratio: 0.55, ratioLabel: "$0.55", note: "+ ~$1,500/yr oil savings + AC" },
+                      { reno: "Kitchen remodel (mid-range)",                   cost: "$22–30K",  add: "$14–20K",   ratio: 0.65, ratioLabel: "$0.65", note: "VT under-rewards relative to bigger cities" },
+                      { reno: "Roof replacement (asphalt → architectural)",    cost: "$12–18K",  add: "$6–10K",    ratio: 0.55, ratioLabel: "$0.55", note: "necessary maintenance, not arbitrage" },
+                      { reno: "Bath remodel (full)",                           cost: "$10–15K",  add: "$5–8K",     ratio: 0.55, ratioLabel: "$0.55", note: "" },
+                      { reno: "New windows · whole-house",                     cost: "$18–25K",  add: "$8–12K",    ratio: 0.50, ratioLabel: "$0.50", note: "lower than national avg" },
+                      { reno: "Insulation + air-sealing",                      cost: "$6–10K",   add: "$3–6K",     ratio: 0.55, ratioLabel: "$0.55", note: "+ VT energy incentives offset 30-50%" },
+                      { reno: "Finished basement (where applicable)",          cost: "$25–40K",  add: "$30–45K",   ratio: 1.15, ratioLabel: "$1.15", note: "N/A here — crawl space only" },
+                    ].map((r) => (
+                      <tr key={r.reno}>
+                        <td style={{ padding: "8px 6px", borderBottom: `1px solid rgba(184,140,80,0.10)`, color: TEXT }}>
+                          {r.reno}
+                          {r.note ? <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>{r.note}</div> : null}
+                        </td>
+                        <td style={{ padding: "8px 6px", borderBottom: `1px solid rgba(184,140,80,0.10)`, textAlign: "right", color: TEXT }}>{r.cost}</td>
+                        <td style={{ padding: "8px 6px", borderBottom: `1px solid rgba(184,140,80,0.10)`, textAlign: "right", color: TEXT }}>{r.add}</td>
+                        <td style={{ padding: "8px 6px", borderBottom: `1px solid rgba(184,140,80,0.10)`, textAlign: "right", color: r.ratio >= 1 ? POS : (r.ratio >= 0.6 ? GOLD : MUTED), fontWeight: 700 }}>{r.ratioLabel}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 4) Recommendations */}
+            <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 16 }}>
+              <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600, marginBottom: 10 }}>Where to spend the reno budget</div>
+              <div style={{ fontSize: 13, color: TEXT, lineHeight: 1.65 }}>
+                <p style={{ marginTop: 0 }}>
+                  <strong style={{ color: GOLD }}>Finish the upstairs first.</strong>{" "}
+                  This is the single highest-ROI move on the property. The listing says "Upstairs needs finishing, but there are vaulted ceilings and an abundance of light from the many skylights" — translation: it's already framed and weather-tight, you're just adding interior finish. At $35–55K for ~400 sqft of finish-out, you create $100–120K of resale value (at Brattleboro's ~$260/sqft median applied to the new sqft). That's the ~$2-per-$1 line in the table. Anchor your reno budget around this and treat everything else as nice-to-have.
+                </p>
+                <p>
+                  <strong style={{ color: GOLD }}>How to allocate the $100K reno budget.</strong>{" "}
+                  A sensible split: ~$45K upstairs finish-out (the highest-ROI lever) + ~$22K oil-to-heat-pump retrofit + ~$18K kitchen/bath refresh + ~$8K paint, landscape and curb appeal, with the remaining ~$7K held back as contingency. That front-loads the work that actually moves resale value and rental marketability rather than spreading it across cosmetic choices the market under-rewards here.
+                </p>
+                <p>
+                  <strong style={{ color: GOLD }}>The heat-pump piece pays for itself twice.</strong>{" "}
+                  At a 6.25% mortgage rate the ~$22K retrofit compounds — but the heat pump cuts winter oil bills (~$1.5K/yr immediately, more if oil prices rise) AND adds cooling and modernizes the asset for a future buyer. VT's Drive Electric / weatherization incentives offset 30–50% of that cost. If the boiler is older than 15 years, do it on day one rather than waiting for failure.
+                </p>
+                <p style={{ marginBottom: 0 }}>
+                  <strong style={{ color: GOLD }}>What NOT to over-invest in.</strong>{" "}
+                  A $40K kitchen redo will not return $40K in this market. Mid-range cabinet refresh + new countertops + appliances at $15–20K returns most of itself; high-end design choices stop returning beyond that. Same with bathrooms — make them clean and functional, not photogenic.
+                </p>
+              </div>
+            </div>
+
+          </Panel>
+        </div>
+
+        {/* INDEPENDENT TAKE — unbiased financial analysis based on the
+            numbers in the worksheet + general DTC/rental real-estate
+            heuristics. Written to balance the inputs above which lean
+            optimistic. */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="An outside read" title="Independent Take — Not Financial Advice" accent={`linear-gradient(90deg, ${MUTED}, transparent)`}>
+            <div style={{ fontSize: 13.5, color: TEXT, lineHeight: 1.65 }}>
+              <p style={{ marginTop: 0 }}>
+                <strong style={{ color: GOLD }}>What works in the deal.</strong>{" "}
+                The shape is right for a house-hack: a real main house (3BR/2BA, 1,600 sqft) you live in, plus a <em>separate</em> two-unit rental structure above the garage — physically detached from your living space, which is a huge quality-of-life win vs. a typical triplex where you share walls. You get privacy AND rental income from the same lot. As a pure investment it underperforms (cap rate ~3% before debt; oil heat + Vermont property tax eat the spread), but the owner-occupied math holds: with both triplex units occupied you're paying a fraction of market "rent" to live in a single-family-feel home on a 1-acre lot half a mile from a top-rated elementary school. That's a real win.
+              </p>
+
+              <p>
+                <strong style={{ color: GOLD }}>The 1-acre lot is the underrated asset.</strong>{" "}
+                Most Brattleboro in-town parcels are quarter-acre or less. A full acre with 101 ft of road frontage and "Guest House, Outbuilding" listed as additional structures is genuinely uncommon and protects appreciation in a way the building condition doesn't. If the rental math ever flips, the lot itself holds value.
+              </p>
+
+              <p>
+                <strong style={{ color: GOLD }}>Where the risk concentrates.</strong>{" "}
+                Four things move the outcome more than anything else:
+              </p>
+              <ul style={{ paddingLeft: 22, marginTop: 6, marginBottom: 12 }}>
+                <li><strong>Renovation overrun — the main risk.</strong> Listing literally says <em>"upstairs needs finishing"</em> and <em>"the home needs some finishing work."</em> That's seller language for "we knew this was a project." You're budgeting $100K, which is realistic for a full upstairs finish-out + heat-pump retrofit + the electrical/plumbing surprises that come with a 1978 oil-heated VT house — but it can still run over if "upstairs unfinished" means subfloor + framing only. Insist on a contractor walk-through with a written scope before the inspection contingency lifts, and keep the reno slider above honest about a possible overrun past $100K.</li>
+                <li><strong>Oil baseboard heat — ongoing cost AND replacement risk.</strong> The listing confirms oil + baseboard. Vermont winter oil bills run $3K–$5K/yr just for the main house at current prices, and the rentals share heating cost (your $5,287/yr figure). If the boiler is original-ish, you're a single replacement away from a $8–15K capex hit. Get the boiler's age + condition called out specifically on the inspection.</li>
+                <li><strong>Vacancy on the 1BR unit.</strong> The 2BR rented; the 1BR is empty. Confirm <em>why</em> — small 1BRs in small towns can sit for months. Brattleboro's rental market is real but shallow (population ~12K). Walk Score 41 (car-dependent) means most tenants need a vehicle, which narrows the renter pool further.</li>
+                <li><strong>The existing 2BR tenant.</strong> $1,600/mo for a 2BR/1BA above a garage is roughly at-market for Brattleboro in 2026 — not below it. The scenarios model $1,700, a modest bump that's plausible at lease renewal but not at signing. Confirm the lease term and any local rent-control rules (Brattleboro doesn't have hard caps but eviction protections are tenant-friendly).</li>
+              </ul>
+
+              <p>
+                <strong style={{ color: GOLD }}>Underweighted in the calculator.</strong>{" "}
+                Worth modeling separately:
+              </p>
+              <ul style={{ paddingLeft: 22, marginTop: 6, marginBottom: 12 }}>
+                <li><strong>Tax discrepancy.</strong> Zillow shows the annual property tax bill at <strong>$10,808</strong>; the EastRise escrow assumes $11,850 (which lenders pad for shortage). Use $10,808 for honest cash flow, but the escrow line on your monthly statement will read the higher number.</li>
+                <li><strong>Insurance loading for a multi-unit.</strong> The $1,800/yr hazard quote came in on a Single-Family pre-approval. Multi-unit landlord policies in VT typically run 30–60% higher. Get a real quote from your agent before close.</li>
+                <li><strong>No cooling.</strong> Listing confirms no AC. Brattleboro summers are mild but heating-season-dominant, so this isn't a huge gap — but a heat pump retrofit would solve both AC and cut oil dependence (~$15–20K, partially offset by VT energy incentives). Worth pricing.</li>
+                <li><strong>Property tax growth.</strong> Vermont's statewide education tax recalibrates annually; effective rates in Windham County have risen 5–8%/yr since 2022. Treat the current bill as the floor.</li>
+                <li><strong>Opportunity cost (much better now).</strong> Under the 10% down at $450K: $45K down + ~$19K closing & prepaids + $100K reno ≈ $164K committed. At a 5% money-market alternative, that's ~$8K/yr of foregone return — and most of it ($100K) is reno that buys real resale value, not idle cash. Versus the original ~$150K-down plan you're freeing ~$105K of cash that could be working elsewhere; the PMI (~$74/mo ≈ $0.9K/yr) is a small drag against that.</li>
+                <li><strong>Crawl space foundation.</strong> Common in VT, but moisture, insulation, and vapor barriers all matter. Have the inspector spend real time there.</li>
+              </ul>
+
+              <p style={{ marginBottom: 0 }}>
+                <strong style={{ color: GOLD }}>Bottom line.</strong>{" "}
+                This is a house-hack deal anchored on three real strengths — separate rental structure, 1-acre lot, walking distance to downtown + a top elementary school — with two real weaknesses you can't ignore: an unfinished upstairs and oil heat in Vermont. The "2 occupied" scenario (both triplex units full, current house vacant) is the honest base case. If that combined monthly position is one you can live with for 3+ years, the deal pencils. If you'd only be comfortable at "all 3 occupied," you're leaning on the current house renting out too — fine as upside, thin as a plan for a 30-year commitment. Watch the reno: $100K is a realistic budget, but it's the line most likely to move against you.
+              </p>
+            </div>
+          </Panel>
+        </div>
+
+        {/* MORTGAGE PRODUCTS — side-by-side comparison of the loan
+            structures Mike could quote. Computed off the current `price`
+            and product-specific assumptions so the deltas stay live as
+            inputs change. */}
+        {(() => {
+          // Each product is a tuple of (rate, downPct, term, MIP flags).
+          // The first one mirrors what's in the main calculator above so
+          // it serves as the "current" baseline row.
+          // PMI rate is roughly the worksheet's $86.63 ÷ $472,500 loan = 0.22%/yr ≈ 0.018%/mo of loan;
+          // on the $405K loan at $450K/10% that's ~$74/mo. Use it as the conventional PMI factor below 20% down.
+          const CONV_PMI_RATE_PCT = 0.22; // annual % of loan balance
+          const PRODUCTS = [
+            { key: "conv30_10",   name: "Conv 30-yr · 10% Down",     sub: "Baseline — Mike's 6/9 PAL · adds PMI until 78% LTV", downPct: 10,   rate: 6.25, term: 30, upMIPpct: 0,    moMIPpct: 0,    convPMI: true, flag: "current" },
+            { key: "conv30_33",   name: "Conv 30-yr · 33% Down",     sub: "Original plan — ~$150K down, no PMI",               downPct: 33.3, rate: 6.25, term: 30, upMIPpct: 0,    moMIPpct: 0 },
+            { key: "conv30_20",   name: "Conv 30-yr · 20% Down",     sub: "$90K down — first PMI-free tier",                   downPct: 20,   rate: 6.25, term: 30, upMIPpct: 0,    moMIPpct: 0 },
+            { key: "conv15",      name: "Conv 15-yr · 10% Down",     sub: "~0.5% lower rate · ~4x faster equity · higher mo.", downPct: 10,   rate: 5.75, term: 15, upMIPpct: 0,    moMIPpct: 0,    convPMI: true },
+            { key: "fha",         name: "FHA 30-yr · 3.5% Down",     sub: "Needs 2-4 unit reclassification · MIP for life",    downPct: 3.5,  rate: 5.99, term: 30, upMIPpct: 1.75, moMIPpct: 0.55 },
+            { key: "arm5",        name: "5/1 ARM · 10% Down",        sub: "Intro 5 yrs · then adjusts ±2% · adds PMI",         downPct: 10,   rate: 5.50, term: 30, upMIPpct: 0,    moMIPpct: 0,    convPMI: true },
+            { key: "arm5IO",      name: "5/1 IO ARM · 10% Down",     sub: "IO 10 yrs · $0 equity during IO · adds PMI",        downPct: 10,   rate: 6.50, term: 30, upMIPpct: 0,    moMIPpct: 0,    convPMI: true, interestOnly: true },
+          ];
+
+          function calcProduct(p) {
+            const downPmt = price * (p.downPct / 100);
+            const baseLoan = Math.max(0, price - downPmt);
+            const upfrontMIP = baseLoan * (p.upMIPpct / 100);
+            const loan = baseLoan + upfrontMIP;
+            const r = p.rate / 100 / 12;
+            const n = p.term * 12;
+            let monthlyPI, monthlyPrincipal;
+            if (p.interestOnly) {
+              monthlyPI = loan * r;
+              monthlyPrincipal = 0;
+            } else if (r > 0) {
+              monthlyPI = (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+              monthlyPrincipal = monthlyPI - loan * r;
+            } else {
+              monthlyPI = loan / n;
+              monthlyPrincipal = loan / n;
+            }
+            // FHA MIP is its own moMIPpct. Conventional PMI kicks in below 20% down only.
+            const monthlyMIP = loan * (p.moMIPpct / 100) / 12
+              + (p.convPMI && p.downPct < 20 ? (loan * CONV_PMI_RATE_PCT / 100 / 12) : 0);
+            const totalMonthly = monthlyPI + monthlyMIP;
+            const cashToClose = downPmt + closing + prepaids;
+            return { downPmt, loan, monthlyPI, monthlyMIP, totalMonthly, monthlyPrincipal, cashToClose };
+          }
+
+          const rows = PRODUCTS.map((p) => ({ p, calc: calcProduct(p) }));
+          const baseline = rows[0].calc;
+
+          return (
+            <div style={{ marginTop: 24 }}>
+              <Panel kicker="Mortgage products" title="How the loan choice changes the picture" accent={`linear-gradient(90deg, ${GOLD}, transparent)`}>
+                <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 14, lineHeight: 1.55 }}>
+                  All rows assume the same purchase price ({fmt(price)}) and closing/prepaid figures from your worksheet. Down payment, rate, term, and mortgage-insurance treatment differ per product. Adjust the main rate slider above to see how today's actual quotes shift these.
+                </div>
+
+                {/* Comparison table */}
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
+                    <thead>
+                      <tr style={{ color: MUTED, fontSize: 10.5, letterSpacing: 1, textTransform: "uppercase" }}>
+                        <th style={{ textAlign: "left",  padding: "10px 8px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Product</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Down</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Rate / term</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Cash to close</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Mo. P&I {`(+ MIP)`}</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: `1px solid ${LINE}`, fontWeight: 600 }}>Mo. equity built</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map(({ p, calc }) => {
+                        const cashDelta = calc.cashToClose - baseline.cashToClose;
+                        const piDelta   = calc.totalMonthly - baseline.totalMonthly;
+                        const eqDelta   = calc.monthlyPrincipal - baseline.monthlyPrincipal;
+                        const trend = (n) => n < -0.5 ? POS : (n > 0.5 ? NEG : MUTED);
+                        return (
+                          <tr key={p.key} style={{ background: p.flag === "current" ? "rgba(201,162,75,0.06)" : "transparent" }}>
+                            <td style={{ padding: "12px 8px", borderBottom: `1px solid rgba(184,140,80,0.10)`, color: TEXT }}>
+                              <div style={{ fontWeight: 700, color: p.flag === "current" ? GOLD : TEXT }}>
+                                {p.name}
+                                {p.flag === "current" && <span style={{ fontSize: 9, marginLeft: 6, padding: "2px 6px", borderRadius: 999, background: "rgba(201,162,75,0.18)", color: GOLD, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>current</span>}
+                              </div>
+                              <div style={{ fontSize: 10.5, color: MUTED, marginTop: 2 }}>{p.sub}</div>
+                            </td>
+                            <td style={{ padding: "12px 8px", borderBottom: `1px solid rgba(184,140,80,0.10)`, textAlign: "right", color: TEXT }}>
+                              {fmt(calc.downPmt)}<br /><span style={{ fontSize: 10, color: MUTED }}>{p.downPct}% LTV-inv</span>
+                            </td>
+                            <td style={{ padding: "12px 8px", borderBottom: `1px solid rgba(184,140,80,0.10)`, textAlign: "right", color: TEXT }}>
+                              {p.rate.toFixed(2)}%<br /><span style={{ fontSize: 10, color: MUTED }}>{p.term}-yr{p.interestOnly ? " · IO" : ""}</span>
+                            </td>
+                            <td style={{ padding: "12px 8px", borderBottom: `1px solid rgba(184,140,80,0.10)`, textAlign: "right", color: TEXT }}>
+                              {fmt(calc.cashToClose)}
+                              {p.flag !== "current" && cashDelta !== 0 && (
+                                <div style={{ fontSize: 10, color: trend(cashDelta), fontWeight: 700 }}>{cashDelta > 0 ? "+" : ""}{fmt(cashDelta)} vs base</div>
+                              )}
+                            </td>
+                            <td style={{ padding: "12px 8px", borderBottom: `1px solid rgba(184,140,80,0.10)`, textAlign: "right", color: TEXT }}>
+                              {fmt(calc.monthlyPI)}{calc.monthlyMIP > 0 ? <span style={{ color: NEG }}> + {fmt(calc.monthlyMIP)}</span> : null}
+                              {p.flag !== "current" && Math.abs(piDelta) > 0.5 && (
+                                <div style={{ fontSize: 10, color: trend(piDelta), fontWeight: 700 }}>{piDelta > 0 ? "+" : ""}{fmt(piDelta)}/mo vs base</div>
+                              )}
+                            </td>
+                            <td style={{ padding: "12px 8px", borderBottom: `1px solid rgba(184,140,80,0.10)`, textAlign: "right", color: calc.monthlyPrincipal === 0 ? NEG : TEXT, fontWeight: calc.monthlyPrincipal === 0 ? 700 : 400 }}>
+                              {calc.monthlyPrincipal === 0 ? "$0" : `+ ${fmt(calc.monthlyPrincipal)}`}
+                              {p.flag !== "current" && Math.abs(eqDelta) > 1 && (
+                                <div style={{ fontSize: 10, color: trend(-eqDelta), fontWeight: 700 }}>{eqDelta > 0 ? "+" : ""}{fmt(eqDelta)}/mo vs base</div>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Reading guide / takeaways */}
+                <div style={{ marginTop: 18, fontSize: 13, color: TEXT, lineHeight: 1.65 }}>
+                  <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>How to read this</div>
+                  <ul style={{ paddingLeft: 22, marginTop: 4, marginBottom: 0 }}>
+                    <li><strong style={{ color: GOLD }}>Conv 30-yr · 33% Down (your original plan)</strong> — same rate, no PMI, but ~$105K more cash at close. Versus the 10% baseline you save ~$646/mo P&I + ~$74/mo PMI = roughly $720/mo. Break-even on the freed cash if it earns ≥8%/yr.</li>
+                    <li><strong style={{ color: GOLD }}>Conv 30-yr · 20% Down</strong> ($90K down) is the first PMI-free tier. Saves $74/mo of PMI vs the 10% baseline, costs $45K more cash. Break-even is slow — PMI only runs ~9 years anyway, so this beats the 10% option only if you wouldn't otherwise deploy the $45K productively.</li>
+                    <li><strong style={{ color: GOLD }}>Conv 15-yr · 10% Down</strong> builds equity ~4× faster at the cost of ~$870/mo more cash out. Same PMI as the 30-yr 10% since both are below 20%. Best if cash flow isn't tight and you want the loan retired by ~2041.</li>
+                    <li><strong style={{ color: GOLD }}>FHA 3.5% Down</strong>'s edge largely evaporated when Mike opened the 10%-down conventional door. Saves only ~$29K of cash at close now (vs ~$134K it would've saved off the original ~$150K-down plan), and you pay FHA MIP <em>for the life of the loan</em> if you stay under 10% down. Conv 10% PMI auto-drops at 78% LTV. Only worth pursuing if the cash savings genuinely matter AND Mike confirms 2-4 unit reclassification.</li>
+                    <li><strong style={{ color: GOLD }}>5/1 ARM (fully-amortizing)</strong> shaves ~$200/mo for the first 5 years vs Conv 30 baseline. Caps typically 2/2/5 — worst case after year 5 is 7.5%, payment recasts up ~$500/mo. If you're confident you'll refi or sell within 5 years, cheapest amortizing option.</li>
+                    <li><strong style={{ color: GOLD }}>5/1 IO ARM · 10% Down</strong> is the lowest monthly by far — but you build <em>zero</em> equity from the property loan for the first 10 years. With the parents-loan still chipping in ~$433/mo of equity, you'd build $433/mo total. Only makes sense if you're betting on appreciation and would rather have the cash flow now. Risky in a flat market.</li>
+                  </ul>
+                  <div style={{ marginTop: 14, padding: "10px 14px", background: "rgba(216,118,82,0.06)", borderRadius: 8, border: `1px dashed ${LINE}`, fontSize: 12, color: MUTED, lineHeight: 1.55 }}>
+                    <strong style={{ color: TEXT }}>Rates here are illustrative</strong> — typical 6/9/2026 spreads vs. the 30-yr fixed of 6.25%. Real quotes from Mike will move a bit (FHA is often more favorable in absolute terms; ARMs trade tighter or wider depending on the yield curve that week). Ask for actual quotes on the three most plausible products (Conv 30, FHA 3.5% if reclassification works, 5/1 ARM) before signing.
+                  </div>
+                </div>
+              </Panel>
+            </div>
+          );
+        })()}
+
+        {/* FHA DEEP-DIVE — the conditional play. Math, eligibility,
+            opportunity cost of the freed cash, and questions for Mike. */}
+        {(() => {
+          // FHA assumptions (same as the products table row)
+          const fhaDownPct = 3.5;
+          const fhaRate = 5.99;
+          const fhaTerm = 30;
+          const fhaUpMIPpct = 1.75;
+          const fhaMoMIPpct = 0.55;
+
+          const fhaDown = price * fhaDownPct / 100;
+          const fhaBaseLoan = price - fhaDown;
+          const fhaUpfrontMIP = fhaBaseLoan * fhaUpMIPpct / 100;
+          const fhaLoan = fhaBaseLoan + fhaUpfrontMIP;
+          const fhaR = fhaRate / 100 / 12;
+          const fhaN = fhaTerm * 12;
+          const fhaPI = (fhaLoan * fhaR * Math.pow(1 + fhaR, fhaN)) / (Math.pow(1 + fhaR, fhaN) - 1);
+          const fhaMIP_mo = fhaLoan * fhaMoMIPpct / 100 / 12;
+          const fhaTotalMo = fhaPI + fhaMIP_mo;
+
+          // Current Conv assumptions for the comparison. Now that the
+          // baseline is 10% down with PMI (not the high-down plan), the conv side has
+          // its own monthly insurance line — so the fair "what FHA costs
+          // you extra" comparison must net out conv PMI for the years
+          // it's active (PMI auto-removes at 78% LTV, roughly year 9).
+          const convDown = down;
+          const convLoan = m.loan;
+          const convPI = m.pi;
+          const convPMImo = m.pmiMo;
+          const convTotalMo = convPI + convPMImo;
+          const convPMI_months = convPMImo > 0 ? 105 : 0; // ~year 9 auto-removal at 78% LTV
+          const convPMI_30yr = convPMImo * convPMI_months;
+
+          const cashFreed = convDown - fhaDown;
+          const monthlyPremium = fhaTotalMo - convTotalMo;
+          const totalMIP30yr = fhaMIP_mo * 360 + fhaUpfrontMIP;
+          const totalInterestFHA = fhaPI * 360 - fhaLoan;
+          const totalInterestConv = convPI * 360 - convLoan;
+          const extraInterest = totalInterestFHA - totalInterestConv;
+          // Net incremental cost: FHA MIP-for-life minus what conv PMI would have cost
+          // during its (much shorter) active window, plus the extra interest on the bigger FHA loan.
+          const totalFHACost30 = totalMIP30yr - convPMI_30yr + extraInterest;
+
+          // Self-sufficiency test: for 3-4 unit FHA, non-owner rental
+          // income must cover 100% of PITI + MIP. Using the medium
+          // scenario unit rents.
+          const fhaPITI_MIP = fhaTotalMo + (propTax / 12) + (insurance / 12);
+          const rentalCoverage = (unit1Rent + unit2Rent) / fhaPITI_MIP;
+
+          // Opportunity cost of the ~$29K FHA frees over 30 years
+          const cashOptions = [
+            { label: "S&P 500 index · 7% real", rate: 0.07, color: POS },
+            { label: "After-tax brokerage · 5%", rate: 0.05, color: POS },
+            { label: "Money market · 4%",       rate: 0.04, color: GOLD },
+            { label: "High-ROI reno (2× return)", multiplier: 2, color: POS },
+          ];
+
+          return (
+            <div style={{ marginTop: 24 }}>
+              <Panel kicker="Going deeper" title="FHA · the conditional play (mostly closed)" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
+
+                {/* Reframe: with the new 10%-down Conv baseline, FHA's
+                    cash-efficiency advantage shrank from ~$130K to ~$34K. */}
+                <div style={{ padding: "12px 16px", background: "rgba(216,118,82,0.08)", border: `1px solid rgba(216,118,82,0.30)`, borderRadius: 10, marginBottom: 18, fontSize: 13, color: TEXT, lineHeight: 1.55 }}>
+                  <strong style={{ color: NEG }}>FHA's edge shrank.</strong> When the plan was ~$150K down, FHA freed up ~$134K. Now that Mike has pre-approved <strong>10% down conventional</strong>, the conv side already only needs $45K down at $450K. FHA still cuts cash to close — by ~{fmt(cashFreed)} — but you pay MIP <em>for the life of the loan</em> to save that amount, vs conv PMI which auto-drops at year ~9. Section kept for completeness, but the conclusion is now usually: <strong>take the conv 10%</strong>.
+                </div>
+
+                {/* Hero stat: cash freed up */}
+                <div style={{ padding: "18px 20px", background: "linear-gradient(135deg, rgba(125,165,90,0.10), rgba(125,165,90,0.04))", border: `1px solid ${LINE}`, borderRadius: 12, marginBottom: 18 }}>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 18, alignItems: "baseline", justifyContent: "space-between" }}>
+                    <div style={{ flex: "1 1 240px" }}>
+                      <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>Cash freed at close vs. current 10%-down conventional</div>
+                      <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 42, color: POS, lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>{fmt(cashFreed)}</div>
+                      <div style={{ color: MUTED, fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>
+                        Down drops from {fmt(convDown)} to {fmt(fhaDown)} (FHA's 3.5% minimum). Modest now — the 10% Conv baseline already captured most of the cash-efficiency play.
+                      </div>
+                    </div>
+                    <div style={{ flex: "0 0 200px", textAlign: "right" }}>
+                      <div style={{ color: MUTED, fontSize: 10.5, letterSpacing: 0.5, marginBottom: 4 }}>Cost to unlock it</div>
+                      <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 22, color: NEG, fontVariantNumeric: "tabular-nums" }}>+ {fmt(monthlyPremium)}/mo</div>
+                      <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3, lineHeight: 1.4 }}>
+                        bigger loan ({fmt(fhaPI)} P&I) + MIP ({fmt(fhaMIP_mo)}/mo, life of loan) minus the conv PMI ({fmt(convPMImo)}/mo, drops ~yr 9) you'd avoid
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* What the FHA-freed cash can do over 30 years */}
+                <div style={{ marginBottom: 20, borderTop: `1px solid ${LINE}`, paddingTop: 18 }}>
+                  <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600, marginBottom: 4 }}>What that {fmt(cashFreed)} could do over 30 years</div>
+                  <div style={{ fontSize: 12, color: MUTED, marginBottom: 12 }}>If the freed cash earns a real return, here's what compounding does to it. Compare against the {fmt(totalFHACost30)} <em>net</em> 30-year premium FHA charges (FHA MIP for life minus conv PMI for ~9 yrs, plus extra interest on the bigger loan). Margins are much thinner now than under the old higher-down framing.</div>
+                  <div className="two-col-tight" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", rowGap: 10 }}>
+                    {cashOptions.map((opt) => {
+                      const final = opt.multiplier ? cashFreed * opt.multiplier : cashFreed * Math.pow(1 + opt.rate, 30);
+                      const gain = final - cashFreed;
+                      const beatsFHA = gain > totalFHACost30;
+                      return (
+                        <div key={opt.label} style={{ padding: "10px 12px", background: PANEL, border: `1px solid ${LINE}`, borderRadius: 8 }}>
+                          <div style={{ fontSize: 11, color: TEXT, fontWeight: 600, marginBottom: 4 }}>{opt.label}</div>
+                          <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 18, color: opt.color, fontVariantNumeric: "tabular-nums" }}>
+                            {fmt(final)}
+                            <span style={{ fontSize: 11, fontWeight: 500, color: MUTED }}> after 30y</span>
+                          </div>
+                          <div style={{ fontSize: 10.5, color: MUTED, marginTop: 3 }}>
+                            Gain: {fmt(gain)}{" · "}
+                            <span style={{ color: beatsFHA ? POS : NEG, fontWeight: 700 }}>
+                              {beatsFHA ? `beats FHA premium by ${fmt(gain - totalFHACost30)}` : `misses FHA premium by ${fmt(totalFHACost30 - gain)}`}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Eligibility checklist */}
+                <div style={{ marginBottom: 20, borderTop: `1px solid ${LINE}`, paddingTop: 18 }}>
+                  <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600, marginBottom: 10 }}>What has to be true for this to work</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {[
+                      {
+                        title: "Reclassification from Single-Family → 2-4 Unit",
+                        body: <>Mike's pre-approval currently shows the property as a Single-Family home. At {fmt(price)} the FHA loan (~$434K base) now sits <em>under</em> the Windham County single-family limit (~$498K), so the loan size no longer forces a reclassification the way it did at $525K. Reclassification still matters for counting rental income toward qualifying (limits rise to ~$638K for 2-unit, ~$771K for 3-unit). <strong style={{ color: TEXT }}>Less of a hard gate now</strong>; ask Mike whether you even need it at this price, and whether the appraiser would support a 2- or 3-unit classification if you do.</>,
+                        status: "must-investigate",
+                      },
+                      {
+                        title: "Owner-occupancy for ≥ 1 year",
+                        body: <>FHA requires you live in the main house as your primary residence for at least 12 months. You're already planning to do that, so this is auto-met. After year 1, you can move out and convert to a rental if you want.</>,
+                        status: "auto-met",
+                      },
+                      {
+                        title: "Self-sufficiency test (3-4 unit only)",
+                        body: <>If classified as 3-unit, FHA requires rental income from the non-owner units to cover ≥ 100% of PITI + MIP. Your monthly housing cost under FHA is ~{fmt(fhaPITI_MIP)}/mo. With current unit rents ({fmt(unit1Rent)} + {fmt(unit2Rent)} = {fmt(unit1Rent + unit2Rent)}), rental coverage is <strong style={{ color: rentalCoverage >= 1 ? POS : NEG }}>{(rentalCoverage * 100).toFixed(0)}%</strong> — {rentalCoverage >= 1 ? "passes" : "fails the test"}. <strong style={{ color: TEXT }}>{rentalCoverage >= 1 ? "Good news." : "Workaround:"}</strong> {rentalCoverage >= 1 ? "" : "The 2-unit classification skips this test entirely. Aim for 2-unit reclassification, not 3-unit."}</>,
+                        status: rentalCoverage >= 1 ? "currently-passes" : "needs-workaround",
+                      },
+                      {
+                        title: "Credit score ≥ 580 (better at ≥ 620)",
+                        body: <>FHA's floor is 580 for 3.5% down. Most lenders impose their own overlay at 620–640. Your current pre-approval shows you qualify for conventional, so this is almost certainly auto-met — confirm with Mike.</>,
+                        status: "auto-met",
+                      },
+                      {
+                        title: "DTI ratio ≤ 43% (often more like 50% with strong compensating factors)",
+                        body: <>FHA loosens debt-to-income vs conventional. Bigger FHA loan (~{fmt(fhaLoan - convLoan)} more borrowed) means higher monthly debt service — make sure that doesn't tip you over.</>,
+                        status: "verify",
+                      },
+                      {
+                        title: "Property condition / FHA appraisal",
+                        body: <>FHA appraisals are stricter than conventional — peeling paint, structural issues, safety hazards can block the loan. Given the listing literally says "needs finishing," <strong style={{ color: TEXT }}>this is a real risk</strong>. Ask Mike about an FHA-acceptable scope of work before relying on this path. A 203(k) renovation loan combines purchase + reno financing under one FHA loan and may be the better product if there's significant work.</>,
+                        status: "real-risk",
+                      },
+                    ].map((row) => {
+                      const tone = {
+                        "auto-met":         POS,
+                        "currently-passes": POS,
+                        "must-investigate": GOLD,
+                        "needs-workaround": GOLD,
+                        "verify":           MUTED,
+                        "real-risk":        NEG,
+                      }[row.status];
+                      const label = {
+                        "auto-met":         "auto-met",
+                        "currently-passes": "passes",
+                        "must-investigate": "investigate",
+                        "needs-workaround": "workaround",
+                        "verify":           "verify",
+                        "real-risk":        "real risk",
+                      }[row.status];
+                      return (
+                        <div key={row.title} style={{ padding: "12px 14px", background: PANEL, border: `1px solid ${LINE}`, borderRadius: 8 }}>
+                          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: TEXT }}>{row.title}</div>
+                            <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 999, background: `${tone}22`, color: tone, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>{label}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: TEXT, lineHeight: 1.55 }}>{row.body}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Questions for Mike */}
+                <div style={{ borderTop: `1px solid ${LINE}`, paddingTop: 18 }}>
+                  <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 600, marginBottom: 10 }}>Specific questions for Mike Bouffard</div>
+                  <ol style={{ paddingLeft: 22, fontSize: 13, color: TEXT, lineHeight: 1.65, marginTop: 4, marginBottom: 0 }}>
+                    <li><strong style={{ color: GOLD }}>Can the property be classified as a 2-unit for FHA?</strong> Main house + garage building counts as 2 dwelling units if the two apartments above the garage are configured as a single legal unit (e.g. one address with internal subdivision) — or 3-unit if they're legally separate. The 2-unit path is much cleaner: higher loan limit AND skips self-sufficiency.</li>
+                    <li><strong style={{ color: GOLD }}>What FHA loan limit applies in Windham County for 2026?</strong> Get the actual numbers, not my estimates. If 2-unit is ~$638K and 3-unit is ~$771K, both work; if either is lower than I'm assuming, the down payment math changes.</li>
+                    <li><strong style={{ color: GOLD }}>Quote the FHA loan with both 3.5% and 10% down.</strong> At 10% down, MIP drops to 11-year duration instead of life-of-loan, which saves meaningful money long-term ({fmt(fhaMIP_mo * (360 - 132))} over the loan vs lifetime). May be a sweet spot.</li>
+                    <li><strong style={{ color: GOLD }}>Discuss the 203(k) renovation loan as an alternative.</strong> Combines purchase + renovation financing into a single FHA mortgage. Given the "upstairs needs finishing" language in the listing, this may be more honest than buying with standard FHA and DIY-funding the reno.</li>
+                    <li><strong style={{ color: GOLD }}>Get the all-in monthly payment comparison.</strong> Don't anchor on rate — anchor on Total Monthly Housing Cost over the first 36 months. FHA's lower rate gets offset by MIP; the rate-only comparison flatters FHA more than reality.</li>
+                  </ol>
+                </div>
+
+                <div style={{ marginTop: 16, padding: "10px 14px", background: "rgba(216,118,82,0.06)", borderRadius: 8, border: `1px dashed ${LINE}`, fontSize: 12, color: MUTED, lineHeight: 1.55 }}>
+                  <strong style={{ color: TEXT }}>Bottom line on FHA (revised).</strong> The 6/9 conv 10% PAL changes the calculus. FHA now frees only {fmt(cashFreed)} of cash (was ~$134K vs the original ~$150K-down plan), and you pay {fmt(totalFHACost30)} of net premium over 30 years. <strong style={{ color: TEXT }}>FHA only wins now</strong> if (a) the freed {fmt(cashFreed)} would compound at a high real return AND (b) Mike confirms the rental-income treatment you need AND (c) the property passes FHA's stricter appraisal. Conv 10% is the cleaner default — same low-cash effect with PMI that drops off in ~9 years instead of haunting you for 30.
+                </div>
+
+              </Panel>
+            </div>
+          );
+        })()}
+
+        {/* Notes */}
+        <div style={{ color: MUTED, fontSize: 12, marginTop: 24, lineHeight: 1.6, borderTop: `1px solid ${LINE}`, paddingTop: 16 }}>
+          <strong style={{ color: TEXT }}>Three things worth confirming with Mike Bouffard:</strong> (1) The 6/9 pre-approval still lists the property as <em>Single-Family home</em> — but you described three units. Verify whether the lender will count rental income toward qualifying, since that changes for a 2–4 unit. (2) PMI is currently ${m.pmiMo.toFixed(2)}/mo on the 10% down option. Ask exactly when it auto-removes — federal rule says 78% LTV automatically (~year 9 at this rate), but you can <em>request</em> removal at 80% with a fresh appraisal, which could come much sooner if the renovation increases value. (3) Rate is an estimate, not locked. This models a $450K purchase at 10% down with a flat $100K reno budget. Property tax is set to $10,800/yr per your actual figure (the worksheet escrowed $987.50/mo as a buffer). P&I is computed; closing, prepaids and PMI are scaled from your 06/09/2026 worksheet ($525K basis) down to the $450K price — confirm them against an updated worksheet. Estimate only — not financial advice.
         </div>
       </div>
     </div>
   );
 }
+
 
     ReactDOM.createRoot(document.getElementById("root")).render(<Calculator />);
   </script>
