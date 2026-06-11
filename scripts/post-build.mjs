@@ -39,10 +39,11 @@ fs.writeFileSync(
 /mortgage    /mortgage/index.html   200
 
 # Clean URL for the (public, no-auth) renovation review page. Source lives
-# in renovation/ at the project root; copied to dist/andy-miller/renovation/
-# below. Unlike /mortgage, this path is NOT covered by the basic-auth edge
-# function (which matches only /mortgage*), so it's publicly viewable.
-/andy-miller/renovation    /andy-miller/renovation/index.html   200
+# in renovation/ at the project root; copied to dist/renovation/ below.
+# Unlike /mortgage, this path is NOT covered by the basic-auth edge function
+# (which matches only /mortgage*), so it's publicly viewable at
+# andy-miller.com/renovation.
+/renovation    /renovation/index.html   200
 `,
 )
 
@@ -84,13 +85,13 @@ if (fs.existsSync(mortgageImgSrc)) {
 
 // Copy the renovation review page (a standalone, self-contained static app —
 // index.html + data.js + the source .xlsx + assets/, no build step) into
-// dist/andy-miller/renovation/. It uses relative asset paths and hash routing,
-// so the whole folder just needs to land under that base. This path is public
-// (no basic-auth edge function covers it).
+// dist/renovation/. It uses relative asset paths and hash routing, so the
+// whole folder just needs to land under that base. This path is public (no
+// basic-auth edge function covers it) — served at andy-miller.com/renovation.
 const renoSrc = path.resolve(__dirname, '..', 'renovation')
 if (fs.existsSync(renoSrc)) {
-  const renoDest = path.join(distDir, 'andy-miller', 'renovation')
+  const renoDest = path.join(distDir, 'renovation')
   fs.cpSync(renoSrc, renoDest, { recursive: true })
 }
 
-console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the calculator; /andy-miller/renovation/ holds the renovation review.')
+console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the calculator; /renovation/ holds the renovation review.')
