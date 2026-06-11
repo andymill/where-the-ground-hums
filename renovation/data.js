@@ -5,7 +5,7 @@ window.RENO_DATA = {
    "name": "Kitchen",
    "blurb": "Full gut: semi-custom cabinets, maple butcher block, fireclay farmhouse sink, tiled backsplash, open shelving and new stainless appliances.",
    "after": "assets/kitchen-after.jpg",
-   "before": "assets/kitchen-before.jpg",
+   "before": "assets/kitchen-before.webp",
    "cogs": 10828,
    "labor": 7556,
    "total": 18384,

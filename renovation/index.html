@@ -67,6 +67,17 @@
   .legend{display:flex;gap:16px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
   .legend b{color:var(--ink)}
   .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+  /* materials takeoff */
+  .takeoff{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:18px}
+  .tkgrp{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin:14px 2px 6px}
+  .tkgrp:first-child{margin-top:0}
+  .tkrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .tkrow:last-child{border-bottom:0}
+  .tkrow .lbl{font-size:15px;font-weight:600}
+  .tkrow .rooms{display:block;color:var(--muted);font-size:11.5px;font-weight:400;margin-top:2px}
+  .tkrow .qv{white-space:nowrap;font-weight:800;color:var(--teal);font-size:16px}
+  .tkrow .qv small{color:var(--muted);font-weight:600;font-size:12px;margin-left:3px}
+  .tknote{color:var(--muted);font-size:11.5px;margin:12px 2px 0;line-height:1.45}
   /* detail */
   .detail{display:none}
   .ba{position:relative;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin:16px 0 8px;background:#000}
@@ -136,6 +147,8 @@
     <div class="grid" id="grid"></div>
     <div class="lead">Full budget</div>
     <div class="budget" id="budget"></div>
+    <div class="lead">Materials takeoff</div>
+    <div class="takeoff" id="takeoff"></div>
     <div class="foot">
       <a class="dlbtn" href="Ginko_Renovation_Cost_Sheet.xlsx" download>⬇︎ Download the cost spreadsheet</a>
       <p class="disc" id="disc"></p>
@@ -198,6 +211,62 @@ function renderHome(){
     <div class="legend"><span><span class="dot" style="background:var(--cogs)"></span>Materials <b>${cogsPct}%</b></span>
       <span><span class="dot" style="background:var(--labor)"></span>Labor <b>${laborPct}%</b></span></div>`;
   $('#disc').textContent = 'Planning-level estimate from listing photos and renovation renders — not a contractor bid. Actual costs vary with selections, hidden conditions, and local bids. Material links open current retail references.';
+  renderTakeoff();
+}
+
+// Project-wide materials takeoff: aggregate the area/linear line-item
+// quantities (sq ft, lin ft) into material buckets, computed from RENO_DATA
+// so it stays in sync with the per-room numbers. Per-unit fixtures, lump-sum
+// (ls) and appliance/plumbing/demo lines are intentionally excluded — they're
+// not area-based and are itemized on each room page.
+function renderTakeoff(){
+  const groups = [
+    ['Wood / boards', ['Wood flooring — refinish', 'Wood wall & ceiling boards — T&G paneling, wainscot']],
+    ['Tile', ['Tile — floors', 'Tile — walls (backsplash, surrounds, wainscot)']],
+    ['Cabinets & counters', ['Cabinets — semi-custom run', 'Butcher-block countertop']],
+    ['Paint & ceilings', ['Paint — walls & ceilings', 'Popcorn ceiling removal + skim']],
+  ];
+  const unitOf = {
+    'Cabinets — semi-custom run':'lin ft',
+  }; // everything else is sq ft
+  function bucket(desc, unit){
+    const d = desc.toLowerCase();
+    const tile = /tile|slate|terracotta|saltillo|hex/.test(d);
+    if(unit === 'sq ft'){
+      if(/refinish.*floor/.test(d)) return 'Wood flooring — refinish';
+      if(tile && /floor/.test(d)) return 'Tile — floors';
+      if(tile && /(backsplash|surround|wainscot|tub wall|wall)/.test(d)) return 'Tile — walls (backsplash, surrounds, wainscot)';
+      if(/paneling|wainscot/.test(d)) return 'Wood wall & ceiling boards — T&G paneling, wainscot';
+      if(/butcher block|countertop/.test(d)) return 'Butcher-block countertop';
+      if(/popcorn/.test(d)) return 'Popcorn ceiling removal + skim';
+      if(/paint/.test(d)) return 'Paint — walls & ceilings';
+    } else if(unit === 'lin ft'){
+      if(/cabinet/.test(d)) return 'Cabinets — semi-custom run';
+    }
+    return null;
+  }
+  const agg = {};
+  D.rooms.forEach(r => r.lines.forEach(l => {
+    const b = bucket(l.desc, l.unit);
+    if(!b) return;
+    (agg[b] = agg[b] || {total:0, rooms:[]});
+    agg[b].total += Number(l.qty) || 0;
+    agg[b].rooms.push(r.name + ' ' + Number(l.qty).toLocaleString('en-US'));
+  }));
+  let html = '';
+  for(const [grp, labels] of groups){
+    const present = labels.filter(l => agg[l]);
+    if(!present.length) continue;
+    html += `<div class="tkgrp">${grp}</div>`;
+    for(const lab of present){
+      const a = agg[lab];
+      html += `<div class="tkrow"><div><span class="lbl">${lab}</span>
+        <span class="rooms">${a.rooms.join(' · ')}</span></div>
+        <span class="qv">${a.total.toLocaleString('en-US')}<small>${unitOf[lab] || 'sq ft'}</small></span></div>`;
+    }
+  }
+  html += `<p class="tknote">Takeoff quantities are derived from the room line items — floor areas are room footprints estimated from photos; confirm with field measurements before ordering. Fixtures, appliances, lighting, plumbing and demo are priced per unit or lump-sum on each room page and aren't area-based.</p>`;
+  $('#takeoff').innerHTML = html;
 }
 
 function renderRoom(slug){
