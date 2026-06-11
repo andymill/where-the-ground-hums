@@ -413,7 +413,7 @@ function renderTakeoff(){
         <span class="qv">${a.total.toLocaleString('en-US')}<small>${unitOf[lab] || 'sq ft'}</small></span></div>`;
     }
   }
-  html += `<p class="tknote">Takeoff quantities are derived from the room line items — floor areas are room footprints estimated from photos; confirm with field measurements before ordering. Fixtures, appliances, lighting, plumbing and demo are priced per unit or lump-sum on each room page and aren't area-based.</p>`;
+  html += `<p class="tknote">Takeoff quantities are derived from the room line items — floor areas are actual room dimensions from the listing; wall paneling uses measured perimeters at 8-ft ceilings (≈12% deducted for doors/windows). Fixtures, appliances, lighting, plumbing and demo are priced per unit or lump-sum on each room page and aren't area-based.</p>`;
   $('#takeoff').innerHTML = html;
 }
 
