@@ -262,16 +262,26 @@ window.RENO_DATA = {
    "blurb": "The downstairs bedroom wall comes down to open into the entry — one larger utility room and entrance, with slate tile floor, a rebuilt staircase and railing, and recessed lighting.",
    "after": "assets/entry-after.jpg",
    "before": "assets/entry-before.jpg",
-   "cogs": 3049,
-   "labor": 5548,
-   "total": 8597,
+   "cogs": 4467,
+   "labor": 8724,
+   "total": 13191,
    "lines": [
     {
+     "desc": "Remove non-load-bearing bedroom/entry partition + drywall patch",
+     "qty": 1,
+     "unit": "ls",
+     "cogs": 200,
+     "labor": 1000,
+     "ref": "Angi – Cost to Remove a Wall (non-load-bearing)",
+     "url": "https://www.angi.com/articles/how-much-does-it-cost-remove-wall.htm",
+     "domain": "www.angi.com"
+    },
+    {
      "desc": "Slate tile floor (material + install)",
-     "qty": 147,
+     "qty": 321,
      "unit": "sq ft",
-     "cogs": 882,
-     "labor": 1470,
+     "cogs": 1926,
+     "labor": 3210,
      "ref": "Home Depot – Slate Floor Tile",
      "url": "https://www.homedepot.com/b/Flooring-Tile/Slate/N-5yc1vZar0y",
      "domain": "www.homedepot.com"
@@ -308,10 +318,10 @@ window.RENO_DATA = {
     },
     {
      "desc": "Paint walls & ceiling",
-     "qty": 147,
+     "qty": 321,
      "unit": "sq ft",
-     "cogs": 147,
-     "labor": 368,
+     "cogs": 321,
+     "labor": 804,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
      "domain": "www.homedepot.com"
@@ -780,11 +790,11 @@ window.RENO_DATA = {
   }
  ],
  "totals": {
-  "cogs": 34343,
-  "labor": 49731,
-  "subtotal": 84074,
-  "ohp": 12611,
-  "contingency": 11602,
-  "project": 108287
+  "cogs": 35761,
+  "labor": 52907,
+  "subtotal": 88668,
+  "ohp": 13300,
+  "contingency": 12236,
+  "project": 114204
  }
 };
