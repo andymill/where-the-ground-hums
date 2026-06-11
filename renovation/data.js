@@ -220,9 +220,9 @@ window.RENO_DATA = {
      "unit": "sq ft",
      "cogs": 1080,
      "labor": 1080,
-     "ref": "Home Depot \u2013 Pine Tongue & Groove Paneling",
-     "url": "https://www.homedepot.com/b/Lumber-Composites-Boards-Planks-Panels-Wall-Paneling/Pine/Tongue-and-Groove/N-5yc1vZbqp3Z1z0p2q6Z1z0p5w0",
-     "domain": "www.homedepot.com"
+     "ref": "Knotty pine T&G \u2013 ~$3.22/sq ft stained (Woodworker's Shoppe)",
+     "url": "https://www.woodworkersshoppe.com/knotty-pine-paneling-is-an-affordable-choice.html",
+     "domain": "www.woodworkersshoppe.com"
     },
     {
      "desc": "Refinish wood floor",
@@ -374,9 +374,9 @@ window.RENO_DATA = {
      "unit": "sq ft",
      "cogs": 240,
      "labor": 240,
-     "ref": "Home Depot \u2013 Pine Tongue & Groove Paneling",
-     "url": "https://www.homedepot.com/b/Lumber-Composites-Boards-Planks-Panels-Wall-Paneling/Pine/Tongue-and-Groove/N-5yc1vZbqp3Z1z0p2q6Z1z0p5w0",
-     "domain": "www.homedepot.com"
+     "ref": "Knotty pine T&G \u2013 ~$3.22/sq ft stained (Woodworker's Shoppe)",
+     "url": "https://www.woodworkersshoppe.com/knotty-pine-paneling-is-an-affordable-choice.html",
+     "domain": "www.woodworkersshoppe.com"
     },
     {
      "desc": "Vanity w/ top, 36 in.",
@@ -568,9 +568,9 @@ window.RENO_DATA = {
      "unit": "sq ft",
      "cogs": 1560,
      "labor": 1560,
-     "ref": "Home Depot \u2013 Pine Tongue & Groove Paneling",
-     "url": "https://www.homedepot.com/b/Lumber-Composites-Boards-Planks-Panels-Wall-Paneling/Pine/Tongue-and-Groove/N-5yc1vZbqp3Z1z0p2q6Z1z0p5w0",
-     "domain": "www.homedepot.com"
+     "ref": "Knotty pine T&G \u2013 ~$3.22/sq ft stained (Woodworker's Shoppe)",
+     "url": "https://www.woodworkersshoppe.com/knotty-pine-paneling-is-an-affordable-choice.html",
+     "domain": "www.woodworkersshoppe.com"
     },
     {
      "desc": "Refinish pine floor",
@@ -650,9 +650,9 @@ window.RENO_DATA = {
      "unit": "sq ft",
      "cogs": 1560,
      "labor": 1560,
-     "ref": "Home Depot \u2013 Pine Tongue & Groove Paneling",
-     "url": "https://www.homedepot.com/b/Lumber-Composites-Boards-Planks-Panels-Wall-Paneling/Pine/Tongue-and-Groove/N-5yc1vZbqp3Z1z0p2q6Z1z0p5w0",
-     "domain": "www.homedepot.com"
+     "ref": "Knotty pine T&G \u2013 ~$3.22/sq ft stained (Woodworker's Shoppe)",
+     "url": "https://www.woodworkersshoppe.com/knotty-pine-paneling-is-an-affordable-choice.html",
+     "domain": "www.woodworkersshoppe.com"
     },
     {
      "desc": "Refinish pine floor",

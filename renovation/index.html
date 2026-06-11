@@ -78,6 +78,35 @@
   .tkrow .qv{white-space:nowrap;font-weight:800;color:var(--teal);font-size:16px}
   .tkrow .qv small{color:var(--muted);font-weight:600;font-size:12px;margin-left:3px}
   .tknote{color:var(--muted);font-size:11.5px;margin:12px 2px 0;line-height:1.45}
+  /* phasing */
+  .tot .herosub{display:block;font-size:12px;opacity:.85;margin-top:3px;font-weight:500}
+  .planner{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:6px 14px 14px;box-shadow:var(--shadow);margin-bottom:6px}
+  .plrow{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:11px 2px;border-bottom:1px dashed var(--line)}
+  .plrow:last-of-type{border-bottom:0}
+  .plrow .pl-nm{font-size:14.5px;font-weight:600;line-height:1.2}
+  .plrow .pl-ct{font-size:12px;color:var(--muted);margin-top:1px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg);flex:none}
+  .seg button{border:0;border-left:1px solid var(--line);background:transparent;padding:7px 9px;font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;min-width:38px}
+  .seg button:first-child{border-left:0}
+  .seg button.on{background:var(--teal);color:#fff}
+  .seg button.on.offsel{background:var(--muted)}
+  .plnote{color:var(--muted);font-size:11.5px;margin:11px 2px 0;line-height:1.45}
+  .roomcard .pchip{position:absolute;top:9px;right:9px;z-index:2;font-size:10.5px;font-weight:800;letter-spacing:.02em;padding:3px 8px;border-radius:999px;background:rgba(31,78,95,.92);color:#fff}
+  .roomcard .pchip.future{background:rgba(181,119,42,.95)}
+  .roomcard .pchip.offsel{background:rgba(107,122,118,.95)}
+  .roomcard.dim img{filter:saturate(.5) brightness(.93)}
+  .phbreak{margin:2px 0 4px}
+  .phrow{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14.5px}
+  .phrow .ph-k .sub{color:var(--muted);font-size:12px;display:block;font-weight:400}
+  .phrow.excl{color:var(--muted)}
+  .phrow.planned{font-weight:800;color:var(--teal);border-top:2px solid var(--line);border-bottom:0;margin-top:3px;padding-top:11px}
+  .scopehd{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin:16px 2px 8px}
+  .scopetabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+  .scopetabs button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
+  .scopetabs button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .schedbadge{display:inline-block;font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;background:rgba(31,78,95,.10);color:var(--teal);margin:0 0 10px}
+  .schedbadge.future{background:rgba(181,119,42,.13);color:var(--labor)}
+  .schedbadge.offsel{background:rgba(107,122,118,.14);color:var(--muted)}
   /* detail */
   .detail{display:none}
   .ba{position:relative;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin:16px 0 8px;background:#000}
@@ -139,13 +168,15 @@
     <div class="cap">
       <h1>Ginko House Renovation</h1>
       <p>Brattleboro, VT · mid-range finish · tap a room to explore</p>
-      <div class="tot"><b id="herototal">—</b><span>estimated project total</span></div>
+      <div class="tot"><b id="herototal">—</b><span id="herocap">estimated project total</span><span id="herosub" class="herosub"></span></div>
     </div>
   </div>
   <div class="wrap">
     <div class="lead">Rooms</div>
     <div class="grid" id="grid"></div>
-    <div class="lead">Full budget</div>
+    <div class="lead">Plan by year</div>
+    <div class="planner" id="planner"></div>
+    <div class="lead">Budget by year</div>
     <div class="budget" id="budget"></div>
     <div class="lead">Materials takeoff</div>
     <div class="takeoff" id="takeoff"></div>
@@ -167,6 +198,54 @@ const D = window.RENO_DATA;
 const $ = s => document.querySelector(s);
 const usd = n => '$' + Math.round(n).toLocaleString('en-US');
 
+/* ---- Phasing: schedule each room by year (this year / future) or mark Off ----
+   OH&P (15%) and contingency (12%) are percentages, so a phase's totals are
+   computed the same way as the whole project — summing per phase equals the
+   whole. Selections persist per-device in localStorage. */
+const PHASES = [
+  {key:'2026', short:'2026', tab:'This year', label:'This year (2026)'},
+  {key:'2027', short:'2027', tab:'2027',      label:'2027'},
+  {key:'2028', short:'2028', tab:'2028',      label:'2028'},
+  {key:'off',  short:'Off',  tab:'Off',       label:'Not planned'},
+];
+const PHASE_DEFAULTS = {};
+// Default everything to this year, except the Great Room — deferred to 2027
+// (no urgent needs).
+D.rooms.forEach(r => PHASE_DEFAULTS[r.slug] = (r.slug === 'living' ? '2027' : '2026'));
+function loadPhases(){
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('ginko_phase') || '{}'); } catch(e){}
+  const out = {};
+  D.rooms.forEach(r => out[r.slug] = saved[r.slug] || PHASE_DEFAULTS[r.slug]);
+  return out;
+}
+let PHASE = loadPhases();
+let viewScope = '2026';
+function setPhase(slug, key){
+  PHASE[slug] = key;
+  try { localStorage.setItem('ginko_phase', JSON.stringify(PHASE)); } catch(e){}
+  renderHome();
+}
+function setScope(s){ viewScope = s; renderBudget(); renderTakeoff(); }
+function resetPhases(){
+  PHASE = Object.assign({}, PHASE_DEFAULTS);
+  try { localStorage.removeItem('ginko_phase'); } catch(e){}
+  renderHome();
+}
+function phaseMeta(key){ return PHASES.find(p => p.key === key); }
+function roomsInScope(scope){
+  if(scope === 'all') return D.rooms.filter(r => PHASE[r.slug] !== 'off');
+  return D.rooms.filter(r => PHASE[r.slug] === scope);
+}
+function totalsFor(rooms){
+  const cogs = rooms.reduce((s,r)=>s + r.cogs, 0);
+  const labor = rooms.reduce((s,r)=>s + r.labor, 0);
+  const subtotal = cogs + labor;
+  const ohp = Math.round(subtotal * 0.15);
+  const contingency = Math.round((subtotal + ohp) * 0.12);
+  return {cogs, labor, subtotal, ohp, contingency, project: subtotal + ohp + contingency, n: rooms.length};
+}
+
 // retailer color/initials for fallback favicon badge
 const BRAND = {
   'www.homedepot.com':['#f96302','HD'], 'www.angi.com':['#ff6153','A'],
@@ -184,34 +263,97 @@ function favHTML(domain){
 }
 
 function renderHome(){
-  $('#herototal').textContent = usd(D.totals.project);
-  $('#barpill').textContent = usd(D.totals.project);
+  const thisYear = totalsFor(roomsInScope('2026'));
+  const planned = totalsFor(roomsInScope('all'));
+  $('#herototal').textContent = usd(thisYear.project);
+  $('#herocap').textContent = 'estimated · this year (2026)';
+  $('#herosub').textContent = (planned.project > thisYear.project)
+    ? 'Full plan ' + usd(planned.project) + ' across 2026–2028'
+    : '';
+  $('#barpill').textContent = usd(thisYear.project);
+
   const g = $('#grid'); g.innerHTML = '';
   D.rooms.forEach(r=>{
+    const ph = PHASE[r.slug], m = phaseMeta(ph);
+    const chipCls = ph === '2026' ? '' : (ph === 'off' ? 'offsel' : 'future');
+    const chipTxt = ph === '2026' ? 'This yr' : m.short;
     const el = document.createElement('div');
-    el.className = 'roomcard';
+    el.className = 'roomcard' + (ph === '2026' ? '' : ' dim');
     el.innerHTML = `<span class="tag">Renovated</span>
+      <span class="pchip ${chipCls}">${chipTxt}</span>
       <img src="${r.after}" alt="${r.name}" loading="lazy">
       <div class="ov"></div>
       <div class="meta"><span class="nm">${r.name}</span><span class="ct">${usd(r.total)}</span></div>`;
     el.onclick = ()=>{ location.hash = '#/room/'+r.slug; };
     g.appendChild(el);
   });
-  const t = D.totals;
-  const cogsPct = Math.round(t.cogs/t.subtotal*100), laborPct = 100-cogsPct;
-  $('#budget').innerHTML = `
-    <h3>Estimated budget</h3>
-    <div class="brow"><span>Materials (COGS)</span><b>${usd(t.cogs)}</b></div>
+
+  renderPlanner();
+  renderBudget();
+  renderTakeoff();
+  $('#disc').textContent = 'Planning-level estimate from listing photos and renovation renders — not a contractor bid. Actual costs vary with selections, hidden conditions, and local bids. Material links open current retail references.';
+}
+
+// Per-room year planner: assign each room to a year or "Off". Saved per-device.
+function renderPlanner(){
+  let html = '';
+  D.rooms.forEach(r=>{
+    const ph = PHASE[r.slug];
+    const seg = PHASES.map(p =>
+      `<button class="${p.key === ph ? 'on' : ''}${p.key === 'off' && p.key === ph ? ' offsel' : ''}"
+        onclick="setPhase('${r.slug}','${p.key}')">${p.short}</button>`).join('');
+    html += `<div class="plrow"><div><div class="pl-nm">${r.name}</div>
+      <div class="pl-ct">${usd(r.total)}</div></div>
+      <div class="seg">${seg}</div></div>`;
+  });
+  html += `<p class="plnote">Schedule each room — “This year” is 2026; push others to 2027/2028 or mark “Off”.
+    Your plan is saved on this device. <a href="#" onclick="resetPhases();return false;" style="color:var(--teal);font-weight:600">Reset to default</a></p>`;
+  $('#planner').innerHTML = html;
+}
+
+// Budget split by year, plus a detailed estimate for the selected scope.
+function renderBudget(){
+  let rows = '';
+  let plannedHard = 0;
+  PHASES.forEach(p=>{
+    const rooms = D.rooms.filter(r => PHASE[r.slug] === p.key);
+    const hard = rooms.reduce((s,r)=>s + r.total, 0);
+    const nlabel = rooms.length + ' room' + (rooms.length === 1 ? '' : 's');
+    if(p.key === 'off'){
+      rows += `<div class="phrow excl"><span class="ph-k">Not planned <span class="sub">${nlabel} · excluded</span></span><span>—</span></div>`;
+    } else {
+      plannedHard += hard;
+      rows += `<div class="phrow"><span class="ph-k">${p.label} <span class="sub">${nlabel}</span></span><b>${usd(hard)}</b></div>`;
+    }
+  });
+  rows += `<div class="phrow planned"><span>Total planned — hard costs</span><span>${usd(plannedHard)}</span></div>`;
+
+  const scopeList = PHASES.filter(p => p.key !== 'off').concat([{key:'all', tab:'All planned'}]);
+  const tabs = scopeList.map(p =>
+    `<button class="${viewScope === p.key ? 'on' : ''}" onclick="setScope('${p.key}')">${p.tab}</button>`).join('');
+
+  const t = totalsFor(roomsInScope(viewScope));
+  const scopeName = viewScope === 'all' ? 'All planned (2026–2028)' : phaseMeta(viewScope).label;
+  let rollup;
+  if(t.n === 0){
+    rollup = `<p class="tknote" style="margin-top:0">No rooms assigned to ${scopeName} — use the planner above to schedule rooms here.</p>`;
+  } else {
+    const cogsPct = Math.round(t.cogs / t.subtotal * 100), laborPct = 100 - cogsPct;
+    rollup = `<div class="brow"><span>Materials (COGS)</span><b>${usd(t.cogs)}</b></div>
     <div class="brow"><span>Labor</span><b>${usd(t.labor)}</b></div>
-    <div class="brow"><span>Subtotal — hard costs</span><b>${usd(t.subtotal)}</b></div>
+    <div class="brow"><span>Subtotal — hard costs <span class="sub">${t.n} room${t.n === 1 ? '' : 's'}</span></span><b>${usd(t.subtotal)}</b></div>
     <div class="brow"><span>GC overhead &amp; profit <span class="sub">15% of subtotal</span></span><b>${usd(t.ohp)}</b></div>
     <div class="brow"><span>Contingency <span class="sub">12% of subtotal + OH&amp;P</span></span><b>${usd(t.contingency)}</b></div>
-    <div class="brow tot"><span>Estimated project total</span><span>${usd(t.project)}</span></div>
+    <div class="brow tot"><span>${scopeName} total</span><span>${usd(t.project)}</span></div>
     <div class="splitbar"><i style="width:${cogsPct}%;background:var(--cogs)"></i><i style="width:${laborPct}%;background:var(--labor)"></i></div>
     <div class="legend"><span><span class="dot" style="background:var(--cogs)"></span>Materials <b>${cogsPct}%</b></span>
       <span><span class="dot" style="background:var(--labor)"></span>Labor <b>${laborPct}%</b></span></div>`;
-  $('#disc').textContent = 'Planning-level estimate from listing photos and renovation renders — not a contractor bid. Actual costs vary with selections, hidden conditions, and local bids. Material links open current retail references.';
-  renderTakeoff();
+  }
+  $('#budget').innerHTML = `<h3>Budget by year</h3>
+    <div class="phbreak">${rows}</div>
+    <div class="scopehd">Detailed estimate</div>
+    <div class="scopetabs">${tabs}</div>
+    ${rollup}`;
 }
 
 // Project-wide materials takeoff: aggregate the area/linear line-item
@@ -245,15 +387,21 @@ function renderTakeoff(){
     }
     return null;
   }
+  const scopeRooms = roomsInScope(viewScope);
+  const scopeName = viewScope === 'all' ? 'all planned years' : phaseMeta(viewScope).label;
   const agg = {};
-  D.rooms.forEach(r => r.lines.forEach(l => {
+  scopeRooms.forEach(r => r.lines.forEach(l => {
     const b = bucket(l.desc, l.unit);
     if(!b) return;
     (agg[b] = agg[b] || {total:0, rooms:[]});
     agg[b].total += Number(l.qty) || 0;
     agg[b].rooms.push(r.name + ' ' + Number(l.qty).toLocaleString('en-US'));
   }));
-  let html = '';
+  if(!Object.keys(agg).length){
+    $('#takeoff').innerHTML = `<p class="tknote" style="margin-top:0">No area-based materials scheduled for ${scopeName}.</p>`;
+    return;
+  }
+  let html = `<div class="scopehd" style="margin-top:0">Scope: ${scopeName}</div>`;
   for(const [grp, labels] of groups){
     const present = labels.filter(l => agg[l]);
     if(!present.length) continue;
@@ -296,6 +444,7 @@ function renderRoom(slug){
       </div>
     </div>
     <p class="blurb">${r.blurb}</p>
+    <div class="${'schedbadge ' + (PHASE[r.slug] === '2026' ? '' : (PHASE[r.slug] === 'off' ? 'offsel' : 'future'))}">${PHASE[r.slug] === '2026' ? '📅 Scheduled this year (2026)' : (PHASE[r.slug] === 'off' ? '⏸ Not planned' : '📅 Scheduled for ' + PHASE[r.slug])} · change in “Plan by year”</div>
     <div class="chips">
       <div class="chip c"><div class="k">Materials</div><div class="v">${usd(r.cogs)}</div></div>
       <div class="chip l"><div class="k">Labor</div><div class="v">${usd(r.labor)}</div></div>
@@ -323,7 +472,7 @@ function route(){
     $('#home').style.display='block';
     $('#back').style.display='none';
     $('#bartitle').textContent='Ginko House Renovation';
-    $('#barpill').textContent=usd(D.totals.project);
+    renderHome();
     window.scrollTo(0,0);
   }
 }
