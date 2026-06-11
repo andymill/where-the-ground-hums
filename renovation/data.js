@@ -6,9 +6,9 @@ window.RENO_DATA = {
    "blurb": "Full gut: semi-custom cabinets, maple butcher block, fireclay farmhouse sink, tiled backsplash, open shelving and new stainless appliances.",
    "after": "assets/kitchen-after.jpg",
    "before": "assets/kitchen-before.webp",
-   "cogs": 10828,
-   "labor": 7556,
-   "total": 18384,
+   "cogs": 11428,
+   "labor": 8056,
+   "total": 19484,
    "lines": [
     {
      "desc": "Demo existing kitchen (cabinets, counters, backsplash)",
@@ -129,6 +129,26 @@ window.RENO_DATA = {
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
      "domain": "www.homedepot.com"
+    },
+    {
+     "desc": "Peninsula pendant lights (3) + install",
+     "qty": 3,
+     "unit": "ea",
+     "cogs": 300,
+     "labor": 200,
+     "ref": "Home Depot – Pendant Lights",
+     "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
+     "domain": "www.homedepot.com"
+    },
+    {
+     "desc": "Vented range hood + ducting",
+     "qty": 1,
+     "unit": "ea",
+     "cogs": 300,
+     "labor": 300,
+     "ref": "HomeAdvisor – Range Hood Install ($100–1000 + duct)",
+     "url": "https://www.homeadvisor.com/cost/kitchens/install-range-hood/",
+     "domain": "www.homeadvisor.com"
     }
    ]
   },
@@ -210,9 +230,9 @@ window.RENO_DATA = {
    "blurb": "Warm pine tongue-&-groove paneling, refinished floor and new window trim.",
    "after": "assets/dining-after.jpg",
    "before": "assets/dining-before.jpg",
-   "cogs": 1840,
-   "labor": 2570,
-   "total": 4410,
+   "cogs": 2090,
+   "labor": 2770,
+   "total": 4860,
    "lines": [
     {
      "desc": "Pine tongue & groove wall paneling",
@@ -253,6 +273,16 @@ window.RENO_DATA = {
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
      "domain": "www.homedepot.com"
+    },
+    {
+     "desc": "Chandelier / pendant fixture + install",
+     "qty": 1,
+     "unit": "ea",
+     "cogs": 250,
+     "labor": 200,
+     "ref": "Angi – Light Fixture Install ($100–650)",
+     "url": "https://www.angi.com/articles/how-much-does-it-cost-install-lighting-fixture.htm",
+     "domain": "www.angi.com"
     }
    ]
   },
@@ -262,9 +292,9 @@ window.RENO_DATA = {
    "blurb": "The downstairs bedroom wall comes down to open into the entry — one larger utility room and entrance, with slate tile floor, a rebuilt staircase and railing, and recessed lighting.",
    "after": "assets/entry-after.jpg",
    "before": "assets/entry-before.jpg",
-   "cogs": 4467,
-   "labor": 8724,
-   "total": 13191,
+   "cogs": 6117,
+   "labor": 9174,
+   "total": 15291,
    "lines": [
     {
      "desc": "Remove non-load-bearing bedroom/entry partition + drywall patch",
@@ -324,6 +354,26 @@ window.RENO_DATA = {
      "labor": 804,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
+     "domain": "www.homedepot.com"
+    },
+    {
+     "desc": "Utility / laundry sink + faucet + plumbing",
+     "qty": 1,
+     "unit": "ea",
+     "cogs": 150,
+     "labor": 250,
+     "ref": "Home Depot – Laundry / Utility Sink (~$120 + hookup)",
+     "url": "https://www.homedepot.com/b/Plumbing-Utility-Sinks-Accessories/Laundry-Utility-Sink/N-5yc1vZbqknZ1z1wr3j",
+     "domain": "www.homedepot.com"
+    },
+    {
+     "desc": "Washer + dryer pair + hookups",
+     "qty": 1,
+     "unit": "set",
+     "cogs": 1500,
+     "labor": 200,
+     "ref": "Home Depot – Washer & Dryer Sets",
+     "url": "https://www.homedepot.com/b/Appliances-Washers-Dryers-Washer-Dryer-Sets/N-5yc1vZ2fkpgvt",
      "domain": "www.homedepot.com"
     }
    ]
@@ -790,11 +840,11 @@ window.RENO_DATA = {
   }
  ],
  "totals": {
-  "cogs": 35761,
-  "labor": 52907,
-  "subtotal": 88668,
-  "ohp": 13300,
-  "contingency": 12236,
-  "project": 114204
+  "cogs": 38261,
+  "labor": 54057,
+  "subtotal": 92318,
+  "ohp": 13848,
+  "contingency": 12740,
+  "project": 118906
  }
 };
