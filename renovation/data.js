@@ -258,8 +258,8 @@ window.RENO_DATA = {
   },
   {
    "slug": "entry",
-   "name": "Entry, Foyer & Stairs",
-   "blurb": "Slate tile floor, a rebuilt staircase with railing, and recessed lighting.",
+   "name": "Utility Room & Entrance",
+   "blurb": "The downstairs bedroom wall comes down to open into the entry — one larger utility room and entrance, with slate tile floor, a rebuilt staircase and railing, and recessed lighting.",
    "after": "assets/entry-after.jpg",
    "before": "assets/entry-before.jpg",
    "cogs": 3049,
