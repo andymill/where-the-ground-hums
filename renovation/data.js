@@ -837,14 +837,108 @@ window.RENO_DATA = {
      "domain": "www.brattleboro.gov"
     }
    ]
+  },
+  {
+   "slug": "rental",
+   "name": "Rental Unit",
+   "blurb": "A self-contained rental conversion in Scandi-minimal style — durable, waterproof Stuga ‘Rebels’ engineered oak floors throughout, bright white walls against the pine ceiling, a refreshed kitchenette, and the upstairs loft opened up. Built to take tenant wear while staying light and modern. Areas are estimated pending actual measurements.",
+   "after": "assets/rental-main-after.jpg",
+   "before": "assets/rental-main-before.jpg",
+   "pairs": [
+    {
+     "before": "assets/rental-main-before.jpg",
+     "after": "assets/rental-main-after.jpg",
+     "label": "Main level — kitchen & living"
+    },
+    {
+     "before": "assets/rental-up-before.jpg",
+     "after": "assets/rental-up-after.jpg",
+     "label": "Upstairs loft"
+    }
+   ],
+   "lines": [
+    {
+     "desc": "Stuga ‘Rebels’ engineered hardwood floor (waterproof)",
+     "qty": 550,
+     "unit": "sq ft",
+     "cogs": 2888,
+     "labor": 2200,
+     "ref": "Stuga ‘Rebels’ — $5.25/sq ft + ~$4 install",
+     "url": "https://stugastudio.com/pages/families-rebels",
+     "domain": "stugastudio.com"
+    },
+    {
+     "desc": "Tear out old carpet + laminate flooring",
+     "qty": 1,
+     "unit": "ls",
+     "cogs": 0,
+     "labor": 450,
+     "ref": "",
+     "url": "",
+     "domain": ""
+    },
+    {
+     "desc": "Paint walls & ceilings (both levels)",
+     "qty": 550,
+     "unit": "sq ft",
+     "cogs": 550,
+     "labor": 1100,
+     "ref": "Home Depot – Interior Paint",
+     "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
+     "domain": "www.homedepot.com"
+    },
+    {
+     "desc": "Kitchenette refresh: stainless range + reset sink/faucet + hardware",
+     "qty": 1,
+     "unit": "ls",
+     "cogs": 800,
+     "labor": 350,
+     "ref": "Home Depot – Stainless Range",
+     "url": "https://www.homedepot.com/b/Appliances-Ranges/N-5yc1vZc3pi",
+     "domain": "www.homedepot.com"
+    },
+    {
+     "desc": "Lighting — track + recessed (both levels)",
+     "qty": 1,
+     "unit": "ls",
+     "cogs": 250,
+     "labor": 450,
+     "ref": "Home Depot – Lighting Fixtures",
+     "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
+     "domain": "www.homedepot.com"
+    },
+    {
+     "desc": "Bathroom allowance (fixtures + finishes — est. pending layout)",
+     "qty": 1,
+     "unit": "ls",
+     "cogs": 1500,
+     "labor": 1500,
+     "ref": "",
+     "url": "",
+     "domain": ""
+    },
+    {
+     "desc": "Misc — trim, smoke/CO, hardware",
+     "qty": 1,
+     "unit": "ls",
+     "cogs": 150,
+     "labor": 150,
+     "ref": "",
+     "url": "",
+     "domain": ""
+    }
+   ],
+   "cogs": 6138,
+   "labor": 6200,
+   "total": 12338
   }
  ],
  "totals": {
-  "cogs": 38261,
-  "labor": 54057,
-  "subtotal": 92318,
-  "ohp": 13848,
-  "contingency": 12740,
-  "project": 118906
+  "cogs": 44399,
+  "labor": 60257,
+  "subtotal": 104656,
+  "ohp": 15698,
+  "contingency": 14442,
+  "project": 134796
  }
 };

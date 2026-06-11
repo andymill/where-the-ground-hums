@@ -118,6 +118,16 @@
   .toggle button{border:0;background:transparent;color:#fff;font-weight:700;font-size:13px;
     padding:8px 15px;cursor:pointer}
   .toggle button.on{background:#fff;color:var(--teal)}
+  .cnav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;border:0;cursor:pointer;
+    width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:22px;line-height:1;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+  .cnav:active{transform:translateY(-50%) scale(.92)}
+  .cnav.prev{left:10px} .cnav.next{right:10px}
+  .caplabel{position:absolute;top:12px;right:12px;z-index:3;background:rgba(0,0,0,.62);color:#fff;
+    font-size:11.5px;font-weight:700;padding:5px 9px;border-radius:999px;letter-spacing:.02em}
+  .cdots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:3;display:flex;gap:7px}
+  .cdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:all .15s}
+  .cdot.on{background:#fff;width:20px;border-radius:5px}
   .blurb{font-size:15px;color:#384744;margin:10px 2px 16px}
   .chips{display:flex;gap:10px;margin:0 0 18px;flex-wrap:wrap}
   .chip{flex:1;min-width:96px;background:var(--card);border:1px solid var(--line);border-radius:14px;
@@ -363,7 +373,7 @@ function renderBudget(){
 // not area-based and are itemized on each room page.
 function renderTakeoff(){
   const groups = [
-    ['Wood / boards', ['Wood flooring — refinish', 'Wood wall & ceiling boards — T&G paneling, wainscot']],
+    ['Wood / boards', ['Wood flooring — refinish', 'Engineered wood flooring (new)', 'Wood wall & ceiling boards — T&G paneling, wainscot']],
     ['Tile', ['Tile — floors', 'Tile — walls (backsplash, surrounds, wainscot)']],
     ['Cabinets & counters', ['Cabinets — semi-custom run', 'Butcher-block countertop']],
     ['Paint & ceilings', ['Paint — walls & ceilings', 'Popcorn ceiling removal + skim']],
@@ -376,6 +386,7 @@ function renderTakeoff(){
     const tile = /tile|slate|terracotta|saltillo|hex/.test(d);
     if(unit === 'sq ft'){
       if(/refinish.*floor/.test(d)) return 'Wood flooring — refinish';
+      if(/engineered|stuga/.test(d)) return 'Engineered wood flooring (new)';
       if(tile && /floor/.test(d)) return 'Tile — floors';
       if(tile && /(backsplash|surround|wainscot|tub wall|wall)/.test(d)) return 'Tile — walls (backsplash, surrounds, wainscot)';
       if(/paneling|wainscot/.test(d)) return 'Wood wall & ceiling boards — T&G paneling, wainscot';
@@ -437,8 +448,12 @@ function renderRoom(slug){
   }).join('');
   $('#roombody').innerHTML = `
     <div class="ba">
-      <img id="baimg" src="${r.after}" alt="${r.name} renovated">
+      <img id="baimg" src="" alt="${r.name}">
       <span class="lab" id="balab">Renovated</span>
+      <button class="cnav prev" id="cPrev" aria-label="Previous view">‹</button>
+      <button class="cnav next" id="cNext" aria-label="Next view">›</button>
+      <span class="caplabel" id="caplabel"></span>
+      <div class="cdots" id="cdots"></div>
       <div class="toggle">
         <button id="tBefore">Now</button><button id="tAfter" class="on">Renovated</button>
       </div>
@@ -453,9 +468,31 @@ function renderRoom(slug){
     <div class="sech">Line items · ${r.lines.length}</div>
     ${lines}
     <div class="foot"><a class="dlbtn" href="Ginko_Renovation_Cost_Sheet.xlsx" download>⬇︎ Full spreadsheet</a></div>`;
+  // Carousel: a room can carry multiple before/after pairs (r.pairs); a
+  // single before/after still works as a one-slide carousel.
+  const pairs = (r.pairs && r.pairs.length) ? r.pairs : [{before:r.before, after:r.after, label:''}];
   const img=$('#baimg'), lab=$('#balab'), tb=$('#tBefore'), ta=$('#tAfter');
-  tb.onclick=()=>{img.src=r.before;lab.textContent='Now (current)';tb.classList.add('on');ta.classList.remove('on');};
-  ta.onclick=()=>{img.src=r.after;lab.textContent='Renovated';ta.classList.add('on');tb.classList.remove('on');};
+  const dots=$('#cdots'), capl=$('#caplabel'), prev=$('#cPrev'), next=$('#cNext');
+  const multi = pairs.length > 1;
+  if(multi){ dots.innerHTML = pairs.map((p,i)=>`<span class="cdot" data-i="${i}"></span>`).join(''); }
+  else { prev.style.display='none'; next.style.display='none'; dots.style.display='none'; capl.style.display='none'; }
+  let ci=0, side='after';
+  function show(){
+    const p = pairs[ci];
+    img.src = side==='after' ? p.after : p.before;
+    lab.textContent = side==='after' ? 'Renovated' : 'Now (current)';
+    ta.classList.toggle('on', side==='after'); tb.classList.toggle('on', side==='before');
+    if(multi){ capl.textContent = p.label || ('View '+(ci+1)+' / '+pairs.length);
+      dots.querySelectorAll('.cdot').forEach((d,i)=>d.classList.toggle('on', i===ci)); }
+  }
+  tb.onclick=()=>{ side='before'; show(); };
+  ta.onclick=()=>{ side='after';  show(); };
+  if(multi){
+    prev.onclick=()=>{ ci=(ci-1+pairs.length)%pairs.length; show(); };
+    next.onclick=()=>{ ci=(ci+1)%pairs.length; show(); };
+    dots.querySelectorAll('.cdot').forEach(d=> d.onclick=()=>{ ci=+d.dataset.i; show(); });
+  }
+  show();
 }
 
 function route(){
