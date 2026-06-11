@@ -70,4 +70,10 @@ if (fs.existsSync(mortgageSrc)) {
   fs.copyFileSync(mortgageSrc, path.join(mortgageDest, 'index.html'))
 }
 
+// Copy mortgage/img/ → dist/mortgage/img/ so the property photos load.
+const mortgageImgSrc = path.resolve(__dirname, '..', 'mortgage', 'img')
+if (fs.existsSync(mortgageImgSrc)) {
+  fs.cpSync(mortgageImgSrc, path.join(distDir, 'mortgage', 'img'), { recursive: true })
+}
+
 console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the calculator.')
