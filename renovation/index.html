@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ginko House — Renovation Review</title>
+<style>
+  :root{
+    --bg:#f4f1ea; --card:#ffffff; --ink:#22302e; --muted:#6b7a76;
+    --teal:#1f4e5f; --teal2:#2e7d6b; --amber:#caa24a; --line:#e4ded2;
+    --cogs:#2e7d6b; --labor:#b5772a; --shadow:0 6px 22px rgba(31,78,95,.12);
+    --maxw:760px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.45;padding-bottom:env(safe-area-inset-bottom)}
+  a{color:var(--teal)}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 14px}
+  /* top bar */
+  header.bar{position:sticky;top:0;z-index:20;background:rgba(244,241,234,.92);
+    backdrop-filter:saturate(150%) blur(10px);border-bottom:1px solid var(--line)}
+  .bar .wrap{display:flex;align-items:center;gap:10px;height:54px}
+  .bar .back{border:0;background:transparent;font-size:17px;color:var(--teal);
+    font-weight:600;display:none;align-items:center;gap:4px;cursor:pointer;padding:8px 6px 8px 0}
+  .bar .title{font-weight:700;font-size:16px;letter-spacing:.2px;flex:1;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill{background:var(--teal);color:#fff;border-radius:999px;font-weight:700;
+    font-size:13px;padding:6px 12px;white-space:nowrap}
+  /* hero */
+  .hero{position:relative;border-radius:0 0 22px 22px;overflow:hidden}
+  .hero img{width:100%;display:block;height:46vh;min-height:240px;max-height:420px;object-fit:cover}
+  .hero .ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05),rgba(0,0,0,.62))}
+  .hero .cap{position:absolute;left:0;right:0;bottom:0;padding:18px 18px 20px;color:#fff}
+  .hero h1{margin:0 0 4px;font-size:26px;line-height:1.1;text-shadow:0 2px 10px rgba(0,0,0,.4)}
+  .hero p{margin:0;opacity:.95;font-size:14px;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+  .hero .tot{display:inline-flex;align-items:baseline;gap:8px;margin-top:12px;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);
+    padding:8px 14px;border-radius:14px;backdrop-filter:blur(4px)}
+  .hero .tot b{font-size:22px}.hero .tot span{font-size:12px;opacity:.9}
+  .lead{margin:18px 4px 6px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.10em;font-weight:700}
+  /* room grid */
+  .grid{display:grid;grid-template-columns:1fr;gap:14px;margin:10px 0 22px}
+  @media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}
+  .roomcard{position:relative;border-radius:18px;overflow:hidden;cursor:pointer;
+    box-shadow:var(--shadow);border:1px solid var(--line);background:#000;
+    transition:transform .12s ease}
+  .roomcard:active{transform:scale(.985)}
+  .roomcard img{width:100%;height:188px;object-fit:cover;display:block;opacity:.92}
+  .roomcard .ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.0) 35%,rgba(0,0,0,.72))}
+  .roomcard .meta{position:absolute;left:0;right:0;bottom:0;padding:13px 14px;color:#fff;display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+  .roomcard .nm{font-weight:700;font-size:17px;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+  .roomcard .ct{font-weight:800;font-size:16px;text-shadow:0 1px 8px rgba(0,0,0,.55);white-space:nowrap}
+  .roomcard .tag{position:absolute;top:10px;left:10px;background:rgba(31,78,95,.85);
+    color:#fff;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;letter-spacing:.03em}
+  /* budget block */
+  .budget{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    box-shadow:var(--shadow);padding:16px;margin:6px 0 26px}
+  .budget h3{margin:0 0 12px;font-size:16px;color:var(--teal)}
+  .brow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:15px}
+  .brow:last-of-type{border-bottom:0}
+  .brow.tot{font-weight:800;font-size:18px;color:var(--teal);border-top:2px solid var(--line);margin-top:4px;padding-top:12px}
+  .brow .sub{color:var(--muted);font-size:12px;display:block}
+  .splitbar{height:14px;border-radius:8px;overflow:hidden;display:flex;margin:14px 0 6px;border:1px solid var(--line)}
+  .splitbar i{display:block;height:100%}
+  .legend{display:flex;gap:16px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+  .legend b{color:var(--ink)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+  /* detail */
+  .detail{display:none}
+  .ba{position:relative;border-radius:18px;overflow:hidden;box-shadow:var(--shadow);margin:16px 0 8px;background:#000}
+  .ba img{width:100%;display:block;height:54vw;max-height:360px;min-height:200px;object-fit:cover}
+  .ba .lab{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.62);color:#fff;
+    font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;letter-spacing:.04em}
+  .toggle{position:absolute;bottom:12px;right:12px;display:flex;background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.5);border-radius:999px;overflow:hidden;backdrop-filter:blur(6px)}
+  .toggle button{border:0;background:transparent;color:#fff;font-weight:700;font-size:13px;
+    padding:8px 15px;cursor:pointer}
+  .toggle button.on{background:#fff;color:var(--teal)}
+  .blurb{font-size:15px;color:#384744;margin:10px 2px 16px}
+  .chips{display:flex;gap:10px;margin:0 0 18px;flex-wrap:wrap}
+  .chip{flex:1;min-width:96px;background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:11px 12px;box-shadow:var(--shadow)}
+  .chip .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+  .chip .v{font-size:19px;font-weight:800;margin-top:2px}
+  .chip.c .v{color:var(--cogs)} .chip.l .v{color:var(--labor)} .chip.t .v{color:var(--teal)}
+  .sech{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.10em;font-weight:700;margin:6px 2px 10px}
+  /* line items */
+  .line{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:11px;box-shadow:var(--shadow)}
+  .line .d{font-weight:650;font-size:15px;margin-bottom:7px}
+  .line .nums{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+  .qty{color:var(--muted);margin-right:auto}
+  .amt{font-weight:700;border-radius:8px;padding:3px 9px;font-size:12.5px;white-space:nowrap}
+  .amt.c{background:rgba(46,125,107,.12);color:var(--cogs)}
+  .amt.l{background:rgba(181,119,42,.13);color:var(--labor)}
+  .reflink{display:flex;align-items:center;gap:9px;margin-top:10px;padding-top:10px;
+    border-top:1px dashed var(--line);text-decoration:none;color:var(--teal);font-size:13px;font-weight:600}
+  .reflink img,.reflink .fav{width:30px;height:30px;border-radius:7px;flex:0 0 30px;object-fit:cover;
+    border:1px solid var(--line);background:#fff}
+  .reflink .rt{flex:1;line-height:1.25}
+  .reflink .rt small{display:block;color:var(--muted);font-weight:500;font-size:11px}
+  .reflink .go{color:var(--muted);font-size:16px}
+  .noref{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted)}
+  /* footer */
+  .foot{margin:14px 0 40px;text-align:center}
+  .dlbtn{display:inline-flex;align-items:center;gap:8px;background:var(--teal);color:#fff;
+    text-decoration:none;font-weight:700;font-size:15px;padding:13px 20px;border-radius:14px;box-shadow:var(--shadow)}
+  .disc{font-size:11.5px;color:var(--muted);margin:16px 6px 0;line-height:1.5}
+  .view{animation:fade .22s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="wrap">
+    <button class="back" id="back">‹ House</button>
+    <div class="title" id="bartitle">Ginko House Renovation</div>
+    <div class="pill" id="barpill">—</div>
+  </div>
+</header>
+
+<!-- HOME -->
+<section id="home" class="view">
+  <div class="hero">
+    <img src="assets/hero.jpg" alt="The house" loading="eager">
+    <div class="ov"></div>
+    <div class="cap">
+      <h1>Ginko House Renovation</h1>
+      <p>Brattleboro, VT · mid-range finish · tap a room to explore</p>
+      <div class="tot"><b id="herototal">—</b><span>estimated project total</span></div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="lead">Rooms</div>
+    <div class="grid" id="grid"></div>
+    <div class="lead">Full budget</div>
+    <div class="budget" id="budget"></div>
+    <div class="foot">
+      <a class="dlbtn" href="Ginko_Renovation_Cost_Sheet.xlsx" download>⬇︎ Download the cost spreadsheet</a>
+      <p class="disc" id="disc"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ROOM DETAIL -->
+<section id="room" class="view" style="display:none">
+  <div class="wrap" id="roombody"></div>
+</section>
+
+<script src="data.js"></script>
+<script>
+const D = window.RENO_DATA;
+const $ = s => document.querySelector(s);
+const usd = n => '$' + Math.round(n).toLocaleString('en-US');
+
+// retailer color/initials for fallback favicon badge
+const BRAND = {
+  'www.homedepot.com':['#f96302','HD'], 'www.angi.com':['#ff6153','A'],
+  'www.ziprecruiter.com':['#1c5ee1','ZR'], 'www.brattleboro.gov':['#345','VT']
+};
+function badge(domain){
+  const b = BRAND[domain] || ['#1f4e5f',(domain||'?').replace('www.','').slice(0,2).toUpperCase()];
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><rect width='60' height='60' rx='12' fill='${b[0]}'/><text x='50%' y='54%' font-family='Arial' font-size='24' font-weight='700' fill='#fff' text-anchor='middle' dominant-baseline='middle'>${b[1]}</text></svg>`;
+  return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+}
+function favHTML(domain){
+  if(!domain) return '';
+  const live = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  return `<img class="fav" src="${live}" alt="" loading="lazy" onerror="this.onerror=null;this.src='${badge(domain)}'">`;
+}
+
+function renderHome(){
+  $('#herototal').textContent = usd(D.totals.project);
+  $('#barpill').textContent = usd(D.totals.project);
+  const g = $('#grid'); g.innerHTML = '';
+  D.rooms.forEach(r=>{
+    const el = document.createElement('div');
+    el.className = 'roomcard';
+    el.innerHTML = `<span class="tag">Renovated</span>
+      <img src="${r.after}" alt="${r.name}" loading="lazy">
+      <div class="ov"></div>
+      <div class="meta"><span class="nm">${r.name}</span><span class="ct">${usd(r.total)}</span></div>`;
+    el.onclick = ()=>{ location.hash = '#/room/'+r.slug; };
+    g.appendChild(el);
+  });
+  const t = D.totals;
+  const cogsPct = Math.round(t.cogs/t.subtotal*100), laborPct = 100-cogsPct;
+  $('#budget').innerHTML = `
+    <h3>Estimated budget</h3>
+    <div class="brow"><span>Materials (COGS)</span><b>${usd(t.cogs)}</b></div>
+    <div class="brow"><span>Labor</span><b>${usd(t.labor)}</b></div>
+    <div class="brow"><span>Subtotal — hard costs</span><b>${usd(t.subtotal)}</b></div>
+    <div class="brow"><span>GC overhead &amp; profit <span class="sub">15% of subtotal</span></span><b>${usd(t.ohp)}</b></div>
+    <div class="brow"><span>Contingency <span class="sub">12% of subtotal + OH&amp;P</span></span><b>${usd(t.contingency)}</b></div>
+    <div class="brow tot"><span>Estimated project total</span><span>${usd(t.project)}</span></div>
+    <div class="splitbar"><i style="width:${cogsPct}%;background:var(--cogs)"></i><i style="width:${laborPct}%;background:var(--labor)"></i></div>
+    <div class="legend"><span><span class="dot" style="background:var(--cogs)"></span>Materials <b>${cogsPct}%</b></span>
+      <span><span class="dot" style="background:var(--labor)"></span>Labor <b>${laborPct}%</b></span></div>`;
+  $('#disc').textContent = 'Planning-level estimate from listing photos and renovation renders — not a contractor bid. Actual costs vary with selections, hidden conditions, and local bids. Material links open current retail references.';
+}
+
+function renderRoom(slug){
+  const r = D.rooms.find(x=>x.slug===slug);
+  if(!r){ location.hash=''; return; }
+  $('#bartitle').textContent = r.name;
+  $('#barpill').textContent = usd(r.total);
+  const lines = r.lines.map(li=>{
+    const ref = li.url
+      ? `<a class="reflink" href="${li.url}" target="_blank" rel="noopener">
+           ${favHTML(li.domain)}
+           <span class="rt">${li.ref}<small>${li.domain.replace('www.','')}</small></span>
+           <span class="go">↗</span></a>`
+      : `<div class="noref">No material reference (labor / soft cost)</div>`;
+    const cogs = li.cogs>0 ? `<span class="amt c">Materials ${usd(li.cogs)}</span>`:'';
+    const labor = li.labor>0 ? `<span class="amt l">Labor ${usd(li.labor)}</span>`:'';
+    return `<div class="line"><div class="d">${li.desc}</div>
+      <div class="nums"><span class="qty">${li.qty} ${li.unit}</span>${cogs}${labor}</div>
+      ${ref}</div>`;
+  }).join('');
+  $('#roombody').innerHTML = `
+    <div class="ba">
+      <img id="baimg" src="${r.after}" alt="${r.name} renovated">
+      <span class="lab" id="balab">Renovated</span>
+      <div class="toggle">
+        <button id="tBefore">Now</button><button id="tAfter" class="on">Renovated</button>
+      </div>
+    </div>
+    <p class="blurb">${r.blurb}</p>
+    <div class="chips">
+      <div class="chip c"><div class="k">Materials</div><div class="v">${usd(r.cogs)}</div></div>
+      <div class="chip l"><div class="k">Labor</div><div class="v">${usd(r.labor)}</div></div>
+      <div class="chip t"><div class="k">Room total</div><div class="v">${usd(r.total)}</div></div>
+    </div>
+    <div class="sech">Line items · ${r.lines.length}</div>
+    ${lines}
+    <div class="foot"><a class="dlbtn" href="Ginko_Renovation_Cost_Sheet.xlsx" download>⬇︎ Full spreadsheet</a></div>`;
+  const img=$('#baimg'), lab=$('#balab'), tb=$('#tBefore'), ta=$('#tAfter');
+  tb.onclick=()=>{img.src=r.before;lab.textContent='Now (current)';tb.classList.add('on');ta.classList.remove('on');};
+  ta.onclick=()=>{img.src=r.after;lab.textContent='Renovated';ta.classList.add('on');tb.classList.remove('on');};
+}
+
+function route(){
+  const m = location.hash.match(/^#\/room\/(.+)$/);
+  if(m){
+    $('#home').style.display='none';
+    $('#room').style.display='block';
+    $('#back').style.display='inline-flex';
+    document.querySelector('.detail');
+    renderRoom(m[1]);
+    window.scrollTo(0,0);
+  } else {
+    $('#room').style.display='none';
+    $('#home').style.display='block';
+    $('#back').style.display='none';
+    $('#bartitle').textContent='Ginko House Renovation';
+    $('#barpill').textContent=usd(D.totals.project);
+    window.scrollTo(0,0);
+  }
+}
+$('#back').onclick=()=>{ location.hash=''; };
+window.addEventListener('hashchange', route);
+renderHome();
+route();
+</script>
+</body>
+</html>
