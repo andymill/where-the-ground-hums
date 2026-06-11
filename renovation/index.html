@@ -104,6 +104,8 @@
   .scopetabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
   .scopetabs button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer}
   .scopetabs button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .labortoggle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 14px;flex-wrap:wrap}
+  .labortoggle .lt-k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
   .schedbadge{display:inline-block;font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;background:rgba(31,78,95,.10);color:var(--teal);margin:0 0 10px}
   .schedbadge.future{background:rgba(181,119,42,.13);color:var(--labor)}
   .schedbadge.offsel{background:rgba(107,122,118,.14);color:var(--muted)}
@@ -237,6 +239,23 @@ function setPhase(slug, key){
   renderHome();
 }
 function setScope(s){ viewScope = s; renderBudget(); renderTakeoff(); }
+
+/* ---- Labor mode: flat-rate market estimate vs. our contractor @ $65/hr ----
+   Each line carries an estimated `hours`; hourly labor = hours × rate. Flat
+   labor (the original market estimate) is the line's `labor`. Materials (cogs)
+   are unaffected. Selection persists per-device. */
+const LABOR_RATE = 65;
+let laborMode = 'flat';
+try { if(localStorage.getItem('ginko_labor') === 'hourly') laborMode = 'hourly'; } catch(e){}
+function setLaborMode(m){
+  laborMode = m;
+  try { localStorage.setItem('ginko_labor', m); } catch(e){}
+  route(); // re-render the current view (home or room detail)
+}
+function lineLabor(l){ return laborMode === 'hourly' ? Math.round((l.hours || 0) * LABOR_RATE) : l.labor; }
+function roomLabor(r){ return r.lines.reduce((s,l)=>s + lineLabor(l), 0); }
+function roomTotalC(r){ return r.cogs + roomLabor(r); }
+function roomHours(r){ return r.lines.reduce((s,l)=>s + (l.hours || 0), 0); }
 function resetPhases(){
   PHASE = Object.assign({}, PHASE_DEFAULTS);
   try { localStorage.removeItem('ginko_phase'); } catch(e){}
@@ -249,7 +268,7 @@ function roomsInScope(scope){
 }
 function totalsFor(rooms){
   const cogs = rooms.reduce((s,r)=>s + r.cogs, 0);
-  const labor = rooms.reduce((s,r)=>s + r.labor, 0);
+  const labor = rooms.reduce((s,r)=>s + roomLabor(r), 0);
   const subtotal = cogs + labor;
   const ohp = Math.round(subtotal * 0.15);
   const contingency = Math.round((subtotal + ohp) * 0.12);
@@ -293,7 +312,7 @@ function renderHome(){
       <span class="pchip ${chipCls}">${chipTxt}</span>
       <img src="${r.after}" alt="${r.name}" loading="lazy">
       <div class="ov"></div>
-      <div class="meta"><span class="nm">${r.name}</span><span class="ct">${usd(r.total)}</span></div>`;
+      <div class="meta"><span class="nm">${r.name}</span><span class="ct">${usd(roomTotalC(r))}</span></div>`;
     el.onclick = ()=>{ location.hash = '#/room/'+r.slug; };
     g.appendChild(el);
   });
@@ -313,7 +332,7 @@ function renderPlanner(){
       `<button class="${p.key === ph ? 'on' : ''}${p.key === 'off' && p.key === ph ? ' offsel' : ''}"
         onclick="setPhase('${r.slug}','${p.key}')">${p.short}</button>`).join('');
     html += `<div class="plrow"><div><div class="pl-nm">${r.name}</div>
-      <div class="pl-ct">${usd(r.total)}</div></div>
+      <div class="pl-ct">${usd(roomTotalC(r))}</div></div>
       <div class="seg">${seg}</div></div>`;
   });
   html += `<p class="plnote">Schedule each room — “This year” is 2026; push others to 2027/2028 or mark “Off”.
@@ -327,7 +346,7 @@ function renderBudget(){
   let plannedHard = 0;
   PHASES.forEach(p=>{
     const rooms = D.rooms.filter(r => PHASE[r.slug] === p.key);
-    const hard = rooms.reduce((s,r)=>s + r.total, 0);
+    const hard = rooms.reduce((s,r)=>s + roomTotalC(r), 0);
     const nlabel = rooms.length + ' room' + (rooms.length === 1 ? '' : 's');
     if(p.key === 'off'){
       rows += `<div class="phrow excl"><span class="ph-k">Not planned <span class="sub">${nlabel} · excluded</span></span><span>—</span></div>`;
@@ -342,24 +361,36 @@ function renderBudget(){
   const tabs = scopeList.map(p =>
     `<button class="${viewScope === p.key ? 'on' : ''}" onclick="setScope('${p.key}')">${p.tab}</button>`).join('');
 
-  const t = totalsFor(roomsInScope(viewScope));
+  const scopeRooms = roomsInScope(viewScope);
+  const scopeHours = scopeRooms.reduce((s,r)=>s + roomHours(r), 0);
+  const flatLabor = scopeRooms.reduce((s,r)=>s + r.lines.reduce((a,l)=>a + l.labor, 0), 0);
+  const t = totalsFor(scopeRooms);
   const scopeName = viewScope === 'all' ? 'All planned (2026–2028)' : phaseMeta(viewScope).label;
   let rollup;
   if(t.n === 0){
     rollup = `<p class="tknote" style="margin-top:0">No rooms assigned to ${scopeName} — use the planner above to schedule rooms here.</p>`;
   } else {
     const cogsPct = Math.round(t.cogs / t.subtotal * 100), laborPct = 100 - cogsPct;
+    const laborSub = laborMode === 'hourly' ? `${Math.round(scopeHours).toLocaleString('en-US')} hrs × $${LABOR_RATE}/hr` : 'market flat-rate estimate';
+    const compare = laborMode === 'hourly'
+      ? `<p class="tknote" style="margin-top:10px">At your contractor’s <b>$${LABOR_RATE}/hr</b>, labor is ${usd(t.labor)} vs. the flat-rate estimate of ${usd(flatLabor)} — ${flatLabor>=t.labor?'about '+usd(flatLabor-t.labor)+' lower':usd(t.labor-flatLabor)+' higher'}. Hours are estimates (materials unchanged).</p>`
+      : '';
     rollup = `<div class="brow"><span>Materials (COGS)</span><b>${usd(t.cogs)}</b></div>
-    <div class="brow"><span>Labor</span><b>${usd(t.labor)}</b></div>
+    <div class="brow"><span>Labor <span class="sub">${laborSub}</span></span><b>${usd(t.labor)}</b></div>
     <div class="brow"><span>Subtotal — hard costs <span class="sub">${t.n} room${t.n === 1 ? '' : 's'}</span></span><b>${usd(t.subtotal)}</b></div>
     <div class="brow"><span>GC overhead &amp; profit <span class="sub">15% of subtotal</span></span><b>${usd(t.ohp)}</b></div>
     <div class="brow"><span>Contingency <span class="sub">12% of subtotal + OH&amp;P</span></span><b>${usd(t.contingency)}</b></div>
     <div class="brow tot"><span>${scopeName} total</span><span>${usd(t.project)}</span></div>
     <div class="splitbar"><i style="width:${cogsPct}%;background:var(--cogs)"></i><i style="width:${laborPct}%;background:var(--labor)"></i></div>
     <div class="legend"><span><span class="dot" style="background:var(--cogs)"></span>Materials <b>${cogsPct}%</b></span>
-      <span><span class="dot" style="background:var(--labor)"></span>Labor <b>${laborPct}%</b></span></div>`;
+      <span><span class="dot" style="background:var(--labor)"></span>Labor <b>${laborPct}%</b></span></div>${compare}`;
   }
+  const laborTog = `<div class="labortoggle"><span class="lt-k">Labor pricing</span><div class="seg">
+      <button class="${laborMode==='flat'?'on':''}" onclick="setLaborMode('flat')">Flat-rate</button>
+      <button class="${laborMode==='hourly'?'on':''}" onclick="setLaborMode('hourly')">Our crew · $${LABOR_RATE}/hr</button>
+    </div></div>`;
   $('#budget').innerHTML = `<h3>Budget by year</h3>
+    ${laborTog}
     <div class="phbreak">${rows}</div>
     <div class="scopehd">Detailed estimate</div>
     <div class="scopetabs">${tabs}</div>
@@ -432,7 +463,7 @@ function renderRoom(slug){
   const r = D.rooms.find(x=>x.slug===slug);
   if(!r){ location.hash=''; return; }
   $('#bartitle').textContent = r.name;
-  $('#barpill').textContent = usd(r.total);
+  $('#barpill').textContent = usd(roomTotalC(r));
   const lines = r.lines.map(li=>{
     const ref = li.url
       ? `<a class="reflink" href="${li.url}" target="_blank" rel="noopener">
@@ -441,7 +472,8 @@ function renderRoom(slug){
            <span class="go">↗</span></a>`
       : `<div class="noref">No material reference (labor / soft cost)</div>`;
     const cogs = li.cogs>0 ? `<span class="amt c">Materials ${usd(li.cogs)}</span>`:'';
-    const labor = li.labor>0 ? `<span class="amt l">Labor ${usd(li.labor)}</span>`:'';
+    const ll = lineLabor(li);
+    const labor = ll>0 ? `<span class="amt l">Labor ${usd(ll)}${laborMode==='hourly' && li.hours ? ` · ${li.hours}h×$${LABOR_RATE}` : ''}</span>`:'';
     return `<div class="line"><div class="d">${li.desc}</div>
       <div class="nums"><span class="qty">${li.qty} ${li.unit}</span>${cogs}${labor}</div>
       ${ref}</div>`;
@@ -462,10 +494,14 @@ function renderRoom(slug){
     <div class="${'schedbadge ' + (PHASE[r.slug] === '2026' ? '' : (PHASE[r.slug] === 'off' ? 'offsel' : 'future'))}">${PHASE[r.slug] === '2026' ? '📅 Scheduled this year (2026)' : (PHASE[r.slug] === 'off' ? '⏸ Not planned' : '📅 Scheduled for ' + PHASE[r.slug])} · change in “Plan by year”</div>
     <div class="chips">
       <div class="chip c"><div class="k">Materials</div><div class="v">${usd(r.cogs)}</div></div>
-      <div class="chip l"><div class="k">Labor</div><div class="v">${usd(r.labor)}</div></div>
-      <div class="chip t"><div class="k">Room total</div><div class="v">${usd(r.total)}</div></div>
+      <div class="chip l"><div class="k">Labor</div><div class="v">${usd(roomLabor(r))}</div></div>
+      <div class="chip t"><div class="k">Room total</div><div class="v">${usd(roomTotalC(r))}</div></div>
     </div>
-    <div class="sech">Line items · ${r.lines.length}</div>
+    <div class="labortoggle"><span class="lt-k">Labor pricing</span><div class="seg">
+      <button class="${laborMode==='flat'?'on':''}" onclick="setLaborMode('flat')">Flat-rate</button>
+      <button class="${laborMode==='hourly'?'on':''}" onclick="setLaborMode('hourly')">Our crew · $${LABOR_RATE}/hr</button>
+    </div></div>
+    <div class="sech">Line items · ${r.lines.length}${laborMode==='hourly' ? ` · ${Math.round(roomHours(r))} hrs` : ''}</div>
     ${lines}
     <div class="foot"><a class="dlbtn" href="Ginko_Renovation_Cost_Sheet.xlsx" download>⬇︎ Full spreadsheet</a></div>`;
   // Carousel: a room can carry multiple before/after pairs (r.pairs); a

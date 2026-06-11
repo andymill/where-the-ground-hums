@@ -18,7 +18,8 @@ window.RENO_DATA = {
      "labor": 800,
      "ref": "ZipRecruiter – VT Plumber Rate",
      "url": "https://www.ziprecruiter.com/Salaries/Plumber-Salary--in-Vermont",
-     "domain": "www.ziprecruiter.com"
+     "domain": "www.ziprecruiter.com",
+     "hours": 10
     },
     {
      "desc": "Semi-custom base & wall cabinets (shaker, natural)",
@@ -28,7 +29,8 @@ window.RENO_DATA = {
      "labor": 2200,
      "ref": "Home Depot – Kitchen Cabinets",
      "url": "https://www.homedepot.com/b/Kitchen-Kitchen-Cabinets/N-5yc1vZar6c",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 26.5
     },
     {
      "desc": "Open wood shelving + brackets",
@@ -38,7 +40,8 @@ window.RENO_DATA = {
      "labor": 240,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 6
     },
     {
      "desc": "Butcher block countertop (maple)",
@@ -48,7 +51,8 @@ window.RENO_DATA = {
      "labor": 1000,
      "ref": "Home Depot – Maple Butcher Block",
      "url": "https://www.homedepot.com/b/Kitchen-Countertops-Butcher-Block-Countertops/Maple/N-5yc1vZcgrcZ1z18b9s",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 1
     },
     {
      "desc": "Fireclay farmhouse apron sink, 30 in.",
@@ -58,7 +62,8 @@ window.RENO_DATA = {
      "labor": 150,
      "ref": "Home Depot – HOROW 30in Fireclay Farmhouse Sink",
      "url": "https://www.homedepot.com/p/HOROW-White-Fireclay-30-in-x-20-in-Single-Bowl-Farmhouse-Apron-Front-Kitchen-Sink-with-Bottom-Grid-and-Strainer-HR-F3020/323394024",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 3
     },
     {
      "desc": "Pull-down kitchen faucet",
@@ -68,7 +73,8 @@ window.RENO_DATA = {
      "labor": 120,
      "ref": "Home Depot – Kitchen Faucets",
      "url": "https://www.homedepot.com/b/Kitchen-Kitchen-Faucets/N-5yc1vZcfg9",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 2
     },
     {
      "desc": "Tile backsplash (glazed ceramic / zellige look)",
@@ -78,7 +84,8 @@ window.RENO_DATA = {
      "labor": 416,
      "ref": "Home Depot – Ceramic Wall Tile",
      "url": "https://www.homedepot.com/b/Flooring-Tile-Ceramic-Tile/N-5yc1vZarsz",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 3
     },
     {
      "desc": "Stainless appliance package (range, dishwasher, fridge)",
@@ -88,7 +95,8 @@ window.RENO_DATA = {
      "labor": 250,
      "ref": "Home Depot – SS Electric Appliance Package",
      "url": "https://www.homedepot.com/b/Appliances-Kitchen-Appliance-Packages/Stainless-Steel/Electric/N-5yc1vZ2fkpfujZ1z0kmamZ1z109sq",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4
     },
     {
      "desc": "Track + flush-mount lighting, recessed cans",
@@ -98,7 +106,8 @@ window.RENO_DATA = {
      "labor": 700,
      "ref": "Home Depot – Lighting Fixtures",
      "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 1.5
     },
     {
      "desc": "Plumbing reconnect (sink + dishwasher)",
@@ -108,7 +117,8 @@ window.RENO_DATA = {
      "labor": 600,
      "ref": "ZipRecruiter – VT Plumber Rate",
      "url": "https://www.ziprecruiter.com/Salaries/Plumber-Salary--in-Vermont",
-     "domain": "www.ziprecruiter.com"
+     "domain": "www.ziprecruiter.com",
+     "hours": 6
     },
     {
      "desc": "Refinish wood floor",
@@ -118,7 +128,8 @@ window.RENO_DATA = {
      "labor": 630,
      "ref": "Angi – Hardwood Refinishing Cost",
      "url": "https://www.angi.com/articles/hardwood-floor-refinishing-cost-and-other-factors.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 4
     },
     {
      "desc": "Paint walls & ceiling",
@@ -128,7 +139,8 @@ window.RENO_DATA = {
      "labor": 450,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 1.5
     },
     {
      "desc": "Peninsula pendant lights (3) + install",
@@ -138,7 +150,8 @@ window.RENO_DATA = {
      "labor": 200,
      "ref": "Home Depot – Pendant Lights",
      "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4
     },
     {
      "desc": "Vented range hood + ducting",
@@ -148,7 +161,8 @@ window.RENO_DATA = {
      "labor": 300,
      "ref": "HomeAdvisor – Range Hood Install ($100–1000 + duct)",
      "url": "https://www.homeadvisor.com/cost/kitchens/install-range-hood/",
-     "domain": "www.homeadvisor.com"
+     "domain": "www.homeadvisor.com",
+     "hours": 4
     }
    ]
   },
@@ -170,7 +184,8 @@ window.RENO_DATA = {
      "labor": 868,
      "ref": "Angi – Hardwood Refinishing Cost",
      "url": "https://www.angi.com/articles/hardwood-floor-refinishing-cost-and-other-factors.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 5
     },
     {
      "desc": "Clean & stain exposed ceiling beams",
@@ -180,7 +195,8 @@ window.RENO_DATA = {
      "labor": 600,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 8
     },
     {
      "desc": "Recessed LED cans (retrofit)",
@@ -190,7 +206,8 @@ window.RENO_DATA = {
      "labor": 780,
      "ref": "Angi – Recessed Lighting Cost",
      "url": "https://www.angi.com/articles/how-much-does-it-cost-install-recessed-lighting.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 9
     },
     {
      "desc": "Mini-split heat pump head (12k BTU) + install",
@@ -200,7 +217,8 @@ window.RENO_DATA = {
      "labor": 2000,
      "ref": "Home Depot – Pioneer 12k BTU Mini-Split Heat Pump",
      "url": "https://www.homedepot.com/p/Pioneer-Low-Ambient-12-000-BTU-1-Ton-19-SEER2-Ductless-Mini-Split-Wall-Mounted-Inverter-Air-Conditioner-with-Heat-Pump-110-120V-WYT012ALFI19RL/325844602",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 8
     },
     {
      "desc": "Reset wood stove + new stovepipe section",
@@ -210,7 +228,8 @@ window.RENO_DATA = {
      "labor": 400,
      "ref": "Home Depot – Stove Pipe",
      "url": "https://www.homedepot.com/b/Heating-Venting-Cooling-Stove-Pipe/N-5yc1vZc4n6",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4
     },
     {
      "desc": "Paint walls & ceiling",
@@ -220,7 +239,8 @@ window.RENO_DATA = {
      "labor": 543,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 2
     }
    ]
   },
@@ -242,7 +262,8 @@ window.RENO_DATA = {
      "labor": 1140,
      "ref": "Knotty pine T&G – ~$3.22/sq ft stained (Woodworker's Shoppe)",
      "url": "https://www.woodworkersshoppe.com/knotty-pine-paneling-is-an-affordable-choice.html",
-     "domain": "www.woodworkersshoppe.com"
+     "domain": "www.woodworkersshoppe.com",
+     "hours": 21
     },
     {
      "desc": "Refinish wood floor",
@@ -252,7 +273,8 @@ window.RENO_DATA = {
      "labor": 720,
      "ref": "Angi – Hardwood Refinishing Cost",
      "url": "https://www.angi.com/articles/hardwood-floor-refinishing-cost-and-other-factors.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 4
     },
     {
      "desc": "Window casing/trim (pine) + curtain rod",
@@ -262,7 +284,8 @@ window.RENO_DATA = {
      "labor": 350,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4
     },
     {
      "desc": "Paint ceiling",
@@ -272,7 +295,8 @@ window.RENO_DATA = {
      "labor": 360,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 1.5
     },
     {
      "desc": "Chandelier / pendant fixture + install",
@@ -282,7 +306,8 @@ window.RENO_DATA = {
      "labor": 200,
      "ref": "Angi – Light Fixture Install ($100–650)",
      "url": "https://www.angi.com/articles/how-much-does-it-cost-install-lighting-fixture.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 1.5
     }
    ]
   },
@@ -304,7 +329,8 @@ window.RENO_DATA = {
      "labor": 1000,
      "ref": "Angi – Cost to Remove a Wall (non-load-bearing)",
      "url": "https://www.angi.com/articles/how-much-does-it-cost-remove-wall.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 12
     },
     {
      "desc": "Slate tile floor (material + install)",
@@ -314,7 +340,8 @@ window.RENO_DATA = {
      "labor": 3210,
      "ref": "Home Depot – Slate Floor Tile",
      "url": "https://www.homedepot.com/b/Flooring-Tile/Slate/N-5yc1vZar0y",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 27
     },
     {
      "desc": "Rebuilt wood staircase + railing",
@@ -324,7 +351,8 @@ window.RENO_DATA = {
      "labor": 3200,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 30
     },
     {
      "desc": "Recessed LED cans (retrofit)",
@@ -334,7 +362,8 @@ window.RENO_DATA = {
      "labor": 260,
      "ref": "Angi – Recessed Lighting Cost",
      "url": "https://www.angi.com/articles/how-much-does-it-cost-install-recessed-lighting.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 3
     },
     {
      "desc": "Sliding-door trim refresh",
@@ -344,7 +373,8 @@ window.RENO_DATA = {
      "labor": 250,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4
     },
     {
      "desc": "Paint walls & ceiling",
@@ -354,7 +384,8 @@ window.RENO_DATA = {
      "labor": 804,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 3
     },
     {
      "desc": "Utility / laundry sink + faucet + plumbing",
@@ -364,7 +395,8 @@ window.RENO_DATA = {
      "labor": 250,
      "ref": "Home Depot – Laundry / Utility Sink (~$120 + hookup)",
      "url": "https://www.homedepot.com/b/Plumbing-Utility-Sinks-Accessories/Laundry-Utility-Sink/N-5yc1vZbqknZ1z1wr3j",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 6
     },
     {
      "desc": "Washer + dryer pair + hookups",
@@ -374,7 +406,8 @@ window.RENO_DATA = {
      "labor": 200,
      "ref": "Home Depot – Washer & Dryer Sets",
      "url": "https://www.homedepot.com/b/Appliances-Washers-Dryers-Washer-Dryer-Sets/N-5yc1vZ2fkpgvt",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 3
     }
    ]
   },
@@ -396,7 +429,8 @@ window.RENO_DATA = {
      "labor": 700,
      "ref": "ZipRecruiter – VT Plumber Rate",
      "url": "https://www.ziprecruiter.com/Salaries/Plumber-Salary--in-Vermont",
-     "domain": "www.ziprecruiter.com"
+     "domain": "www.ziprecruiter.com",
+     "hours": 6
     },
     {
      "desc": "Terracotta / saltillo floor tile",
@@ -406,7 +440,8 @@ window.RENO_DATA = {
      "labor": 370,
      "ref": "Home Depot – Saltillo / Terracotta Tile",
      "url": "https://www.homedepot.com/b/Flooring-Tile-Ceramic-Tile/Saltillo/N-5yc1vZarszZ1z13eti",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 3
     },
     {
      "desc": "Reglaze existing alcove tub",
@@ -416,7 +451,8 @@ window.RENO_DATA = {
      "labor": 500,
      "ref": "ZipRecruiter – VT Plumber Rate",
      "url": "https://www.ziprecruiter.com/Salaries/Plumber-Salary--in-Vermont",
-     "domain": "www.ziprecruiter.com"
+     "domain": "www.ziprecruiter.com",
+     "hours": 3
     },
     {
      "desc": "Tile tub surround",
@@ -426,7 +462,8 @@ window.RENO_DATA = {
      "labor": 780,
      "ref": "Home Depot – Ceramic Wall Tile",
      "url": "https://www.homedepot.com/b/Flooring-Tile-Ceramic-Tile/N-5yc1vZarsz",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 6
     },
     {
      "desc": "Pine wainscoting",
@@ -436,7 +473,8 @@ window.RENO_DATA = {
      "labor": 240,
      "ref": "Knotty pine T&G – ~$3.22/sq ft stained (Woodworker's Shoppe)",
      "url": "https://www.woodworkersshoppe.com/knotty-pine-paneling-is-an-affordable-choice.html",
-     "domain": "www.woodworkersshoppe.com"
+     "domain": "www.woodworkersshoppe.com",
+     "hours": 5.5
     },
     {
      "desc": "Vanity w/ top, 36 in.",
@@ -446,7 +484,8 @@ window.RENO_DATA = {
      "labor": 200,
      "ref": "Home Depot – Bathroom Vanities w/ Tops",
      "url": "https://www.homedepot.com/b/Bath-Bathroom-Vanities-Bathroom-Vanities-with-Tops/N-5yc1vZcfw5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4.5
     },
     {
      "desc": "Toilet",
@@ -456,7 +495,8 @@ window.RENO_DATA = {
      "labor": 180,
      "ref": "Home Depot – Toilets",
      "url": "https://www.homedepot.com/b/Bath-Toilets/N-5yc1vZbzb4",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 2
     },
     {
      "desc": "Tub/shower valve + faucet trim (brass)",
@@ -466,7 +506,8 @@ window.RENO_DATA = {
      "labor": 350,
      "ref": "Home Depot – Bathroom / Shower Faucets",
      "url": "https://www.homedepot.com/b/Bath-Bathroom-Faucets/N-5yc1vZbzaz",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4
     },
     {
      "desc": "Vanity + flush-mount lighting",
@@ -476,7 +517,8 @@ window.RENO_DATA = {
      "labor": 250,
      "ref": "Home Depot – Lighting Fixtures",
      "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4.5
     },
     {
      "desc": "Plumbing rough adjustments",
@@ -486,7 +528,8 @@ window.RENO_DATA = {
      "labor": 500,
      "ref": "ZipRecruiter – VT Plumber Rate",
      "url": "https://www.ziprecruiter.com/Salaries/Plumber-Salary--in-Vermont",
-     "domain": "www.ziprecruiter.com"
+     "domain": "www.ziprecruiter.com",
+     "hours": 6
     },
     {
      "desc": "Paint",
@@ -496,7 +539,8 @@ window.RENO_DATA = {
      "labor": 93,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 0.5
     }
    ]
   },
@@ -518,7 +562,8 @@ window.RENO_DATA = {
      "labor": 900,
      "ref": "ZipRecruiter – VT Plumber Rate",
      "url": "https://www.ziprecruiter.com/Salaries/Plumber-Salary--in-Vermont",
-     "domain": "www.ziprecruiter.com"
+     "domain": "www.ziprecruiter.com",
+     "hours": 6
     },
     {
      "desc": "Hex terracotta floor tile",
@@ -528,7 +573,8 @@ window.RENO_DATA = {
      "labor": 990,
      "ref": "Home Depot – Saltillo / Terracotta Tile",
      "url": "https://www.homedepot.com/b/Flooring-Tile-Ceramic-Tile/Saltillo/N-5yc1vZarszZ1z13eti",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 7.5
     },
     {
      "desc": "Cast-iron clawfoot soaking tub",
@@ -538,7 +584,8 @@ window.RENO_DATA = {
      "labor": 500,
      "ref": "Home Depot – Cast Iron Clawfoot Tubs",
      "url": "https://www.homedepot.com/b/Bath-Bathtubs-Clawfoot-Tubs/Cast-Iron/N-5yc1vZbzbrZ1z0ub2t",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 5.5
     },
     {
      "desc": "Floor-mount tub filler (brass)",
@@ -548,7 +595,8 @@ window.RENO_DATA = {
      "labor": 450,
      "ref": "Home Depot – Freestanding Tub Faucets",
      "url": "https://www.homedepot.com/b/Bath-Bathtub-Faucets/Freestanding-Tub-Faucets/N-5yc1vZbzcaZ1z0t0gn",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4
     },
     {
      "desc": "Tile wainscot + tub wall",
@@ -558,7 +606,8 @@ window.RENO_DATA = {
      "labor": 910,
      "ref": "Home Depot – Ceramic Wall Tile",
      "url": "https://www.homedepot.com/b/Flooring-Tile-Ceramic-Tile/N-5yc1vZarsz",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 7
     },
     {
      "desc": "Wood vanity w/ top + sink + faucet",
@@ -568,7 +617,8 @@ window.RENO_DATA = {
      "labor": 350,
      "ref": "Home Depot – Bathroom Vanities w/ Tops",
      "url": "https://www.homedepot.com/b/Bath-Bathroom-Vanities-Bathroom-Vanities-with-Tops/N-5yc1vZcfw5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4.5
     },
     {
      "desc": "Toilet",
@@ -578,7 +628,8 @@ window.RENO_DATA = {
      "labor": 180,
      "ref": "Home Depot – Toilets",
      "url": "https://www.homedepot.com/b/Bath-Toilets/N-5yc1vZbzb4",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 2
     },
     {
      "desc": "Brass wall sconces + skylight trim",
@@ -588,7 +639,8 @@ window.RENO_DATA = {
      "labor": 300,
      "ref": "Home Depot – Lighting Fixtures",
      "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 3.5
     },
     {
      "desc": "Plumbing rough (relocate for clawfoot + filler)",
@@ -598,7 +650,8 @@ window.RENO_DATA = {
      "labor": 1200,
      "ref": "ZipRecruiter – VT Plumber Rate",
      "url": "https://www.ziprecruiter.com/Salaries/Plumber-Salary--in-Vermont",
-     "domain": "www.ziprecruiter.com"
+     "domain": "www.ziprecruiter.com",
+     "hours": 6
     },
     {
      "desc": "Paint",
@@ -608,7 +661,8 @@ window.RENO_DATA = {
      "labor": 225,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 1
     }
    ]
   },
@@ -630,7 +684,8 @@ window.RENO_DATA = {
      "labor": 1674,
      "ref": "Knotty pine T&G – ~$3.22/sq ft stained (Woodworker's Shoppe)",
      "url": "https://www.woodworkersshoppe.com/knotty-pine-paneling-is-an-affordable-choice.html",
-     "domain": "www.woodworkersshoppe.com"
+     "domain": "www.woodworkersshoppe.com",
+     "hours": 31
     },
     {
      "desc": "Refinish pine floor",
@@ -640,7 +695,8 @@ window.RENO_DATA = {
      "labor": 708,
      "ref": "Angi – Hardwood Refinishing Cost",
      "url": "https://www.angi.com/articles/hardwood-floor-refinishing-cost-and-other-factors.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 4
     },
     {
      "desc": "Loft refresh: ladder, rail, storage cubbies",
@@ -650,7 +706,8 @@ window.RENO_DATA = {
      "labor": 700,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 8
     },
     {
      "desc": "Mini-split heat pump head (12k BTU) + install",
@@ -660,7 +717,8 @@ window.RENO_DATA = {
      "labor": 2000,
      "ref": "Home Depot – Pioneer 12k BTU Mini-Split Heat Pump",
      "url": "https://www.homedepot.com/p/Pioneer-Low-Ambient-12-000-BTU-1-Ton-19-SEER2-Ductless-Mini-Split-Wall-Mounted-Inverter-Air-Conditioner-with-Heat-Pump-110-120V-WYT012ALFI19RL/325844602",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 8
     },
     {
      "desc": "Reseal / trim skylight",
@@ -670,7 +728,8 @@ window.RENO_DATA = {
      "labor": 200,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 3.5
     },
     {
      "desc": "Lighting + added outlets",
@@ -680,7 +739,8 @@ window.RENO_DATA = {
      "labor": 350,
      "ref": "Home Depot – Lighting Fixtures",
      "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 6
     },
     {
      "desc": "Closet door (pine) refit",
@@ -690,7 +750,8 @@ window.RENO_DATA = {
      "labor": 150,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 2
     }
    ]
   },
@@ -712,7 +773,8 @@ window.RENO_DATA = {
      "labor": 1914,
      "ref": "Knotty pine T&G – ~$3.22/sq ft stained (Woodworker's Shoppe)",
      "url": "https://www.woodworkersshoppe.com/knotty-pine-paneling-is-an-affordable-choice.html",
-     "domain": "www.woodworkersshoppe.com"
+     "domain": "www.woodworkersshoppe.com",
+     "hours": 35.5
     },
     {
      "desc": "Refinish pine floor",
@@ -722,7 +784,8 @@ window.RENO_DATA = {
      "labor": 852,
      "ref": "Angi – Hardwood Refinishing Cost",
      "url": "https://www.angi.com/articles/hardwood-floor-refinishing-cost-and-other-factors.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 4.5
     },
     {
      "desc": "Mini-split heat pump head (12k BTU) + install",
@@ -732,7 +795,8 @@ window.RENO_DATA = {
      "labor": 2000,
      "ref": "Home Depot – Pioneer 12k BTU Mini-Split Heat Pump",
      "url": "https://www.homedepot.com/p/Pioneer-Low-Ambient-12-000-BTU-1-Ton-19-SEER2-Ductless-Mini-Split-Wall-Mounted-Inverter-Air-Conditioner-with-Heat-Pump-110-120V-WYT012ALFI19RL/325844602",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 8
     },
     {
      "desc": "Reseal / trim skylight",
@@ -742,7 +806,8 @@ window.RENO_DATA = {
      "labor": 200,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 3.5
     },
     {
      "desc": "Lighting + added outlets",
@@ -752,7 +817,8 @@ window.RENO_DATA = {
      "labor": 300,
      "ref": "Home Depot – Lighting Fixtures",
      "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 6
     },
     {
      "desc": "Window casing/trim (pine)",
@@ -762,7 +828,8 @@ window.RENO_DATA = {
      "labor": 250,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 4
     }
    ]
   },
@@ -784,7 +851,8 @@ window.RENO_DATA = {
      "labor": 900,
      "ref": "Town of Brattleboro – Permits",
      "url": "https://www.brattleboro.gov/",
-     "domain": "www.brattleboro.gov"
+     "domain": "www.brattleboro.gov",
+     "hours": 0
     },
     {
      "desc": "Demolition & debris haul (3 dumpsters)",
@@ -794,7 +862,8 @@ window.RENO_DATA = {
      "labor": 2100,
      "ref": "Angi – Popcorn Ceiling Removal Cost",
      "url": "https://www.angi.com/articles/how-much-does-popcorn-ceiling-removal-cost.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 16
     },
     {
      "desc": "Electrical panel / circuit upgrades",
@@ -804,7 +873,8 @@ window.RENO_DATA = {
      "labor": 1500,
      "ref": "ZipRecruiter – VT Electrician Rate",
      "url": "https://www.ziprecruiter.com/Salaries/Electrician-Salary--in-Vermont",
-     "domain": "www.ziprecruiter.com"
+     "domain": "www.ziprecruiter.com",
+     "hours": 8
     },
     {
      "desc": "Popcorn ceiling removal & skim coat",
@@ -814,7 +884,8 @@ window.RENO_DATA = {
      "labor": 2200,
      "ref": "Angi – Popcorn Ceiling Removal Cost",
      "url": "https://www.angi.com/articles/how-much-does-popcorn-ceiling-removal-cost.htm",
-     "domain": "www.angi.com"
+     "domain": "www.angi.com",
+     "hours": 27.5
     },
     {
      "desc": "Misc fasteners, adhesives, consumables",
@@ -824,7 +895,8 @@ window.RENO_DATA = {
      "labor": 0,
      "ref": "Home Depot – Dimensional Lumber & Trim",
      "url": "https://www.homedepot.com/b/Lumber-Composites-Dimensional-Lumber/N-5yc1vZc3ie",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 0
     },
     {
      "desc": "Final cleaning",
@@ -834,7 +906,8 @@ window.RENO_DATA = {
      "labor": 700,
      "ref": "Town of Brattleboro – Permits",
      "url": "https://www.brattleboro.gov/",
-     "domain": "www.brattleboro.gov"
+     "domain": "www.brattleboro.gov",
+     "hours": 8
     }
    ]
   },
@@ -865,7 +938,8 @@ window.RENO_DATA = {
      "labor": 2200,
      "ref": "Stuga ‘Rebels’ — $5.25/sq ft + ~$4 install",
      "url": "https://stugastudio.com/pages/families-rebels",
-     "domain": "stugastudio.com"
+     "domain": "stugastudio.com",
+     "hours": 19.5
     },
     {
      "desc": "Tear out old carpet + laminate flooring",
@@ -875,7 +949,8 @@ window.RENO_DATA = {
      "labor": 450,
      "ref": "",
      "url": "",
-     "domain": ""
+     "domain": "",
+     "hours": 6
     },
     {
      "desc": "Paint walls & ceilings (both levels)",
@@ -885,7 +960,8 @@ window.RENO_DATA = {
      "labor": 1100,
      "ref": "Home Depot – Interior Paint",
      "url": "https://www.homedepot.com/b/Paint-Interior-Paint/N-5yc1vZaqzx",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 5
     },
     {
      "desc": "Kitchenette refresh: stainless range + reset sink/faucet + hardware",
@@ -895,7 +971,8 @@ window.RENO_DATA = {
      "labor": 350,
      "ref": "Home Depot – Stainless Range",
      "url": "https://www.homedepot.com/b/Appliances-Ranges/N-5yc1vZc3pi",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 2
     },
     {
      "desc": "Lighting — track + recessed (both levels)",
@@ -905,7 +982,8 @@ window.RENO_DATA = {
      "labor": 450,
      "ref": "Home Depot – Lighting Fixtures",
      "url": "https://www.homedepot.com/b/Lighting/N-5yc1vZbvn5",
-     "domain": "www.homedepot.com"
+     "domain": "www.homedepot.com",
+     "hours": 6
     },
     {
      "desc": "Bathroom allowance (fixtures + finishes — est. pending layout)",
@@ -915,7 +993,8 @@ window.RENO_DATA = {
      "labor": 1500,
      "ref": "",
      "url": "",
-     "domain": ""
+     "domain": "",
+     "hours": 18
     },
     {
      "desc": "Misc — trim, smoke/CO, hardware",
@@ -925,7 +1004,8 @@ window.RENO_DATA = {
      "labor": 150,
      "ref": "",
      "url": "",
-     "domain": ""
+     "domain": "",
+     "hours": 4
     }
    ],
    "cogs": 6138,
