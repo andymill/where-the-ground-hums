@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3524 Deer Park Road, Halifax, VT 05358</title>
+  <meta name="description" content="Single-family home finance calculator — 22.8 acres" />
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100%; background: #F6F2E9; }
+    * { box-sizing: border-box; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .two-col-tight { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
+    @media (max-width: 760px) {
+      .two-col, .two-col-tight { grid-template-columns: 1fr; gap: 16px; }
+      .calc-wrap { padding: 20px 14px !important; }
+    }
+  </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo } = React;
+
+// ---------------------------------------------------------------------------
+// 3524 Deer Park Road, Halifax VT — single-family finance calculator.
+// 3BR/2BA contemporary on 22.8 acres. No rentals — this is a plain
+// cost-to-own model: monthly payment, cash to close, true cost to live.
+// Listing: Randi Ziter, Brattleboro Area Realty · MLS 5094710 · $467,000.
+// ---------------------------------------------------------------------------
+
+const GOLD = "#A07B2B";
+const GOLD_FILL = "#C9A24B";
+const GOLD_DIM = "#8A7338";
+const BG = "#F6F2E9";
+const PANEL = "#FFFFFF";
+const PANEL_2 = "#F3EFE4";
+const LINE = "#E4DECE";
+const TEXT = "#262219";
+const MUTED = "#8C8472";
+const POS = "#4E8A46";
+const NEG = "#B45438";
+const SHADOW = "0 1px 2px rgba(60,50,20,0.05), 0 10px 30px rgba(60,50,20,0.05)";
+
+const fmt = (n) =>
+  isFinite(n) ? n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }) : "—";
+const pct = (n) => (isFinite(n) ? `${n.toFixed(1)}%` : "—");
+
+function Slider({ label, value, min, max, step, onChange, format, hint }) {
+  const fillPct = ((value - min) / (max - min)) * 100;
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <span style={{ color: MUTED, fontSize: 13, letterSpacing: 0.3 }}>{label}</span>
+        <span style={{ color: GOLD, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 17 }}>{format(value)}</span>
+      </div>
+      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={{ width: "100%", height: 5, borderRadius: 4, appearance: "none", WebkitAppearance: "none", outline: "none",
+          background: `linear-gradient(90deg, ${GOLD_FILL} 0%, ${GOLD_FILL} ${fillPct}%, ${LINE} ${fillPct}%, ${LINE} 100%)`, cursor: "pointer" }} />
+      {hint && <div style={{ color: MUTED, fontSize: 11, marginTop: 6 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function NumField({ label, value, onChange, hint, prefix = "$" }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ color: MUTED, fontSize: 12, marginBottom: 6, letterSpacing: 0.3 }}>{label}</div>
+      <div style={{ display: "flex", alignItems: "center", background: PANEL_2, border: `1px solid ${LINE}`, borderRadius: 8, padding: "8px 12px" }}>
+        <span style={{ color: GOLD_DIM, fontSize: 14, marginRight: 6 }}>{prefix}</span>
+        <input type="number" value={value} onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          style={{ background: "transparent", border: "none", outline: "none", color: TEXT, fontSize: 15, fontFamily: "'Funnel Display', sans-serif", fontWeight: 500, width: "100%" }} />
+      </div>
+      {hint && <div style={{ color: MUTED, fontSize: 11, marginTop: 5 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function Panel({ title, kicker, children, accent }) {
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 16, padding: "26px 26px 22px", position: "relative", overflow: "hidden", boxShadow: SHADOW }}>
+      <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 3, background: accent || `linear-gradient(90deg, ${GOLD_FILL}, transparent)` }} />
+      {kicker && <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>{kicker}</div>}
+      <h2 style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 20, color: TEXT, margin: "0 0 20px" }}>{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Row({ label, value, color, strong, sub }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "7px 0", borderBottom: `1px solid ${LINE}` }}>
+      <span style={{ color: strong ? TEXT : MUTED, fontSize: strong ? 14 : 13, fontWeight: strong ? 600 : 400 }}>
+        {label}{sub && <span style={{ color: MUTED, fontSize: 11, marginLeft: 6, opacity: 0.8 }}>{sub}</span>}
+      </span>
+      <span style={{ color: color || TEXT, fontFamily: "'Funnel Display', sans-serif", fontWeight: strong ? 700 : 500, fontSize: strong ? 16 : 14 }}>{value}</span>
+    </div>
+  );
+}
+
+function BigStat({ label, value, color, sub }) {
+  return (
+    <div style={{ flex: "1 1 0", minWidth: 150 }}>
+      <div style={{ color: MUTED, fontSize: 12, letterSpacing: 0.5, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 30, color: color || TEXT, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ color: MUTED, fontSize: 12, marginTop: 6 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function Chip({ label, value }) {
+  return (
+    <div style={{ background: PANEL, border: `1px solid ${LINE}`, borderRadius: 10, padding: "10px 14px", flex: "1 1 0", minWidth: 120 }}>
+      <div style={{ color: MUTED, fontSize: 10.5, letterSpacing: 0.5, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ color: TEXT, fontFamily: "'Funnel Display', sans-serif", fontWeight: 700, fontSize: 16, marginTop: 3 }}>{value}</div>
+    </div>
+  );
+}
+
+function computeMetrics(s) {
+  const loan = Math.max(0, s.price - s.down);
+  const downPct = (s.down / s.price) * 100;
+  const r = s.rate / 100 / 12;
+  const n = s.term * 12;
+  const pi = r > 0 ? (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : loan / n;
+  // PMI ~0.5%/yr of the loan when below 20% down; auto-zero at/above 20%.
+  const pmiMo = downPct < 20 ? (loan * 0.005) / 12 : 0;
+
+  const taxMo = s.propTax / 12;
+  const insMo = s.insurance / 12;
+  const piti = pi + taxMo + insMo + pmiMo;
+
+  const maintMo = (s.price * (s.maintPct / 100)) / 12; // reserve as % of value/yr
+  const utilMo = (s.heat + s.electric + s.internet) / 12;
+  const trueAllInMo = piti + maintMo + utilMo;
+
+  const cashToClose = s.down + s.closing + s.prepaids;
+  return { loan, downPct, pi, pmiMo, taxMo, insMo, piti, maintMo, utilMo, trueAllInMo, cashToClose };
+}
+
+function Calculator() {
+  // Purchase — listed at $467,000
+  const [price, setPrice] = useState(467000);
+  const [down, setDown] = useState(93400);      // 20% → no PMI, $373,600 loan
+  const [rate, setRate] = useState(6.25);
+  const [term, setTerm] = useState(30);
+
+  // Carrying costs
+  const [propTax, setPropTax] = useState(7480);   // 2025 tax bill from the listing
+  const [insurance, setInsurance] = useState(2400); // est — rural, wood stoves; get a real quote
+  const [closing, setClosing] = useState(11000);  // est ~2.4% (title, transfer tax, fees)
+  const [prepaids, setPrepaids] = useState(4500); // est prepaid interest + tax/ins escrow
+
+  // Cost to own (optional) — utilities + maintenance reserve
+  const [maintPct, setMaintPct] = useState(1);    // 1% of value/yr is the rule of thumb
+  const [heat, setHeat] = useState(2800);         // oil + wood; offset by heat pump / mini-split
+  const [electric, setElectric] = useState(1800);
+  const [internet, setInternet] = useState(840);  // upgraded fiber on the road
+
+  const inputs = { price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet };
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+
+  const segs = [
+    { label: "Mortgage (P&I)", v: m.pi, c: GOLD_FILL },
+    { label: "PMI", v: m.pmiMo, c: "#D87652" },
+    { label: "Property tax", v: m.taxMo, c: "#B8863C" },
+    { label: "Insurance", v: m.insMo, c: "#9E6F33" },
+    { label: "Maint. reserve", v: m.maintMo, c: "#A89A7A" },
+    { label: "Utilities", v: m.utilMo, c: "#7E5E3A" },
+  ];
+
+  return (
+    <div className="calc-wrap" style={{ background: BG, minHeight: "100%", padding: "32px 20px", fontFamily: "'Funnel Sans', sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700&display=swap');
+        input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:${GOLD_FILL}; border:3px solid ${PANEL}; box-shadow:0 0 0 1px ${GOLD_FILL}, 0 1px 3px rgba(0,0,0,0.2); cursor:pointer; }
+        input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:${GOLD_FILL}; border:3px solid ${PANEL}; box-shadow:0 0 0 1px ${GOLD_FILL}; cursor:pointer; }
+        input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+      `}</style>
+
+      <div style={{ maxWidth: 1040, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ marginBottom: 22 }}>
+          <a href="/mortgage/" style={{ display: "inline-block", marginBottom: 12, color: GOLD_DIM, fontSize: 12, letterSpacing: 1, textDecoration: "none" }}>← All houses</a>
+          <div style={{ color: GOLD_DIM, fontSize: 12, letterSpacing: 3, textTransform: "uppercase" }}>Single-family · 22.8 acres · Halifax VT</div>
+          <h1 style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 34, color: TEXT, margin: "8px 0 6px", letterSpacing: -0.5, lineHeight: 1.1 }}>3524 Deer Park Road, Halifax, VT 05358</h1>
+          <p style={{ color: MUTED, fontSize: 15, margin: 0, maxWidth: 660 }}>
+            Coming soon at <span style={{ color: GOLD }}>$467,000</span> — a 1976 contemporary with vaulted ceilings and two wood stoves on 22 wooded acres, 10 miles from Brattleboro. No rentals here; the headline is simply your monthly payment and true cost to own.
+          </p>
+        </div>
+
+        {/* Listing chips */}
+        <div style={{ marginBottom: 22 }}>
+          <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>From the PrimeMLS listing · Randi Ziter, Brattleboro Area Realty</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            <Chip label="List price" value="$467,000" />
+            <Chip label="$/finished sqft" value={fmt(price / 2400)} />
+            <Chip label="Lot" value="22.80 ac" />
+            <Chip label="Per acre" value={fmt(price / 22.8)} />
+            <Chip label="Annual tax (2025)" value="$7,480" />
+          </div>
+          <div style={{ color: MUTED, fontSize: 11, marginTop: 8 }}>MLS <strong style={{ color: TEXT }}>5094710</strong> · <strong style={{ color: TEXT }}>Coming Soon</strong> · showings start <strong style={{ color: TEXT }}>Thursday June 18</strong> by appointment. 3BR / 2BA (1 full + 1 half) · 2,400 finished sqft · built 1976 · new septic/leach field, mini-split, standby generator, upgraded fiber.</div>
+        </div>
+
+        {/* TOP SUMMARY */}
+        <div style={{ background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)", border: `1px solid ${LINE}`, borderRadius: 18, padding: "28px 30px", marginBottom: 24, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", boxShadow: SHADOW }}>
+          <BigStat label="Monthly payment (PITI)" value={`${fmt(m.piti)}/mo`} color={GOLD} sub={`P&I ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`} />
+          <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
+          <BigStat label="True monthly cost to own" value={`${fmt(m.trueAllInMo)}/mo`} sub={`+ maintenance reserve ${fmt(m.maintMo)} + utilities ${fmt(m.utilMo)}`} />
+          <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
+          <BigStat label="Cash needed to close" value={fmt(m.cashToClose)} sub={`${fmt(down)} down (${pct(m.downPct)}) + ${fmt(closing + prepaids)} closing & prepaids`} />
+        </div>
+
+        <div className="two-col">
+          {/* LEFT: purchase */}
+          <Panel kicker="The Purchase" title="Loan terms">
+            <Slider label="Purchase price" value={price} min={350000} max={600000} step={5000} onChange={setPrice} format={fmt} hint="Listed at $467,000 — Coming Soon, so the eventual sale price may move." />
+            <Slider label="Down payment" value={down} min={0} max={Math.min(300000, price)} step={2500} onChange={setDown} format={(v) => `${fmt(v)}  ·  ${pct((v / price) * 100)}`} hint="20% ($93,400) clears PMI. Drop below 20% and PMI (~0.5%/yr of the loan) kicks in automatically." />
+            <Slider label="Mortgage rate" value={rate} min={5} max={9} step={0.05} onChange={setRate} format={(v) => `${v.toFixed(2)}%`} hint="Estimate. 30-yr fixed conventional; get a real quote." />
+            <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+              {[15, 30].map((t) => (
+                <button key={t} onClick={() => setTerm(t)} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${term === t ? GOLD : LINE}`, background: term === t ? "rgba(201,162,75,0.15)" : "transparent", color: term === t ? GOLD : MUTED, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{t}-year</button>
+              ))}
+            </div>
+          </Panel>
+
+          {/* RIGHT: carrying costs */}
+          <Panel kicker="Carrying Costs" title="Taxes, insurance & closing" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            <NumField label="Property tax (annual)" value={propTax} onChange={setPropTax} hint="$7,480 — the 2025 bill from the listing. VT education tax recalibrates yearly, so treat as a floor." />
+            <NumField label="Home insurance (annual)" value={insurance} onChange={setInsurance} hint="Estimate. Rural + two wood stoves can raise premiums — get a real quote." />
+            <NumField label="Closing costs" value={closing} onChange={setClosing} hint="Estimate (~2.4%): title, VT transfer tax, lender + recording fees." />
+            <NumField label="Prepaids & reserves" value={prepaids} onChange={setPrepaids} hint="Estimate: prepaid interest + tax/insurance escrow set up at close." />
+          </Panel>
+        </div>
+
+        {/* Monthly breakdown */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="Where the money goes" title="Monthly cost breakdown">
+            <div style={{ display: "flex", height: 30, borderRadius: 8, overflow: "hidden", marginBottom: 16, border: `1px solid ${LINE}` }}>
+              {segs.map((s, i) => (<div key={i} title={`${s.label}: ${fmt(s.v)}`} style={{ width: `${(s.v / m.trueAllInMo) * 100}%`, background: s.c }} />))}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 20px", marginBottom: 18 }}>
+              {segs.map((s, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12, color: MUTED }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: s.c, display: "inline-block" }} />
+                  {s.label} <span style={{ color: TEXT }}>{fmt(s.v)}</span>
+                </div>
+              ))}
+            </div>
+            <Row label="Principal & interest" value={`${fmt(m.pi)}/mo`} />
+            <Row label="Property tax" value={`${fmt(m.taxMo)}/mo`} />
+            <Row label="Home insurance" value={`${fmt(m.insMo)}/mo`} />
+            {m.pmiMo > 0 && <Row label="PMI" sub="below 20% down" value={`${fmt(m.pmiMo)}/mo`} color={NEG} />}
+            <Row label="Lender payment (PITI)" value={`${fmt(m.piti)}/mo`} strong color={GOLD} />
+            <Row label="+ Maintenance reserve" sub={`${maintPct}% of value / yr`} value={`${fmt(m.maintMo)}/mo`} />
+            <Row label="+ Utilities" sub="heat, electric, internet" value={`${fmt(m.utilMo)}/mo`} />
+            <Row label="True all-in cost to own" value={`${fmt(m.trueAllInMo)}/mo`} strong color={GOLD} />
+          </Panel>
+        </div>
+
+        {/* Cost-to-own inputs */}
+        <div className="two-col" style={{ marginTop: 24 }}>
+          <Panel kicker="Cost to own" title="Upkeep & utilities" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
+            <Slider label="Maintenance / capex reserve" value={maintPct} min={0} max={3} step={0.25} onChange={setMaintPct} format={(v) => `${v}% of value  ·  ${fmt((price * v) / 100)}/yr`} hint="1%/yr is the standard rule of thumb for an older home; a 1976 build may warrant more." />
+            <NumField label="Heat (annual)" value={heat} onChange={setHeat} hint="Oil + two wood stoves, with a heat pump and mini-split to lean on. Placeholder — replace with actuals." />
+            <NumField label="Electricity (annual)" value={electric} onChange={setElectric} hint="200+ amp service; standby generator. Placeholder." />
+            <NumField label="Internet (annual)" value={internet} onChange={setInternet} hint="Listing notes upgraded fiber-optic on the road." />
+          </Panel>
+
+          {/* Property details */}
+          <Panel kicker="The Property" title="Listing details" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
+            <div className="two-col-tight" style={{ rowGap: 0 }}>
+              <Row label="Type" value="Single Family" />
+              <Row label="Style" value="Contemporary" />
+              <Row label="Year built" value="1976" />
+              <Row label="Stories" value="2" />
+              <Row label="Bedrooms" value="3" />
+              <Row label="Bathrooms" sub="1 full + 1 half" value="2" />
+              <Row label="Finished area" value="2,400 sqft" />
+              <Row label="Unfinished basement" value="1,012 sqft" />
+              <Row label="Lot size" value="22.80 acres" />
+              <Row label="$/finished sqft" sub="at list" value="$194.58" />
+              <Row label="Heat" value="Oil · wood · heat pump" />
+              <Row label="Cooling" value="Mini split" />
+              <Row label="Water / sewer" value="Drilled well / septic" />
+              <Row label="Garage" sub="+ 2-bay barn, shed" value="1-car attached" />
+              <Row label="Zoning" value="Residential" />
+              <Row label="Schools" sub="Halifax · Brattleboro HS" value="Halifax SD" />
+            </div>
+          </Panel>
+        </div>
+
+        {/* Public remarks */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="From the listing" title="Public remarks" accent={`linear-gradient(90deg, ${MUTED}, transparent)`}>
+            <p style={{ color: TEXT, fontSize: 13.5, lineHeight: 1.65, margin: 0 }}>
+              Elevated from the road, this spectacular three-bedroom, two-bath home with 22 acres offers gardening, farming, hiking, and snowshoeing trails. Bright sunlight abundantly welcomes you from room to room. The spacious kitchen includes a dinette with a cozy wood stove and a walkout to the rebuilt, large deck overlooking your picturesque open meadow. The quality craftsmanship is evident throughout — gorgeous hardwood floors, vaulted ceilings, and a fireplace in the great room. A second wood stove offers endless charm, warmth, and efficiency. The attached garage has a breezeway, storage space, and workshop; a detached two-bay barn and shed could be ideal for garden equipment or even chickens. This tranquil location has no visible neighbors and sits within a 10-mile radius of Brattleboro and Interstate 91, and 21 miles to Mt. Snow. Additional features: a mini-split, generator, upgraded fiber-optics, 2026 exterior paint, 2025 new garage door, and new septic/leach field.
+            </p>
+            <div style={{ color: MUTED, fontSize: 11.5, marginTop: 16, lineHeight: 1.6, borderTop: `1px solid ${LINE}`, paddingTop: 14 }}>
+              Listing courtesy of <strong style={{ color: TEXT }}>Randi Ziter, Brattleboro Area Realty</strong> · Source: PrimeMLS · MLS# 5094710 · Coming Soon, activation 06/18/2026. Tax, insurance, closing, utilities and maintenance figures above are estimates unless noted from the listing — verify everything independently. Estimate only, not financial advice.
+            </div>
+          </Panel>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<Calculator />);
+  </script>
+</body>
+</html>

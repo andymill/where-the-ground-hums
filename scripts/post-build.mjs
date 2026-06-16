@@ -34,15 +34,16 @@ fs.writeFileSync(
 /hum         /hum/index.html   200
 /hum/*       /hum/index.html   200
 
-# Clean URL for the (basic-auth-gated) mortgage calculator. Source lives
-# in mortgage/index.html at the project root; copied below.
-/mortgage    /mortgage/index.html   200
+# Clean URLs for the mortgage calculators. Source lives in mortgage/ at the
+# project root (a picker at /mortgage plus one page per house); the whole
+# tree is copied to dist/mortgage/ below. Now public — the basic-auth edge
+# function has been removed.
+/mortgage              /mortgage/index.html             200
+/mortgage/gingko       /mortgage/gingko/index.html      200
+/mortgage/deer-park    /mortgage/deer-park/index.html   200
 
-# Clean URL for the (public, no-auth) renovation review page. Source lives
-# in renovation/ at the project root; copied to dist/renovation/ below.
-# Unlike /mortgage, this path is NOT covered by the basic-auth edge function
-# (which matches only /mortgage*), so it's publicly viewable at
-# andy-miller.com/renovation.
+# Clean URL for the renovation review page. Source lives in renovation/ at
+# the project root; copied to dist/renovation/ below.
 /renovation    /renovation/index.html   200
 `,
 )
@@ -65,22 +66,14 @@ if (fs.existsSync(faviconSrc)) {
   fs.copyFileSync(faviconSrc, path.join(distDir, 'favicon.svg'))
 }
 
-// Copy the mortgage calculator (a standalone HTML file, no build step)
-// into dist/mortgage/. Access is gated by basic auth via
-// netlify/edge-functions/mortgage-auth.js — the static file itself is
-// public if you know the path, but the edge function intercepts every
-// request to /mortgage* and rejects without credentials.
-const mortgageSrc = path.resolve(__dirname, '..', 'mortgage', 'index.html')
+// Copy the mortgage calculators (standalone HTML files, no build step) into
+// dist/mortgage/. The whole tree comes along: the picker at mortgage/index.html,
+// one page per house (gingko/, deer-park/), and the shared img/ folder the
+// Gingko page references at /mortgage/img/. Now public — the basic-auth edge
+// function (netlify/edge-functions/mortgage-auth.js) has been removed.
+const mortgageSrc = path.resolve(__dirname, '..', 'mortgage')
 if (fs.existsSync(mortgageSrc)) {
-  const mortgageDest = path.join(distDir, 'mortgage')
-  fs.mkdirSync(mortgageDest, { recursive: true })
-  fs.copyFileSync(mortgageSrc, path.join(mortgageDest, 'index.html'))
-}
-
-// Copy mortgage/img/ → dist/mortgage/img/ so the property photos load.
-const mortgageImgSrc = path.resolve(__dirname, '..', 'mortgage', 'img')
-if (fs.existsSync(mortgageImgSrc)) {
-  fs.cpSync(mortgageImgSrc, path.join(distDir, 'mortgage', 'img'), { recursive: true })
+  fs.cpSync(mortgageSrc, path.join(distDir, 'mortgage'), { recursive: true })
 }
 
 // Copy the renovation review page (a standalone, self-contained static app —
@@ -94,4 +87,4 @@ if (fs.existsSync(renoSrc)) {
   fs.cpSync(renoSrc, renoDest, { recursive: true })
 }
 
-console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the calculator; /renovation/ holds the renovation review.')
+console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the house picker + calculators; /renovation/ holds the renovation review.')
