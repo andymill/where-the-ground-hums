@@ -63,11 +63,13 @@ const DEFAULTS = {
   skus: [{
     name: "Hero product",
     msrp: 60,
-    cogs: 18
+    cogs: 15,
+    moq: 1000
   }, {
     name: "Secondary product",
     msrp: 35,
-    cogs: 11
+    cogs: 9,
+    moq: 500
   }],
   retailPct: 50,
   // wholesale: a retailer pays this % of MSRP
@@ -76,16 +78,29 @@ const DEFAULTS = {
   insurancePct: 0.5,
   // product / liability insurance, % of total revenue
 
+  // fulfillment & logistics
+  dtcFulfillPerOrder: 7,
+  // DTC pick/pack + outbound shipping per order
+  wsFreightPerUnit: 1.5,
+  // wholesale outbound freight per unit (bulk is cheaper)
+  // inventory
+  weeksCover: 12,
+  // target weeks of inventory on hand
+  holdingPct: 18,
+  // annual holding cost (storage + capital + insurance), % of avg inventory value
+  writeoffPct: 3,
+  // annual obsolescence / shrink, % of avg inventory value
+
   // DTC is acquisition-driven: spend ÷ CAC = customers
-  onlineCAC: 35,
-  brandCAC: 80,
-  ordersPerCust: 1.3,
+  onlineCAC: 28,
+  brandCAC: 65,
+  ordersPerCust: 1.6,
   // orders per acquired customer per year (incl. repeats)
-  onlineSpend: [60000, 120000, 200000, 300000, 400000],
-  brandSpend: [0, 50000, 120000, 200000, 300000],
+  onlineSpend: [45000, 90000, 140000, 185000, 220000],
+  brandSpend: [0, 25000, 55000, 85000, 110000],
   // Wholesale is door-driven: stores × units/door × wholesale price
   stores: [10, 50, 150, 350, 600],
-  unitsPerDoor: 150,
+  unitsPerDoor: 185,
   benefitsPct: 20,
   // employer load (taxes + benefits) on EMPLOYEE comp
   team: [{
@@ -197,6 +212,8 @@ function compute(s) {
   const cogsUnit = s.skus.reduce((a, k) => a + (+k.cogs || 0), 0) / n;
   const wholesalePrice = aov * (s.retailPct / 100);
   const benefits = 1 + (s.benefitsPct || 0) / 100;
+  const totalMOQ = s.skus.reduce((a, k) => a + (+k.moq || 0), 0);
+  const initialBuy = s.skus.reduce((a, k) => a + (+k.moq || 0) * (+k.cogs || 0), 0);
   const rows = YEARS.map(y => {
     const custOnline = s.onlineCAC > 0 ? (s.onlineSpend[y] || 0) / s.onlineCAC : 0;
     const custBrand = s.brandCAC > 0 ? (s.brandSpend[y] || 0) / s.brandCAC : 0;
@@ -209,8 +226,19 @@ function compute(s) {
     const units = dtcUnits + wsUnits;
     const cogs = units * cogsUnit;
     const grossProfit = revenue - cogs;
-    let payroll = 0;
-    let headEmp = 0,
+
+    // fulfillment: DTC ships per-order, wholesale ships in bulk per-unit
+    const dtcFulfill = dtcOrders * (s.dtcFulfillPerOrder || 0);
+    const wsFulfill = wsUnits * (s.wsFreightPerUnit || 0);
+    const fulfillment = dtcFulfill + wsFulfill;
+
+    // inventory held — MOQ-aware: the greater of demand-cover and half a MOQ batch
+    const avgInvUnits = Math.max((s.weeksCover || 0) / 52 * units, totalMOQ / 2);
+    const avgInvValue = avgInvUnits * cogsUnit;
+    const warehousing = avgInvValue * (s.holdingPct || 0) / 100;
+    const writeoff = avgInvValue * (s.writeoffPct || 0) / 100;
+    let payroll = 0,
+      headEmp = 0,
       headCon = 0;
     for (const r of s.team) {
       if (r.who === "none") continue;
@@ -228,7 +256,7 @@ function compute(s) {
     const brokerFees = wsRev * (s.brokerFeePct || 0) / 100;
     const insurance = revenue * (s.insurancePct || 0) / 100;
     const overhead = (s.rent[y] || 0) + (s.software[y] || 0) + (s.otherGA[y] || 0);
-    const opex = payroll + onlineMk + brandMk + brokerFees + insurance + overhead;
+    const opex = payroll + onlineMk + brandMk + brokerFees + insurance + fulfillment + warehousing + writeoff + overhead;
     const ebitda = grossProfit - opex;
     return {
       y,
@@ -237,6 +265,12 @@ function compute(s) {
       revenue,
       cogs,
       grossProfit,
+      dtcFulfill,
+      wsFulfill,
+      fulfillment,
+      avgInvValue,
+      warehousing,
+      writeoff,
       payroll,
       onlineMk,
       brandMk,
@@ -253,15 +287,37 @@ function compute(s) {
       custBrand
     };
   });
+
+  // funding view — cash flow = EBITDA − inventory investment (working capital).
+  // Year 1 must fund the opening inventory (at least the MOQ buy); later years
+  // only fund the *increase* in inventory as the business grows.
+  let cum = 0,
+    trough = 0;
+  rows.forEach((r, y) => {
+    const prevInv = y > 0 ? rows[y - 1].avgInvValue : 0;
+    const invInvest = y === 0 ? Math.max(r.avgInvValue, initialBuy) : Math.max(0, r.avgInvValue - prevInv);
+    const fcf = r.ebitda - invInvest;
+    cum += fcf;
+    trough = Math.min(trough, cum);
+    r.invInvest = invInvest;
+    r.fcf = fcf;
+    r.cumCash = cum;
+    r.capitalToDate = -Math.min(0, cum); // running peak funding need
+  });
   const cumEbitda = rows.reduce((a, r) => a + r.ebitda, 0);
   const firstProfit = rows.find(r => r.ebitda > 0);
+  const fcfBreak = rows.find(r => r.fcf > 0);
   return {
     rows,
     aov,
     cogsUnit,
     wholesalePrice,
+    totalMOQ,
+    initialBuy,
     cumEbitda,
-    firstProfitYear: firstProfit ? firstProfit.y + 1 : null
+    firstProfitYear: firstProfit ? firstProfit.y + 1 : null,
+    fcfBreakevenYear: fcfBreak ? fcfBreak.y + 1 : null,
+    capitalRequired: -trough // peak cumulative cash deficit = total to raise
   };
 }
 
@@ -542,7 +598,7 @@ function StepProducts({
   }, "Add each product. MSRP is the retail price; COGS is your landed cost per unit."), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
-      gridTemplateColumns: "1fr 130px 130px 40px",
+      gridTemplateColumns: "1fr 100px 100px 110px 40px",
       gap: 8,
       alignItems: "center",
       marginBottom: 6,
@@ -550,11 +606,11 @@ function StepProducts({
       color: MUTED,
       fontWeight: 500
     }
-  }, /*#__PURE__*/React.createElement("div", null, "SKU"), /*#__PURE__*/React.createElement("div", null, "MSRP"), /*#__PURE__*/React.createElement("div", null, "COGS / unit"), /*#__PURE__*/React.createElement("div", null)), s.skus.map((k, i) => /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", null, "SKU"), /*#__PURE__*/React.createElement("div", null, "MSRP"), /*#__PURE__*/React.createElement("div", null, "COGS / unit"), /*#__PURE__*/React.createElement("div", null, "MOQ (units)"), /*#__PURE__*/React.createElement("div", null)), s.skus.map((k, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
       display: "grid",
-      gridTemplateColumns: "1fr 130px 130px 40px",
+      gridTemplateColumns: "1fr 100px 100px 110px 40px",
       gap: 8,
       alignItems: "center",
       marginBottom: 8
@@ -570,6 +626,9 @@ function StepProducts({
     value: k.cogs,
     prefix: "$",
     onChange: v => setSku(i, "cogs", v)
+  }), /*#__PURE__*/React.createElement(Num, {
+    value: k.moq,
+    onChange: v => setSku(i, "moq", v)
   }), /*#__PURE__*/React.createElement("button", {
     onClick: () => set({
       skus: s.skus.filter((_, j) => j !== i)
@@ -594,7 +653,8 @@ function StepProducts({
       skus: [...s.skus, {
         name: "New SKU",
         msrp: 40,
-        cogs: 12
+        cogs: 12,
+        moq: 500
       }]
     })
   }, "+ Add SKU"), /*#__PURE__*/React.createElement("div", {
@@ -717,6 +777,123 @@ function StepChannels({
       color: INK
     }
   }, money(m.rows[4].wsRev)), " by Y5 (", (s.stores[4] || 0).toLocaleString(), " doors × ", s.unitsPerDoor, " units × ", money(m.wholesalePrice), ")."));
+}
+function StepLogistics({
+  s,
+  set
+}) {
+  const m = compute(s);
+  return /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 4
+    }
+  }, "Inventory, MOQ & fulfillment"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      fontSize: 13
+    }
+  }, "Per-SKU ", /*#__PURE__*/React.createElement("b", null, "MOQ"), " is set on the Products step. These settings turn it into fulfillment costs, holding costs, write-offs, and the cash you tie up in stock."), /*#__PURE__*/React.createElement("h4", {
+    style: {
+      fontSize: 13.5,
+      color: INK,
+      margin: "10px 0 10px"
+    }
+  }, "Fulfillment"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 18,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "DTC fulfillment / order",
+    hint: "Pick, pack & outbound shipping per DTC order."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.dtcFulfillPerOrder,
+    prefix: "$",
+    onChange: v => set({
+      dtcFulfillPerOrder: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Wholesale freight / unit",
+    hint: "Bulk outbound freight per unit to retailers — much lower than DTC."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.wsFreightPerUnit,
+    prefix: "$",
+    step: "0.1",
+    onChange: v => set({
+      wsFreightPerUnit: v
+    })
+  }))), /*#__PURE__*/React.createElement("h4", {
+    style: {
+      fontSize: 13.5,
+      color: INK,
+      margin: "22px 0 10px"
+    }
+  }, "Inventory holding"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 18,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Weeks of inventory cover",
+    hint: "Target stock on hand, in weeks of demand."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.weeksCover,
+    suffix: "wks",
+    onChange: v => set({
+      weeksCover: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Holding cost",
+    hint: "Storage + capital + insurance, annual % of avg inventory value."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.holdingPct,
+    suffix: "%/yr",
+    onChange: v => set({
+      holdingPct: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Write-off / shrink",
+    hint: "Obsolescence & shrink, annual % of avg inventory value."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.writeoffPct,
+    suffix: "%/yr",
+    step: "0.5",
+    onChange: v => set({
+      writeoffPct: v
+    })
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      marginTop: 22,
+      padding: "14px 16px",
+      background: SECTION,
+      borderRadius: 12,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Total MOQ (upfront units)",
+    value: m.totalMOQ.toLocaleString()
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "Initial inventory buy",
+    value: money(m.initialBuy),
+    sub: "Σ MOQ × COGS"
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "Cash in inventory · Y1",
+    value: money(m.rows[0].avgInvValue)
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "Fulfillment + holding · Y5",
+    value: money(m.rows[4].fulfillment + m.rows[4].warehousing + m.rows[4].writeoff)
+  })), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED,
+      marginTop: 12
+    }
+  }, "If your MOQ is large relative to early sales, you carry (and pay to hold) far more stock than you sell — that shows up here and in the capital required on the P&L step."));
 }
 function StepMarketing({
   s,
@@ -1280,6 +1457,26 @@ function PnL({
     sub: true,
     indent: true
   }), /*#__PURE__*/React.createElement(Line, {
+    label: "DTC fulfillment",
+    fn: r => -r.dtcFulfill,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Wholesale freight",
+    fn: r => -r.wsFulfill,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Warehousing & storage",
+    fn: r => -r.warehousing,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Inventory write-off",
+    fn: r => -r.writeoff,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
     label: "Overhead (rent, software, G&A)",
     fn: r => -r.overhead,
     sub: true,
@@ -1306,14 +1503,137 @@ function PnL({
     fn: r => r.headcount,
     sub: true,
     indent: true
+  })))), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontSize: 23,
+      letterSpacing: -0.4,
+      margin: "38px 0 6px"
+    }
+  }, "Investment needed"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      fontSize: 13.5,
+      maxWidth: 660
+    }
+  }, "How much capital it takes to fund the losses ", /*#__PURE__*/React.createElement("i", null, "and"), " the inventory you carry, until the business pays for itself. Cash flow = EBITDA − inventory investment (working capital). Because inventory is MOQ-aware, large minimums push the number up."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+      gap: 14,
+      margin: "16px 0 18px"
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 20,
+      borderColor: ACCENT
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Total capital to raise",
+    value: money(m.capitalRequired),
+    color: ACCENT,
+    sub: "peak cumulative cash gap"
+  })), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Cash-flow breakeven",
+    value: m.fcfBreakevenYear ? "Y" + m.fcfBreakevenYear : "—",
+    sub: m.fcfBreakevenYear ? "free cash flow turns positive" : "not within 5 yrs"
+  })), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "EBITDA positive",
+    value: m.firstProfitYear ? "Y" + m.firstProfitYear : "—",
+    sub: "operating profitability"
+  })), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Initial inventory buy (MOQ)",
+    value: money(m.initialBuy),
+    sub: m.totalMOQ.toLocaleString() + " units upfront"
+  }))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      overflowX: "auto",
+      padding: 0
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13.5,
+      minWidth: 620
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: `2px solid ${LINE}`
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "12px",
+      color: INK,
+      fontWeight: 600
+    }
+  }, "Funding requirement"), R.map(r => /*#__PURE__*/React.createElement("th", {
+    key: r.y,
+    style: {
+      textAlign: "right",
+      padding: "12px",
+      color: INK,
+      fontWeight: 600
+    }
+  }, "Y", r.y + 1)))), /*#__PURE__*/React.createElement("tbody", null, /*#__PURE__*/React.createElement(Line, {
+    label: "EBITDA",
+    fn: r => r.ebitda,
+    signed: true,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Inventory investment (working capital)",
+    fn: r => -r.invInvest,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Free cash flow",
+    fn: r => r.fcf,
+    strong: true,
+    signed: true,
+    bold: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Cumulative cash position",
+    fn: r => r.cumCash,
+    signed: true,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Capital required to date",
+    fn: r => r.capitalToDate,
+    strong: true,
+    accent: true
   })))), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 13.5,
+      marginTop: 14,
+      lineHeight: 1.6,
+      maxWidth: 720
+    }
+  }, "Bottom line: raise about ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: ACCENT
+    }
+  }, money(m.capitalRequired)), " to fund ", s.bizName, " through to", m.fcfBreakevenYear ? ` self-sustaining cash flow in Y${m.fcfBreakevenYear}` : " the end of Y5 (it is still burning cash)", m.firstProfitYear ? `, with EBITDA turning positive in Y${m.firstProfitYear}.` : ", with EBITDA still negative across all five years."), /*#__PURE__*/React.createElement("p", {
     style: {
       fontSize: 11.5,
       color: MUTED,
       marginTop: 14,
       lineHeight: 1.6
     }
-  }, "Model only — illustrative, not financial advice. Revenue, COGS and gross margin use the blended average across your SKUs. DTC revenue = (online spend ÷ online CAC + brand spend ÷ brand CAC) × orders/customer × avg MSRP. Wholesale = doors × units/door × wholesale price."));
+  }, "Model only — illustrative, not financial advice. Revenue, COGS and gross margin use the blended average across your SKUs. DTC revenue = (online spend ÷ online CAC + brand spend ÷ brand CAC) × orders/customer × avg MSRP. Wholesale = doors × units/door × wholesale price. Fulfillment, warehousing and write-offs are operating costs; the MOQ-driven inventory buy is working capital (cash), shown in the funding table rather than EBITDA."));
 }
 
 // ── app shell with stepper ─────────────────────────────────────────────
@@ -1329,6 +1649,10 @@ const STEPS = [{
   key: "channels",
   title: "Distribution",
   render: p => /*#__PURE__*/React.createElement(StepChannels, p)
+}, {
+  key: "logistics",
+  title: "Inventory",
+  render: p => /*#__PURE__*/React.createElement(StepLogistics, p)
 }, {
   key: "marketing",
   title: "Marketing",
