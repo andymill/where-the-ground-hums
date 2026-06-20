@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Omnichannel P&L Builder</title>
+  <meta name="description" content="Answer a few questions and build a 5-year P&L for an omnichannel brand." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --ink:#170f49; --muted:#6f6c90; --accent:#4a3aff; --accent-soft:#eceaff;
+      --bg:#ffffff; --section:#f7f7fb; --line:#e4e4f0; --card:#ffffff;
+      --pos:#1a9d6b; --neg:#e0466e;
+      --shadow:0 2px 14px rgba(20,15,73,0.06); --shadow-lg:0 18px 50px rgba(20,15,73,0.10);
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;min-height:100%;background:var(--bg);color:var(--muted);
+      font-family:'Poppins',system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+    h1,h2,h3,h4{color:var(--ink);font-weight:600;margin:0;line-height:1.2;}
+    input,select,button{font-family:inherit;}
+    input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+    input[type=number]{-moz-appearance:textfield;}
+    #root{min-height:100vh;}
+  </style>
+  <script src="/omnichannel/vendor/react.production.min.js"></script>
+  <script src="/omnichannel/vendor/react-dom.production.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+const {
+  useState,
+  useMemo
+} = React;
+
+// ── design tokens (geekpay-inspired) ───────────────────────────────────
+const INK = "#170f49",
+  MUTED = "#6f6c90",
+  ACCENT = "#4a3aff",
+  ACCENT_SOFT = "#eceaff";
+const SECTION = "#f7f7fb",
+  LINE = "#e4e4f0",
+  CARD = "#ffffff",
+  POS = "#1a9d6b",
+  NEG = "#e0466e";
+const SHADOW = "0 2px 14px rgba(20,15,73,0.06)";
+const YEARS = [0, 1, 2, 3, 4];
+const yLabel = start => YEARS.map(i => `Y${i + 1}`);
+const money = n => (n < 0 ? "−" : "") + "$" + Math.round(Math.abs(n || 0)).toLocaleString("en-US");
+const moneyK = n => {
+  const a = Math.abs(n || 0);
+  const s = a >= 1000 ? "$" + (a / 1000).toFixed(a >= 10000 ? 0 : 1) + "k" : "$" + Math.round(a);
+  return (n < 0 ? "−" : "") + s;
+};
+const pctOf = (num, den) => den ? num / den * 100 : 0;
+
+// ── default model — a believable starter omnichannel brand ─────────────
+const DEFAULTS = {
+  bizName: "Your omnichannel brand",
+  startYear: 2026,
+  skus: [{
+    name: "Hero product",
+    msrp: 60,
+    cogs: 18
+  }, {
+    name: "Secondary product",
+    msrp: 35,
+    cogs: 11
+  }],
+  retailPct: 50,
+  // wholesale: a retailer pays this % of MSRP
+  brokerFeePct: 10,
+  // sales-rep / broker commission on wholesale revenue
+  insurancePct: 0.5,
+  // product / liability insurance, % of total revenue
+
+  // DTC is acquisition-driven: spend ÷ CAC = customers
+  onlineCAC: 35,
+  brandCAC: 80,
+  ordersPerCust: 1.3,
+  // orders per acquired customer per year (incl. repeats)
+  onlineSpend: [60000, 120000, 200000, 300000, 400000],
+  brandSpend: [0, 50000, 120000, 200000, 300000],
+  // Wholesale is door-driven: stores × units/door × wholesale price
+  stores: [10, 50, 150, 350, 600],
+  unitsPerDoor: 150,
+  benefitsPct: 20,
+  // employer load (taxes + benefits) on EMPLOYEE comp
+  team: [{
+    fn: "Founder / CEO",
+    who: "founder",
+    startYr: 1,
+    model: "salary",
+    amount: 90000,
+    hoursWk: 0,
+    alloc: 100
+  }, {
+    fn: "Operations / GM",
+    who: "employee",
+    startYr: 2,
+    model: "salary",
+    amount: 75000,
+    hoursWk: 0,
+    alloc: 100
+  }, {
+    fn: "Performance marketing",
+    who: "employee",
+    startYr: 1,
+    model: "salary",
+    amount: 75000,
+    hoursWk: 0,
+    alloc: 100
+  }, {
+    fn: "Brand & creative",
+    who: "contractor",
+    startYr: 1,
+    model: "hourly",
+    amount: 60,
+    hoursWk: 15,
+    alloc: 100
+  }, {
+    fn: "Wholesale / sales",
+    who: "employee",
+    startYr: 2,
+    model: "salary",
+    amount: 65000,
+    hoursWk: 0,
+    alloc: 100
+  }, {
+    fn: "Ecommerce / web",
+    who: "contractor",
+    startYr: 1,
+    model: "hourly",
+    amount: 70,
+    hoursWk: 8,
+    alloc: 100
+  }, {
+    fn: "Customer service",
+    who: "employee",
+    startYr: 2,
+    model: "salary",
+    amount: 45000,
+    hoursWk: 0,
+    alloc: 100
+  }, {
+    fn: "Product / design",
+    who: "contractor",
+    startYr: 1,
+    model: "hourly",
+    amount: 65,
+    hoursWk: 10,
+    alloc: 100
+  }, {
+    fn: "Supply chain / logistics",
+    who: "employee",
+    startYr: 3,
+    model: "salary",
+    amount: 65000,
+    hoursWk: 0,
+    alloc: 100
+  }, {
+    fn: "Finance / accounting",
+    who: "contractor",
+    startYr: 1,
+    model: "hourly",
+    amount: 50,
+    hoursWk: 8,
+    alloc: 100
+  }, {
+    fn: "People / admin (HR)",
+    who: "none",
+    startYr: 4,
+    model: "salary",
+    amount: 55000,
+    hoursWk: 0,
+    alloc: 100
+  }, {
+    fn: "Retail / field ops",
+    who: "none",
+    startYr: 3,
+    model: "salary",
+    amount: 50000,
+    hoursWk: 0,
+    alloc: 100
+  }],
+  rent: [12000, 24000, 36000, 48000, 60000],
+  software: [6000, 12000, 18000, 24000, 30000],
+  otherGA: [10000, 15000, 22000, 30000, 38000]
+};
+
+// ── the model ──────────────────────────────────────────────────────────
+function compute(s) {
+  const n = s.skus.length || 1;
+  const aov = s.skus.reduce((a, k) => a + (+k.msrp || 0), 0) / n;
+  const cogsUnit = s.skus.reduce((a, k) => a + (+k.cogs || 0), 0) / n;
+  const wholesalePrice = aov * (s.retailPct / 100);
+  const benefits = 1 + (s.benefitsPct || 0) / 100;
+  const rows = YEARS.map(y => {
+    const custOnline = s.onlineCAC > 0 ? (s.onlineSpend[y] || 0) / s.onlineCAC : 0;
+    const custBrand = s.brandCAC > 0 ? (s.brandSpend[y] || 0) / s.brandCAC : 0;
+    const dtcOrders = (custOnline + custBrand) * (s.ordersPerCust || 0);
+    const dtcUnits = dtcOrders;
+    const dtcRev = dtcUnits * aov;
+    const wsUnits = (s.stores[y] || 0) * (s.unitsPerDoor || 0);
+    const wsRev = wsUnits * wholesalePrice;
+    const revenue = dtcRev + wsRev;
+    const units = dtcUnits + wsUnits;
+    const cogs = units * cogsUnit;
+    const grossProfit = revenue - cogs;
+    let payroll = 0;
+    let headEmp = 0,
+      headCon = 0;
+    for (const r of s.team) {
+      if (r.who === "none") continue;
+      if (r.startYr - 1 > y) continue;
+      let annual = r.model === "hourly" ? (r.amount || 0) * (r.hoursWk || 0) * 52 : r.amount || 0;
+      annual *= (r.alloc || 0) / 100;
+      if (r.who === "employee") {
+        annual *= benefits;
+        headEmp++;
+      } else if (r.who === "contractor") headCon++;else headEmp++; // founder counts as head
+      payroll += annual;
+    }
+    const onlineMk = s.onlineSpend[y] || 0;
+    const brandMk = s.brandSpend[y] || 0;
+    const brokerFees = wsRev * (s.brokerFeePct || 0) / 100;
+    const insurance = revenue * (s.insurancePct || 0) / 100;
+    const overhead = (s.rent[y] || 0) + (s.software[y] || 0) + (s.otherGA[y] || 0);
+    const opex = payroll + onlineMk + brandMk + brokerFees + insurance + overhead;
+    const ebitda = grossProfit - opex;
+    return {
+      y,
+      dtcRev,
+      wsRev,
+      revenue,
+      cogs,
+      grossProfit,
+      payroll,
+      onlineMk,
+      brandMk,
+      brokerFees,
+      insurance,
+      overhead,
+      opex,
+      ebitda,
+      units,
+      dtcUnits,
+      wsUnits,
+      headcount: headEmp + headCon,
+      custOnline,
+      custBrand
+    };
+  });
+  const cumEbitda = rows.reduce((a, r) => a + r.ebitda, 0);
+  const firstProfit = rows.find(r => r.ebitda > 0);
+  return {
+    rows,
+    aov,
+    cogsUnit,
+    wholesalePrice,
+    cumEbitda,
+    firstProfitYear: firstProfit ? firstProfit.y + 1 : null
+  };
+}
+
+// ── small UI primitives ────────────────────────────────────────────────
+function Btn({
+  children,
+  onClick,
+  variant = "primary",
+  disabled,
+  style
+}) {
+  const base = {
+    border: "none",
+    cursor: disabled ? "default" : "pointer",
+    borderRadius: 10,
+    padding: "13px 26px",
+    fontSize: 14,
+    fontWeight: 600,
+    letterSpacing: 0.2,
+    transition: "all .15s ease",
+    opacity: disabled ? 0.45 : 1,
+    ...style
+  };
+  const v = variant === "primary" ? {
+    background: ACCENT,
+    color: "#fff",
+    boxShadow: "0 8px 20px rgba(74,58,255,0.25)"
+  } : variant === "ghost" ? {
+    background: "transparent",
+    color: MUTED,
+    boxShadow: "none"
+  } : {
+    background: "#fff",
+    color: INK,
+    border: `1px solid ${LINE}`
+  };
+  return /*#__PURE__*/React.createElement("button", {
+    onClick: disabled ? undefined : onClick,
+    style: {
+      ...base,
+      ...v
+    }
+  }, children);
+}
+function Field({
+  label,
+  hint,
+  children,
+  w
+}) {
+  return /*#__PURE__*/React.createElement("label", {
+    style: {
+      display: "block",
+      flex: w ? `0 0 ${w}` : "1 1 0",
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 500,
+      color: INK,
+      marginBottom: 6
+    }
+  }, label), children, hint && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: MUTED,
+      marginTop: 5,
+      lineHeight: 1.4
+    }
+  }, hint));
+}
+const inputStyle = {
+  width: "100%",
+  border: `1px solid ${LINE}`,
+  borderRadius: 10,
+  padding: "11px 13px",
+  fontSize: 14,
+  color: INK,
+  outline: "none",
+  background: "#fff"
+};
+function Num({
+  value,
+  onChange,
+  prefix,
+  suffix,
+  step
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      border: `1px solid ${LINE}`,
+      borderRadius: 10,
+      background: "#fff",
+      overflow: "hidden"
+    }
+  }, prefix && /*#__PURE__*/React.createElement("span", {
+    style: {
+      padding: "0 0 0 13px",
+      color: MUTED,
+      fontSize: 14
+    }
+  }, prefix), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: value,
+    step: step,
+    onChange: e => onChange(e.target.value === "" ? 0 : parseFloat(e.target.value)),
+    style: {
+      ...inputStyle,
+      border: "none",
+      borderRadius: 0,
+      paddingLeft: prefix ? 6 : 13
+    }
+  }), suffix && /*#__PURE__*/React.createElement("span", {
+    style: {
+      padding: "0 13px 0 0",
+      color: MUTED,
+      fontSize: 14
+    }
+  }, suffix));
+}
+function Text({
+  value,
+  onChange
+}) {
+  return /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: value,
+    onChange: e => onChange(e.target.value),
+    style: inputStyle
+  });
+}
+function Select({
+  value,
+  onChange,
+  options
+}) {
+  return /*#__PURE__*/React.createElement("select", {
+    value: value,
+    onChange: e => onChange(e.target.value),
+    style: {
+      ...inputStyle,
+      appearance: "auto",
+      cursor: "pointer"
+    }
+  }, options.map(o => /*#__PURE__*/React.createElement("option", {
+    key: o.value,
+    value: o.value
+  }, o.label)));
+}
+
+// a labelled row of 5 yearly number inputs
+function YearSeries({
+  label,
+  hint,
+  values,
+  onChange,
+  prefix
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      fontWeight: 500,
+      color: INK,
+      marginBottom: 8
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(5, 1fr)",
+      gap: 8
+    }
+  }, YEARS.map(i => /*#__PURE__*/React.createElement("div", {
+    key: i
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: MUTED,
+      marginBottom: 3,
+      textAlign: "center"
+    }
+  }, "Y", i + 1), /*#__PURE__*/React.createElement(Num, {
+    value: values[i],
+    prefix: prefix,
+    onChange: v => {
+      const a = values.slice();
+      a[i] = v;
+      onChange(a);
+    }
+  })))), hint && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: MUTED,
+      marginTop: 6
+    }
+  }, hint));
+}
+function Card({
+  children,
+  style
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: CARD,
+      border: `1px solid ${LINE}`,
+      borderRadius: 18,
+      padding: 26,
+      boxShadow: SHADOW,
+      ...style
+    }
+  }, children);
+}
+
+// ── step sections ──────────────────────────────────────────────────────
+function StepBusiness({
+  s,
+  set
+}) {
+  return /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 18,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Business name"
+  }, /*#__PURE__*/React.createElement(Text, {
+    value: s.bizName,
+    onChange: v => set({
+      bizName: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Year 1 starts",
+    w: "160px"
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.startYear,
+    onChange: v => set({
+      startYear: v
+    })
+  }))), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 18,
+      marginBottom: 0,
+      fontSize: 13.5
+    }
+  }, "We'll model five fiscal years (", s.startYear, "–", s.startYear + 4, "). Everything you enter next is editable, and the P&L recalculates instantly. Defaults describe a typical emerging omnichannel brand — overwrite them with your own numbers."));
+}
+function StepProducts({
+  s,
+  set
+}) {
+  const setSku = (i, f, v) => {
+    const a = s.skus.map(x => ({
+      ...x
+    }));
+    a[i][f] = f === "name" ? v : v === "" ? 0 : parseFloat(v) || 0;
+    set({
+      skus: a
+    });
+  };
+  const m = compute(s);
+  return /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 4
+    }
+  }, "Product SKUs"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      fontSize: 13
+    }
+  }, "Add each product. MSRP is the retail price; COGS is your landed cost per unit."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 130px 130px 40px",
+      gap: 8,
+      alignItems: "center",
+      marginBottom: 6,
+      fontSize: 11,
+      color: MUTED,
+      fontWeight: 500
+    }
+  }, /*#__PURE__*/React.createElement("div", null, "SKU"), /*#__PURE__*/React.createElement("div", null, "MSRP"), /*#__PURE__*/React.createElement("div", null, "COGS / unit"), /*#__PURE__*/React.createElement("div", null)), s.skus.map((k, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 130px 130px 40px",
+      gap: 8,
+      alignItems: "center",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement(Text, {
+    value: k.name,
+    onChange: v => setSku(i, "name", v)
+  }), /*#__PURE__*/React.createElement(Num, {
+    value: k.msrp,
+    prefix: "$",
+    onChange: v => setSku(i, "msrp", v)
+  }), /*#__PURE__*/React.createElement(Num, {
+    value: k.cogs,
+    prefix: "$",
+    onChange: v => setSku(i, "cogs", v)
+  }), /*#__PURE__*/React.createElement("button", {
+    onClick: () => set({
+      skus: s.skus.filter((_, j) => j !== i)
+    }),
+    style: {
+      border: `1px solid ${LINE}`,
+      background: "#fff",
+      color: NEG,
+      borderRadius: 8,
+      height: 38,
+      cursor: "pointer",
+      fontSize: 16
+    }
+  }, "×"))), /*#__PURE__*/React.createElement(Btn, {
+    variant: "line",
+    style: {
+      padding: "9px 16px",
+      fontSize: 13,
+      marginTop: 4
+    },
+    onClick: () => set({
+      skus: [...s.skus, {
+        name: "New SKU",
+        msrp: 40,
+        cogs: 12
+      }]
+    })
+  }, "+ Add SKU"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      marginTop: 22,
+      padding: "14px 16px",
+      background: SECTION,
+      borderRadius: 12,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Avg MSRP (AOV)",
+    value: money(m.aov)
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "Avg COGS",
+    value: money(m.cogsUnit)
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "DTC gross margin",
+    value: pctOf(m.aov - m.cogsUnit, m.aov).toFixed(0) + "%"
+  }), /*#__PURE__*/React.createElement(Stat, {
+    label: "Wholesale price",
+    value: money(m.wholesalePrice),
+    sub: `${s.retailPct}% of MSRP`
+  })), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15,
+      margin: "26px 0 10px"
+    }
+  }, "Channel & product economics"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 18,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Wholesale price",
+    hint: "What a retailer pays, as % of MSRP. 50% is a standard keystone."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.retailPct,
+    suffix: "% of MSRP",
+    onChange: v => set({
+      retailPct: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Broker / rep fees",
+    hint: "Sales-rep commission on wholesale revenue."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.brokerFeePct,
+    suffix: "% of WS rev",
+    onChange: v => set({
+      brokerFeePct: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Product insurance",
+    hint: "Product + liability insurance as % of total revenue."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.insurancePct,
+    suffix: "% of rev",
+    step: "0.1",
+    onChange: v => set({
+      insurancePct: v
+    })
+  }))));
+}
+function StepChannels({
+  s,
+  set
+}) {
+  const m = compute(s);
+  return /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 4
+    }
+  }, "Wholesale store distribution"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      fontSize: 13
+    }
+  }, "How many retail doors carry you each year, and how much each door sells."), /*#__PURE__*/React.createElement(YearSeries, {
+    label: "Retail doors (stores carrying the product)",
+    values: s.stores,
+    onChange: v => set({
+      stores: v
+    })
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 18,
+      flexWrap: "wrap",
+      marginTop: 4
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Units sold per door / year",
+    hint: "Average sell-through per door, annually."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.unitsPerDoor,
+    onChange: v => set({
+      unitsPerDoor: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Wholesale price / unit",
+    hint: `MSRP × ${s.retailPct}% (set on the Products step).`
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: Math.round(m.wholesalePrice),
+    prefix: "$",
+    onChange: () => {}
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18,
+      padding: "14px 16px",
+      background: SECTION,
+      borderRadius: 12,
+      fontSize: 13
+    }
+  }, "Wholesale revenue scales with doors: ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: INK
+    }
+  }, money(m.rows[4].wsRev)), " by Y5 (", (s.stores[4] || 0).toLocaleString(), " doors × ", s.unitsPerDoor, " units × ", money(m.wholesalePrice), ")."));
+}
+function StepMarketing({
+  s,
+  set
+}) {
+  const m = compute(s);
+  return /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 4
+    }
+  }, "Marketing & customer acquisition"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      fontSize: 13
+    }
+  }, "DTC revenue is driven by spend ÷ CAC. Online is performance marketing; brand is awareness-led (usually a higher CAC)."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 18,
+      flexWrap: "wrap",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "Online marketing CAC",
+    hint: "Blended cost to acquire one customer via performance channels."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.onlineCAC,
+    prefix: "$",
+    onChange: v => set({
+      onlineCAC: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Brand marketing CAC",
+    hint: "Cost per customer attributed to brand / awareness spend."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.brandCAC,
+    prefix: "$",
+    onChange: v => set({
+      brandCAC: v
+    })
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "Orders / customer / year",
+    hint: "Repeat purchases lift this above 1.0."
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.ordersPerCust,
+    step: "0.1",
+    onChange: v => set({
+      ordersPerCust: v
+    })
+  }))), /*#__PURE__*/React.createElement(YearSeries, {
+    label: "Online marketing spend",
+    prefix: "$",
+    values: s.onlineSpend,
+    onChange: v => set({
+      onlineSpend: v
+    })
+  }), /*#__PURE__*/React.createElement(YearSeries, {
+    label: "Brand marketing spend",
+    prefix: "$",
+    values: s.brandSpend,
+    onChange: v => set({
+      brandSpend: v
+    })
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 6,
+      padding: "14px 16px",
+      background: SECTION,
+      borderRadius: 12,
+      fontSize: 13
+    }
+  }, "Y5 customers acquired: ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: INK
+    }
+  }, Math.round(m.rows[4].custOnline + m.rows[4].custBrand).toLocaleString()), " ", "→ DTC revenue ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: INK
+    }
+  }, money(m.rows[4].dtcRev)), "."));
+}
+function StepTeam({
+  s,
+  set
+}) {
+  const setRow = (i, f, v) => {
+    const a = s.team.map(x => ({
+      ...x
+    }));
+    a[i][f] = f === "fn" || f === "who" || f === "model" ? v : v === "" ? 0 : parseFloat(v) || 0;
+    set({
+      team: a
+    });
+  };
+  const whoOpts = [{
+    value: "none",
+    label: "Nobody yet"
+  }, {
+    value: "founder",
+    label: "Founder"
+  }, {
+    value: "employee",
+    label: "Employee"
+  }, {
+    value: "contractor",
+    label: "Contractor"
+  }];
+  const yrOpts = YEARS.map(i => ({
+    value: i + 1,
+    label: `Y${i + 1}`
+  }));
+  const modelOpts = [{
+    value: "salary",
+    label: "Salary"
+  }, {
+    value: "hourly",
+    label: "Hourly"
+  }];
+  const m = compute(s);
+  return /*#__PURE__*/React.createElement(Card, {
+    style: {
+      overflowX: "auto"
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 4
+    }
+  }, "Who runs each function?"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      fontSize: 13
+    }
+  }, "Every typical omnichannel function is listed. For each, say who covers it, when they start, and how they're paid. Employees carry a ", /*#__PURE__*/React.createElement("b", null, s.benefitsPct, "%"), " employer load."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      minWidth: 760
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1.4fr 1fr 0.7fr 0.9fr 1fr 0.8fr 0.8fr",
+      gap: 8,
+      fontSize: 11,
+      color: MUTED,
+      fontWeight: 500,
+      padding: "0 4px 8px"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, "Function"), /*#__PURE__*/React.createElement("div", null, "Who"), /*#__PURE__*/React.createElement("div", null, "Starts"), /*#__PURE__*/React.createElement("div", null, "Pay"), /*#__PURE__*/React.createElement("div", null, "Salary / rate"), /*#__PURE__*/React.createElement("div", null, "Hrs/wk"), /*#__PURE__*/React.createElement("div", null, "Alloc")), s.team.map((r, i) => {
+    const off = r.who === "none";
+    return /*#__PURE__*/React.createElement("div", {
+      key: i,
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1.4fr 1fr 0.7fr 0.9fr 1fr 0.8fr 0.8fr",
+        gap: 8,
+        alignItems: "center",
+        padding: "4px",
+        opacity: off ? 0.55 : 1,
+        borderTop: i ? `1px solid ${LINE}` : "none"
+      }
+    }, /*#__PURE__*/React.createElement(Text, {
+      value: r.fn,
+      onChange: v => setRow(i, "fn", v)
+    }), /*#__PURE__*/React.createElement(Select, {
+      value: r.who,
+      onChange: v => setRow(i, "who", v),
+      options: whoOpts
+    }), /*#__PURE__*/React.createElement(Select, {
+      value: r.startYr,
+      onChange: v => setRow(i, "startYr", v),
+      options: yrOpts
+    }), /*#__PURE__*/React.createElement(Select, {
+      value: r.model,
+      onChange: v => setRow(i, "model", v),
+      options: modelOpts
+    }), /*#__PURE__*/React.createElement(Num, {
+      value: r.amount,
+      prefix: "$",
+      onChange: v => setRow(i, "amount", v)
+    }), /*#__PURE__*/React.createElement(Num, {
+      value: r.hoursWk,
+      onChange: v => setRow(i, "hoursWk", v)
+    }), /*#__PURE__*/React.createElement(Num, {
+      value: r.alloc,
+      suffix: "%",
+      onChange: v => setRow(i, "alloc", v)
+    }));
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      alignItems: "center",
+      marginTop: 16,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement(Btn, {
+    variant: "line",
+    style: {
+      padding: "9px 16px",
+      fontSize: 13
+    },
+    onClick: () => set({
+      team: [...s.team, {
+        fn: "New function",
+        who: "none",
+        startYr: 1,
+        model: "salary",
+        amount: 50000,
+        hoursWk: 0,
+        alloc: 100
+      }]
+    })
+  }, "+ Add function"), /*#__PURE__*/React.createElement(Field, {
+    label: "Employer load (taxes + benefits)",
+    w: "240px"
+  }, /*#__PURE__*/React.createElement(Num, {
+    value: s.benefitsPct,
+    suffix: "% on employees",
+    onChange: v => set({
+      benefitsPct: v
+    })
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginLeft: "auto",
+      padding: "10px 16px",
+      background: SECTION,
+      borderRadius: 12,
+      fontSize: 13
+    }
+  }, "Y1 payroll ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: INK
+    }
+  }, money(m.rows[0].payroll)), " · Y5 payroll ", /*#__PURE__*/React.createElement("b", {
+    style: {
+      color: INK
+    }
+  }, money(m.rows[4].payroll)))));
+}
+function StepOverhead({
+  s,
+  set
+}) {
+  return /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 16,
+      marginBottom: 4
+    }
+  }, "Operating overhead"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      fontSize: 13
+    }
+  }, "The fixed costs of keeping the lights on, by year."), /*#__PURE__*/React.createElement(YearSeries, {
+    label: "Rent / facilities",
+    prefix: "$",
+    values: s.rent,
+    onChange: v => set({
+      rent: v
+    })
+  }), /*#__PURE__*/React.createElement(YearSeries, {
+    label: "Software / tools / platforms",
+    prefix: "$",
+    values: s.software,
+    onChange: v => set({
+      software: v
+    })
+  }), /*#__PURE__*/React.createElement(YearSeries, {
+    label: "Other G&A (legal, accounting, misc.)",
+    prefix: "$",
+    values: s.otherGA,
+    onChange: v => set({
+      otherGA: v
+    })
+  }));
+}
+function Stat({
+  label,
+  value,
+  sub,
+  color
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 0",
+      minWidth: 120
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 22,
+      fontWeight: 700,
+      color: color || INK,
+      lineHeight: 1.2
+    }
+  }, value), sub && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: MUTED
+    }
+  }, sub));
+}
+
+// ── results: the P&L ───────────────────────────────────────────────────
+function PnL({
+  s
+}) {
+  const m = compute(s);
+  const R = m.rows;
+  const cols = (fn, opts = {}) => R.map(r => {
+    const v = fn(r);
+    const color = opts.signed ? v >= 0 ? POS : NEG : opts.color || INK;
+    return /*#__PURE__*/React.createElement("td", {
+      key: r.y,
+      style: {
+        textAlign: "right",
+        padding: "8px 12px",
+        color,
+        fontWeight: opts.bold ? 600 : 400,
+        fontVariantNumeric: "tabular-nums",
+        whiteSpace: "nowrap"
+      }
+    }, opts.pct ? v.toFixed(0) + "%" : money(v));
+  });
+  const Line = ({
+    label,
+    fn,
+    ...o
+  }) => /*#__PURE__*/React.createElement("tr", {
+    style: o.strong ? {
+      background: o.accent ? ACCENT_SOFT : SECTION
+    } : null
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "8px 12px",
+      color: o.strong ? INK : MUTED,
+      fontWeight: o.strong ? 600 : 400,
+      fontSize: o.sub ? 12.5 : 13.5,
+      paddingLeft: o.indent ? 26 : 12,
+      whiteSpace: "nowrap"
+    }
+  }, label), cols(fn, o));
+  const maxRev = Math.max(...R.map(r => r.revenue), 1);
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+      gap: 14,
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Year 5 revenue",
+    value: money(R[4].revenue)
+  })), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "Year 5 EBITDA",
+    value: money(R[4].ebitda),
+    color: R[4].ebitda >= 0 ? POS : NEG,
+    sub: pctOf(R[4].ebitda, R[4].revenue).toFixed(0) + "% margin"
+  })), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "5-yr cumulative EBITDA",
+    value: money(m.cumEbitda),
+    color: m.cumEbitda >= 0 ? POS : NEG
+  })), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      padding: 20
+    }
+  }, /*#__PURE__*/React.createElement(Stat, {
+    label: "First profitable year",
+    value: m.firstProfitYear ? "Y" + m.firstProfitYear : "—",
+    sub: m.firstProfitYear ? "EBITDA positive" : "not within 5 yrs"
+  }))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      fontSize: 15
+    }
+  }, "Revenue & EBITDA by year"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12,
+      color: MUTED
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: ACCENT
+    }
+  }, "■"), " Revenue \xA0 ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: POS
+    }
+  }, "■"), " EBITDA")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(5,1fr)",
+      gap: 16,
+      alignItems: "end",
+      height: 200
+    }
+  }, R.map(r => {
+    const revH = r.revenue / maxRev * 160;
+    const ebH = Math.abs(r.ebitda) / maxRev * 160;
+    return /*#__PURE__*/React.createElement("div", {
+      key: r.y,
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        height: "100%",
+        justifyContent: "flex-end"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        alignItems: "flex-end",
+        height: 160
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      title: "Revenue " + money(r.revenue),
+      style: {
+        width: 26,
+        height: Math.max(revH, 2),
+        background: ACCENT,
+        borderRadius: "6px 6px 0 0"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      title: "EBITDA " + money(r.ebitda),
+      style: {
+        width: 26,
+        height: Math.max(ebH, 2),
+        background: r.ebitda >= 0 ? POS : NEG,
+        borderRadius: "6px 6px 0 0"
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11.5,
+        color: MUTED,
+        marginTop: 8
+      }
+    }, "Y", r.y + 1), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: INK,
+        fontWeight: 600
+      }
+    }, moneyK(r.revenue)));
+  }))), /*#__PURE__*/React.createElement(Card, {
+    style: {
+      overflowX: "auto",
+      padding: 0
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13.5,
+      minWidth: 620
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: `2px solid ${LINE}`
+    }
+  }, /*#__PURE__*/React.createElement("th", {
+    style: {
+      textAlign: "left",
+      padding: "12px",
+      color: INK,
+      fontWeight: 600
+    }
+  }, "5-year P&L"), R.map(r => /*#__PURE__*/React.createElement("th", {
+    key: r.y,
+    style: {
+      textAlign: "right",
+      padding: "12px",
+      color: INK,
+      fontWeight: 600
+    }
+  }, "Y", r.y + 1, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10.5,
+      color: MUTED,
+      fontWeight: 400
+    }
+  }, s.startYear + r.y))))), /*#__PURE__*/React.createElement("tbody", null, /*#__PURE__*/React.createElement(Line, {
+    label: "DTC revenue",
+    fn: r => r.dtcRev,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Wholesale revenue",
+    fn: r => r.wsRev,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Total revenue",
+    fn: r => r.revenue,
+    strong: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "COGS",
+    fn: r => -r.cogs,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Gross profit",
+    fn: r => r.grossProfit,
+    strong: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Gross margin",
+    fn: r => pctOf(r.grossProfit, r.revenue),
+    pct: true,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Payroll",
+    fn: r => -r.payroll,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Online marketing",
+    fn: r => -r.onlineMk,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Brand marketing",
+    fn: r => -r.brandMk,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Broker / rep fees",
+    fn: r => -r.brokerFees,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Product insurance",
+    fn: r => -r.insurance,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Overhead (rent, software, G&A)",
+    fn: r => -r.overhead,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Total operating expenses",
+    fn: r => -r.opex,
+    strong: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "EBITDA",
+    fn: r => r.ebitda,
+    strong: true,
+    accent: true,
+    signed: true,
+    bold: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "EBITDA margin",
+    fn: r => pctOf(r.ebitda, r.revenue),
+    pct: true,
+    sub: true,
+    indent: true
+  }), /*#__PURE__*/React.createElement(Line, {
+    label: "Headcount (people active)",
+    fn: r => r.headcount,
+    sub: true,
+    indent: true
+  })))), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED,
+      marginTop: 14,
+      lineHeight: 1.6
+    }
+  }, "Model only — illustrative, not financial advice. Revenue, COGS and gross margin use the blended average across your SKUs. DTC revenue = (online spend ÷ online CAC + brand spend ÷ brand CAC) × orders/customer × avg MSRP. Wholesale = doors × units/door × wholesale price."));
+}
+
+// ── app shell with stepper ─────────────────────────────────────────────
+const STEPS = [{
+  key: "business",
+  title: "Business",
+  render: p => /*#__PURE__*/React.createElement(StepBusiness, p)
+}, {
+  key: "products",
+  title: "Products",
+  render: p => /*#__PURE__*/React.createElement(StepProducts, p)
+}, {
+  key: "channels",
+  title: "Distribution",
+  render: p => /*#__PURE__*/React.createElement(StepChannels, p)
+}, {
+  key: "marketing",
+  title: "Marketing",
+  render: p => /*#__PURE__*/React.createElement(StepMarketing, p)
+}, {
+  key: "team",
+  title: "Team",
+  render: p => /*#__PURE__*/React.createElement(StepTeam, p)
+}, {
+  key: "overhead",
+  title: "Overhead",
+  render: p => /*#__PURE__*/React.createElement(StepOverhead, p)
+}, {
+  key: "results",
+  title: "P&L",
+  render: p => /*#__PURE__*/React.createElement(PnL, p)
+}];
+function App() {
+  const [s, setS] = useState(DEFAULTS);
+  const [step, setStep] = useState(0);
+  const set = patch => setS(prev => ({
+    ...prev,
+    ...patch
+  }));
+  const last = STEPS.length - 1;
+  const cur = STEPS[step];
+  const progress = step / last * 100;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 980,
+      margin: "0 auto",
+      padding: "40px 20px 80px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 8,
+      flexWrap: "wrap",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 30,
+      height: 30,
+      borderRadius: 8,
+      background: ACCENT,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#fff",
+      fontWeight: 700,
+      fontSize: 15
+    }
+  }, "P"), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: INK,
+      fontWeight: 600
+    }
+  }, "Omnichannel P&L Builder")), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12.5,
+      color: MUTED
+    }
+  }, "Step ", step + 1, " of ", STEPS.length, " · ", cur.title)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 6,
+      background: "#eef0f6",
+      borderRadius: 99,
+      overflow: "hidden",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "100%",
+      width: progress + "%",
+      background: ACCENT,
+      borderRadius: 99,
+      transition: "width .25s ease"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 6,
+      flexWrap: "wrap",
+      marginBottom: 26
+    }
+  }, STEPS.map((st, i) => /*#__PURE__*/React.createElement("button", {
+    key: st.key,
+    onClick: () => setStep(i),
+    style: {
+      border: "none",
+      cursor: "pointer",
+      borderRadius: 99,
+      padding: "5px 12px",
+      fontSize: 12,
+      fontWeight: 500,
+      background: i === step ? ACCENT : i < step ? ACCENT_SOFT : "#f1f1f6",
+      color: i === step ? "#fff" : i < step ? ACCENT : MUTED
+    }
+  }, i + 1, ". ", st.title))), step === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 26
+    }
+  }, /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontSize: 34,
+      letterSpacing: -0.5,
+      marginBottom: 10
+    }
+  }, "Build a 5-year P&L for your omnichannel brand."), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 15.5,
+      maxWidth: 620
+    }
+  }, "Answer a handful of questions about your products, channels, marketing and team. We'll turn it into a full five-year profit & loss — revenue, gross margin, operating costs and EBITDA — that you can tweak live.")), step === last && /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontSize: 30,
+      letterSpacing: -0.5,
+      marginBottom: 6
+    }
+  }, s.bizName, " — 5-year P&L"), cur.render({
+    s,
+    set
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginTop: 26
+    }
+  }, /*#__PURE__*/React.createElement(Btn, {
+    variant: "ghost",
+    disabled: step === 0,
+    onClick: () => setStep(x => Math.max(0, x - 1))
+  }, "← Back"), step < last ? /*#__PURE__*/React.createElement(Btn, {
+    onClick: () => setStep(x => Math.min(last, x + 1))
+  }, step === 0 ? "Start →" : "Next →") : /*#__PURE__*/React.createElement(Btn, {
+    variant: "line",
+    onClick: () => {
+      setS(DEFAULTS);
+      setStep(0);
+    }
+  }, "Start over")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginTop: 50,
+      fontSize: 12,
+      color: MUTED
+    }
+  }, "A tool by ", /*#__PURE__*/React.createElement("a", {
+    href: "https://andy-miller.com",
+    style: {
+      color: ACCENT,
+      textDecoration: "none"
+    }
+  }, "andy-miller.com"), " · illustrative model, not financial advice"));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(App, null));
+  </script>
+</body>
+</html>

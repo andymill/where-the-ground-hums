@@ -45,6 +45,11 @@ fs.writeFileSync(
 # Clean URL for the renovation review page. Source lives in renovation/ at
 # the project root; copied to dist/renovation/ below.
 /renovation    /renovation/index.html   200
+
+# Clean URL for the omnichannel P&L builder. Source lives in omnichannel/ at
+# the project root; the whole tree (compiled index.html + self-hosted React in
+# vendor/) is copied to dist/omnichannel/ below. Public.
+/omnichannel    /omnichannel/index.html   200
 `,
 )
 
@@ -87,4 +92,13 @@ if (fs.existsSync(renoSrc)) {
   fs.cpSync(renoSrc, renoDest, { recursive: true })
 }
 
-console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the house picker + calculators; /renovation/ holds the renovation review.')
+// Copy the omnichannel P&L builder (standalone, self-hosted React + pre-compiled
+// JSX, no build step) into dist/omnichannel/. Public — served at
+// andy-miller.com/omnichannel. The readable JSX source is index.src.html;
+// index.html is the compiled, served page.
+const omniSrc = path.resolve(__dirname, '..', 'omnichannel')
+if (fs.existsSync(omniSrc)) {
+  fs.cpSync(omniSrc, path.join(distDir, 'omnichannel'), { recursive: true })
+}
+
+console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the house picker + calculators; /renovation/ holds the renovation review; /omnichannel/ holds the P&L builder.')
