@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Omnichannel P&L Builder — five-year bar chart">
+  <defs>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6a5cff"/>
+      <stop offset="1" stop-color="#4a3aff"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="#f3f2fb"/>
+  <rect x="64" y="64" width="672" height="472" rx="22" fill="#ffffff"/>
+  <text x="100" y="128" font-family="Poppins, Arial, sans-serif" font-size="26" font-weight="600" fill="#170f49">5-year P&amp;L</text>
+  <text x="100" y="158" font-family="Poppins, Arial, sans-serif" font-size="16" fill="#6f6c90">Revenue &amp; EBITDA</text>
+  <!-- baseline -->
+  <line x1="100" y1="468" x2="700" y2="468" stroke="#e4e4f0" stroke-width="2"/>
+  <!-- bars: 5 years, rising -->
+  <g>
+    <rect x="120" y="392" width="74" height="76"  rx="8" fill="url(#bar)"/>
+    <rect x="244" y="332" width="74" height="136" rx="8" fill="url(#bar)"/>
+    <rect x="368" y="262" width="74" height="206" rx="8" fill="url(#bar)"/>
+    <rect x="492" y="196" width="74" height="272" rx="8" fill="url(#bar)"/>
+    <rect x="616" y="128" width="74" height="340" rx="8" fill="url(#bar)"/>
+  </g>
+  <!-- EBITDA trend line climbing toward profit -->
+  <polyline points="157,452 281,430 405,398 529,356 653,300" fill="none" stroke="#1a9d6b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#1a9d6b">
+    <circle cx="157" cy="452" r="6"/><circle cx="281" cy="430" r="6"/><circle cx="405" cy="398" r="6"/><circle cx="529" cy="356" r="6"/><circle cx="653" cy="300" r="6"/>
+  </g>
+  <g font-family="Poppins, Arial, sans-serif" font-size="15" fill="#a4a4ae" text-anchor="middle">
+    <text x="157" y="498">Y1</text><text x="281" y="498">Y2</text><text x="405" y="498">Y3</text><text x="529" y="498">Y4</text><text x="653" y="498">Y5</text>
+  </g>
+</svg>
