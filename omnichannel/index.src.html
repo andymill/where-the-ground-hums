@@ -59,7 +59,7 @@ const DEFAULTS = {
   ],
   retailPct: 50,        // wholesale: a retailer pays this % of MSRP
   brokerFeePct: 10,     // sales-rep / broker commission on wholesale revenue
-  insurancePct: 0.5,    // product / liability insurance, % of total revenue
+  insurancePerYear: 8000, // flat product / liability insurance per year
 
   // fulfillment & logistics
   dtcFulfillPerOrder: 7,  // DTC pick/pack + outbound shipping per order
@@ -152,7 +152,7 @@ function compute(s) {
     const onlineMk = s.onlineSpend[y] || 0;
     const brandMk = s.brandSpend[y] || 0;
     const brokerFees = wsRev * (s.brokerFeePct || 0) / 100;
-    const insurance = revenue * (s.insurancePct || 0) / 100;
+    const insurance = s.insurancePerYear || 0;
     const overhead = (s.rent[y] || 0) + (s.software[y] || 0) + (s.otherGA[y] || 0);
     const opex = payroll + onlineMk + brandMk + brokerFees + insurance + fulfillment + warehousing + writeoff + overhead;
     const ebitda = grossProfit - opex;
@@ -162,30 +162,17 @@ function compute(s) {
       opex, ebitda, units, dtcUnits, wsUnits, headcount: headEmp + headCon, custOnline, custBrand };
   });
 
-  // funding view — cash flow = EBITDA − inventory investment (working capital).
-  // Year 1 must fund the opening inventory (at least the MOQ buy); later years
-  // only fund the *increase* in inventory as the business grows.
-  let cum = 0, trough = 0;
-  rows.forEach((r, y) => {
-    const prevInv = y > 0 ? rows[y - 1].avgInvValue : 0;
-    const invInvest = y === 0 ? Math.max(r.avgInvValue, initialBuy) : Math.max(0, r.avgInvValue - prevInv);
-    const fcf = r.ebitda - invInvest;
-    cum += fcf;
-    trough = Math.min(trough, cum);
-    r.invInvest = invInvest;
-    r.fcf = fcf;
-    r.cumCash = cum;
-    r.capitalToDate = -Math.min(0, cum); // running peak funding need
-  });
+  // per-unit margins — the brand's take on one unit sold through each channel
+  const dtcUnitMargin = aov - cogsUnit - (s.dtcFulfillPerOrder || 0);
+  const retailUnitMargin = wholesalePrice - cogsUnit - (s.wsFreightPerUnit || 0) - wholesalePrice * (s.brokerFeePct || 0) / 100;
 
   const cumEbitda = rows.reduce((a, r) => a + r.ebitda, 0);
   const firstProfit = rows.find((r) => r.ebitda > 0);
-  const fcfBreak = rows.find((r) => r.fcf > 0);
   return {
     rows, aov, cogsUnit, wholesalePrice, totalMOQ, initialBuy, cumEbitda,
+    dtcUnitMargin, dtcUnitMarginPct: aov ? (dtcUnitMargin / aov) * 100 : 0,
+    retailUnitMargin, retailUnitMarginPct: wholesalePrice ? (retailUnitMargin / wholesalePrice) * 100 : 0,
     firstProfitYear: firstProfit ? firstProfit.y + 1 : null,
-    fcfBreakevenYear: fcfBreak ? fcfBreak.y + 1 : null,
-    capitalRequired: -trough, // peak cumulative cash deficit = total to raise
   };
 }
 
@@ -309,7 +296,7 @@ function StepProducts({ s, set }) {
       <div style={{ display: "flex", gap: 18, flexWrap: "wrap" }}>
         <Field label="Wholesale price" hint="What a retailer pays, as % of MSRP. 50% is a standard keystone."><Num value={s.retailPct} suffix="% of MSRP" onChange={(v) => set({ retailPct: v })} /></Field>
         <Field label="Broker / rep fees" hint="Sales-rep commission on wholesale revenue."><Num value={s.brokerFeePct} suffix="% of WS rev" onChange={(v) => set({ brokerFeePct: v })} /></Field>
-        <Field label="Product insurance" hint="Product + liability insurance as % of total revenue."><Num value={s.insurancePct} suffix="% of rev" step="0.1" onChange={(v) => set({ insurancePct: v })} /></Field>
+        <Field label="Product insurance" hint="Flat product + liability insurance, per year."><Num value={s.insurancePerYear} prefix="$" suffix="/ yr" onChange={(v) => set({ insurancePerYear: v })} /></Field>
       </div>
     </Card>
   );
@@ -471,8 +458,52 @@ function PnL({ s }) {
 
   const maxRev = Math.max(...R.map((r) => r.revenue), 1);
 
+  const downloadCSV = () => {
+    const esc = (c) => { const t = String(c); return /[",\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+    const rowFor = (label, fn) => [label, ...R.map((r) => Math.round(fn(r)))];
+    const data = [
+      ["Line item", ...R.map((r) => "Y" + (r.y + 1) + " (" + (s.startYear + r.y) + ")")],
+      rowFor("DTC revenue", (r) => r.dtcRev),
+      rowFor("Wholesale revenue", (r) => r.wsRev),
+      rowFor("Total revenue", (r) => r.revenue),
+      rowFor("COGS", (r) => -r.cogs),
+      rowFor("Gross profit", (r) => r.grossProfit),
+      rowFor("Gross margin %", (r) => pctOf(r.grossProfit, r.revenue)),
+      rowFor("Payroll", (r) => -r.payroll),
+      rowFor("Online marketing", (r) => -r.onlineMk),
+      rowFor("Brand marketing", (r) => -r.brandMk),
+      rowFor("Broker / rep fees", (r) => -r.brokerFees),
+      rowFor("Product insurance", (r) => -r.insurance),
+      rowFor("DTC fulfillment", (r) => -r.dtcFulfill),
+      rowFor("Wholesale freight", (r) => -r.wsFulfill),
+      rowFor("Warehousing & storage", (r) => -r.warehousing),
+      rowFor("Inventory write-off", (r) => -r.writeoff),
+      rowFor("Overhead", (r) => -r.overhead),
+      rowFor("Total operating expenses", (r) => -r.opex),
+      rowFor("EBITDA", (r) => r.ebitda),
+      rowFor("EBITDA margin %", (r) => pctOf(r.ebitda, r.revenue)),
+      rowFor("Headcount", (r) => r.headcount),
+      [],
+      ["Unit economics", "$ / unit", "% margin"],
+      ["DTC unit margin", Math.round(m.dtcUnitMargin), Math.round(m.dtcUnitMarginPct) + "%"],
+      ["Retail unit margin", Math.round(m.retailUnitMargin), Math.round(m.retailUnitMarginPct) + "%"],
+    ];
+    const csv = data.map((r) => r.map(esc).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = (s.bizName || "omnichannel").replace(/[^a-z0-9]+/gi, "-").toLowerCase().replace(/^-|-$/g, "") + "-5yr-pnl.csv";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
+        <Btn variant="line" style={{ padding: "10px 18px", fontSize: 13 }} onClick={downloadCSV}>↓ Download CSV</Btn>
+      </div>
+
       {/* headline cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 22 }}>
         <Card style={{ padding: 20 }}><Stat label="Year 5 revenue" value={money(R[4].revenue)} /></Card>
@@ -480,6 +511,21 @@ function PnL({ s }) {
         <Card style={{ padding: 20 }}><Stat label="5-yr cumulative EBITDA" value={money(m.cumEbitda)} color={m.cumEbitda >= 0 ? POS : NEG} /></Card>
         <Card style={{ padding: 20 }}><Stat label="First profitable year" value={m.firstProfitYear ? "Y" + m.firstProfitYear : "—"} sub={m.firstProfitYear ? "EBITDA positive" : "not within 5 yrs"} /></Card>
       </div>
+
+      {/* unit economics */}
+      <Card style={{ marginBottom: 22 }}>
+        <h3 style={{ fontSize: 15, marginBottom: 14 }}>Unit economics</h3>
+        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 240px", padding: "14px 16px", background: SECTION, borderRadius: 12 }}>
+            <Stat label="DTC unit margin" value={money(m.dtcUnitMargin) + " / unit"} color={m.dtcUnitMargin >= 0 ? POS : NEG}
+              sub={m.dtcUnitMarginPct.toFixed(0) + "% of MSRP · " + money(m.aov) + " price − " + money(m.cogsUnit) + " COGS − fulfillment"} />
+          </div>
+          <div style={{ flex: "1 1 240px", padding: "14px 16px", background: SECTION, borderRadius: 12 }}>
+            <Stat label="Retail (wholesale) unit margin" value={money(m.retailUnitMargin) + " / unit"} color={m.retailUnitMargin >= 0 ? POS : NEG}
+              sub={m.retailUnitMarginPct.toFixed(0) + "% of wholesale · " + money(m.wholesalePrice) + " price − COGS − freight − broker"} />
+          </div>
+        </div>
+      </Card>
 
       {/* revenue vs EBITDA chart */}
       <Card style={{ marginBottom: 22 }}>
@@ -540,45 +586,10 @@ function PnL({ s }) {
           </tbody>
         </table>
       </Card>
-      {/* ── investment / funding ──────────────────────────────────── */}
-      <h2 style={{ fontSize: 23, letterSpacing: -0.4, margin: "38px 0 6px" }}>Investment needed</h2>
-      <p style={{ marginTop: 0, fontSize: 13.5, maxWidth: 660 }}>
-        How much capital it takes to fund the losses <i>and</i> the inventory you carry, until the business pays for itself.
-        Cash flow = EBITDA − inventory investment (working capital). Because inventory is MOQ-aware, large minimums push the number up.
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, margin: "16px 0 18px" }}>
-        <Card style={{ padding: 20, borderColor: ACCENT }}><Stat label="Total capital to raise" value={money(m.capitalRequired)} color={ACCENT} sub="peak cumulative cash gap" /></Card>
-        <Card style={{ padding: 20 }}><Stat label="Cash-flow breakeven" value={m.fcfBreakevenYear ? "Y" + m.fcfBreakevenYear : "—"} sub={m.fcfBreakevenYear ? "free cash flow turns positive" : "not within 5 yrs"} /></Card>
-        <Card style={{ padding: 20 }}><Stat label="EBITDA positive" value={m.firstProfitYear ? "Y" + m.firstProfitYear : "—"} sub="operating profitability" /></Card>
-        <Card style={{ padding: 20 }}><Stat label="Initial inventory buy (MOQ)" value={money(m.initialBuy)} sub={m.totalMOQ.toLocaleString() + " units upfront"} /></Card>
-      </div>
-      <Card style={{ overflowX: "auto", padding: 0 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5, minWidth: 620 }}>
-          <thead>
-            <tr style={{ borderBottom: `2px solid ${LINE}` }}>
-              <th style={{ textAlign: "left", padding: "12px", color: INK, fontWeight: 600 }}>Funding requirement</th>
-              {R.map((r) => <th key={r.y} style={{ textAlign: "right", padding: "12px", color: INK, fontWeight: 600 }}>Y{r.y + 1}</th>)}
-            </tr>
-          </thead>
-          <tbody>
-            <Line label="EBITDA" fn={(r) => r.ebitda} signed sub indent />
-            <Line label="Inventory investment (working capital)" fn={(r) => -r.invInvest} sub indent />
-            <Line label="Free cash flow" fn={(r) => r.fcf} strong signed bold />
-            <Line label="Cumulative cash position" fn={(r) => r.cumCash} signed sub indent />
-            <Line label="Capital required to date" fn={(r) => r.capitalToDate} strong accent />
-          </tbody>
-        </table>
-      </Card>
-      <p style={{ fontSize: 13.5, marginTop: 14, lineHeight: 1.6, maxWidth: 720 }}>
-        Bottom line: raise about <b style={{ color: ACCENT }}>{money(m.capitalRequired)}</b> to fund {s.bizName} through to
-        {m.fcfBreakevenYear ? ` self-sustaining cash flow in Y${m.fcfBreakevenYear}` : " the end of Y5 (it is still burning cash)"}
-        {m.firstProfitYear ? `, with EBITDA turning positive in Y${m.firstProfitYear}.` : ", with EBITDA still negative across all five years."}
-      </p>
-
       <p style={{ fontSize: 11.5, color: MUTED, marginTop: 14, lineHeight: 1.6 }}>
         Model only — illustrative, not financial advice. Revenue, COGS and gross margin use the blended average across your SKUs.
         DTC revenue = (online spend ÷ online CAC + brand spend ÷ brand CAC) × orders/customer × avg MSRP. Wholesale = doors × units/door × wholesale price.
-        Fulfillment, warehousing and write-offs are operating costs; the MOQ-driven inventory buy is working capital (cash), shown in the funding table rather than EBITDA.
+        Unit margins are the brand&rsquo;s take per unit: DTC = MSRP − COGS − fulfillment; retail = wholesale price − COGS − freight − broker fee.
       </p>
     </div>
   );
