@@ -124,7 +124,9 @@ function computeMetrics(s) {
   const downPct = (s.down / s.price) * 100;
   const r = s.rate / 100 / 12;
   const n = s.term * 12;
-  const pi = r > 0 ? (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : loan / n;
+  const amortPI = r > 0 ? (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : loan / n;
+  const ioPI = loan * r; // interest-only: pay the interest, no principal
+  const pi = s.interestOnly ? ioPI : amortPI;
   const pmiMo = downPct < 20 ? (loan * 0.005) / 12 : 0;
 
   const taxMo = s.propTax / 12;
@@ -136,7 +138,7 @@ function computeMetrics(s) {
   const trueAllInMo = piti + maintMo + utilMo;
 
   const cashToClose = s.down + s.closing + s.prepaids;
-  return { loan, downPct, pi, pmiMo, taxMo, insMo, piti, maintMo, utilMo, trueAllInMo, cashToClose };
+  return { loan, downPct, pi, amortPI, ioPI, pmiMo, taxMo, insMo, piti, maintMo, utilMo, trueAllInMo, cashToClose };
 }
 
 function Calculator() {
@@ -145,6 +147,7 @@ function Calculator() {
   const [down, setDown] = useState(145800);     // 20% → no PMI, $583,200 loan
   const [rate, setRate] = useState(6.25);
   const [term, setTerm] = useState(30);
+  const [interestOnly, setInterestOnly] = useState(false);
 
   // Carrying costs
   const [propTax, setPropTax] = useState(11700);   // est ~1.6% — listing didn't publish taxes
@@ -158,8 +161,8 @@ function Calculator() {
   const [electric, setElectric] = useState(2000);
   const [internet, setInternet] = useState(840);
 
-  const inputs = { price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet };
-  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+  const inputs = { price, down, rate, term, interestOnly, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet };
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, interestOnly, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
 
   const segs = [
     { label: "Mortgage (P&I)", v: m.pi, c: GOLD_FILL },
@@ -204,7 +207,7 @@ function Calculator() {
 
         {/* TOP SUMMARY */}
         <div style={{ background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)", border: `1px solid ${LINE}`, borderRadius: 18, padding: "28px 30px", marginBottom: 24, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", boxShadow: SHADOW }}>
-          <BigStat label="Monthly payment (PITI)" value={`${fmt(m.piti)}/mo`} color={GOLD} sub={`P&I ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`} />
+          <BigStat label={interestOnly ? "Monthly payment (interest-only)" : "Monthly payment (PITI)"} value={`${fmt(m.piti)}/mo`} color={GOLD} sub={`${interestOnly ? "Interest" : "P&I"} ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`} />
           <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
           <BigStat label="True monthly cost to own" value={`${fmt(m.trueAllInMo)}/mo`} sub={`+ maintenance reserve ${fmt(m.maintMo)} + utilities ${fmt(m.utilMo)}`} />
           <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
@@ -217,10 +220,20 @@ function Calculator() {
             <Slider label="Purchase price" value={price} min={500000} max={950000} step={5000} onChange={setPrice} format={fmt} hint="Listed at $729,000 — adjust to model an offer above or below ask." />
             <Slider label="Down payment" value={down} min={0} max={Math.min(450000, price)} step={5000} onChange={setDown} format={(v) => `${fmt(v)}  ·  ${pct((v / price) * 100)}`} hint="20% ($145,800) clears PMI. Below 20%, PMI (~0.5%/yr of the loan) applies automatically." />
             <Slider label="Mortgage rate" value={rate} min={5} max={9} step={0.05} onChange={setRate} format={(v) => `${v.toFixed(2)}%`} hint="Estimate. 30-yr fixed conventional; get a real quote." />
-            <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
               {[15, 30].map((t) => (
                 <button key={t} onClick={() => setTerm(t)} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${term === t ? GOLD : LINE}`, background: term === t ? "rgba(201,162,75,0.15)" : "transparent", color: term === t ? GOLD : MUTED, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{t}-year</button>
               ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 4 }}>
+              {[{ k: false, l: "Amortizing" }, { k: true, l: "Interest-only" }].map((o) => (
+                <button key={o.l} onClick={() => setInterestOnly(o.k)} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${interestOnly === o.k ? GOLD : LINE}`, background: interestOnly === o.k ? "rgba(201,162,75,0.15)" : "transparent", color: interestOnly === o.k ? GOLD : MUTED, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{o.l}</button>
+              ))}
+            </div>
+            <div style={{ color: MUTED, fontSize: 11, marginTop: 8 }}>
+              {interestOnly
+                ? `Interest-only: ${fmt(m.ioPI)}/mo, but you build $0 equity — the ${fmt(m.loan)} balance never amortizes. The ${term}-yr amortizing payment would be ${fmt(m.amortPI)}/mo (${fmt(m.amortPI - m.ioPI)}/mo more, going to principal).`
+                : `Amortizing ${term}-yr: ${fmt(m.amortPI)}/mo, building equity from day one. Interest-only would drop the payment to ${fmt(m.ioPI)}/mo — ${fmt(m.amortPI - m.ioPI)}/mo less, but $0 equity.`}
             </div>
           </Panel>
 
@@ -247,7 +260,7 @@ function Calculator() {
                 </div>
               ))}
             </div>
-            <Row label="Principal & interest" value={`${fmt(m.pi)}/mo`} />
+            <Row label={interestOnly ? "Interest only" : "Principal & interest"} sub={interestOnly ? "no principal · $0 equity" : null} value={`${fmt(m.pi)}/mo`} />
             <Row label="Property tax" value={`${fmt(m.taxMo)}/mo`} />
             <Row label="Home insurance" value={`${fmt(m.insMo)}/mo`} />
             {m.pmiMo > 0 && <Row label="PMI" sub="below 20% down" value={`${fmt(m.pmiMo)}/mo`} color={NEG} />}

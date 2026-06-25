@@ -316,7 +316,9 @@ function computeMetrics(s) {
   const downPct = s.down / s.price * 100;
   const r = s.rate / 100 / 12;
   const n = s.term * 12;
-  const pi = r > 0 ? loan * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1) : loan / n;
+  const amortPI = r > 0 ? loan * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1) : loan / n;
+  const ioPI = loan * r; // interest-only: pay the interest, no principal
+  const pi = s.interestOnly ? ioPI : amortPI;
   const pmiMo = downPct < 20 ? loan * 0.005 / 12 : 0;
   const taxMo = s.propTax / 12;
   const insMo = s.insurance / 12;
@@ -329,6 +331,8 @@ function computeMetrics(s) {
     loan,
     downPct,
     pi,
+    amortPI,
+    ioPI,
     pmiMo,
     taxMo,
     insMo,
@@ -345,6 +349,7 @@ function Calculator() {
   const [down, setDown] = useState(145800); // 20% → no PMI, $583,200 loan
   const [rate, setRate] = useState(6.25);
   const [term, setTerm] = useState(30);
+  const [interestOnly, setInterestOnly] = useState(false);
 
   // Carrying costs
   const [propTax, setPropTax] = useState(11700); // est ~1.6% — listing didn't publish taxes
@@ -362,6 +367,7 @@ function Calculator() {
     down,
     rate,
     term,
+    interestOnly,
     propTax,
     insurance,
     closing,
@@ -371,7 +377,7 @@ function Calculator() {
     electric,
     internet
   };
-  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, interestOnly, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
   const segs = [{
     label: "Mortgage (P&I)",
     v: m.pi,
@@ -521,10 +527,10 @@ function Calculator() {
       boxShadow: SHADOW
     }
   }, /*#__PURE__*/React.createElement(BigStat, {
-    label: "Monthly payment (PITI)",
+    label: interestOnly ? "Monthly payment (interest-only)" : "Monthly payment (PITI)",
     value: `${fmt(m.piti)}/mo`,
     color: GOLD,
-    sub: `P&I ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`
+    sub: `${interestOnly ? "Interest" : "P&I"} ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 1,
@@ -581,7 +587,7 @@ function Calculator() {
     style: {
       display: "flex",
       gap: 8,
-      marginBottom: 4
+      marginBottom: 10
     }
   }, [15, 30].map(t => /*#__PURE__*/React.createElement("button", {
     key: t,
@@ -598,7 +604,40 @@ function Calculator() {
       fontSize: 14,
       cursor: "pointer"
     }
-  }, t, "-year")))), /*#__PURE__*/React.createElement(Panel, {
+  }, t, "-year"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 4
+    }
+  }, [{
+    k: false,
+    l: "Amortizing"
+  }, {
+    k: true,
+    l: "Interest-only"
+  }].map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.l,
+    onClick: () => setInterestOnly(o.k),
+    style: {
+      flex: 1,
+      padding: "10px 0",
+      borderRadius: 8,
+      border: `1px solid ${interestOnly === o.k ? GOLD : LINE}`,
+      background: interestOnly === o.k ? "rgba(201,162,75,0.15)" : "transparent",
+      color: interestOnly === o.k ? GOLD : MUTED,
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 600,
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, o.l))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 11,
+      marginTop: 8
+    }
+  }, interestOnly ? `Interest-only: ${fmt(m.ioPI)}/mo, but you build $0 equity — the ${fmt(m.loan)} balance never amortizes. The ${term}-yr amortizing payment would be ${fmt(m.amortPI)}/mo (${fmt(m.amortPI - m.ioPI)}/mo more, going to principal).` : `Amortizing ${term}-yr: ${fmt(m.amortPI)}/mo, building equity from day one. Interest-only would drop the payment to ${fmt(m.ioPI)}/mo — ${fmt(m.amortPI - m.ioPI)}/mo less, but $0 equity.`)), /*#__PURE__*/React.createElement(Panel, {
     kicker: "Carrying Costs",
     title: "Taxes, insurance & closing",
     accent: `linear-gradient(90deg, ${GOLD_DIM}, transparent)`
@@ -674,7 +713,8 @@ function Calculator() {
       color: TEXT
     }
   }, fmt(s.v))))), /*#__PURE__*/React.createElement(Row, {
-    label: "Principal & interest",
+    label: interestOnly ? "Interest only" : "Principal & interest",
+    sub: interestOnly ? "no principal · $0 equity" : null,
     value: `${fmt(m.pi)}/mo`
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Property tax",
