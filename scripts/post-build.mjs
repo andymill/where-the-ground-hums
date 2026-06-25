@@ -41,6 +41,7 @@ fs.writeFileSync(
 /mortgage              /mortgage/index.html             200
 /mortgage/gingko       /mortgage/gingko/index.html      200
 /mortgage/deer-park    /mortgage/deer-park/index.html   200
+/mortgage/newfane      /mortgage/newfane/index.html     200
 
 # Clean URL for the renovation review page. Source lives in renovation/ at
 # the project root; copied to dist/renovation/ below.
