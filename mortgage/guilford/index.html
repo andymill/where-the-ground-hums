@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>160 Akley Rd, Guilford, VT 05301</title>
+  <meta name="description" content="Timber-frame home on Broad Brook — finance calculator, map & photos" />
+  <link rel="stylesheet" href="/mortgage/vendor/leaflet.css" />
+  <style>
+    html, body { margin: 0; padding: 0; min-height: 100%; background: #F6F2E9; }
+    * { box-sizing: border-box; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .two-col-tight { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
+    .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    @media (max-width: 760px) {
+      .two-col, .two-col-tight { grid-template-columns: 1fr; gap: 16px; }
+      .gallery { grid-template-columns: 1fr 1fr; }
+      .calc-wrap { padding: 20px 14px !important; }
+    }
+    .leaflet-container { border-radius: 14px; }
+  </style>
+  <script src="/mortgage/vendor/react.production.min.js"></script>
+  <script src="/mortgage/vendor/react-dom.production.min.js"></script>
+  <script src="/mortgage/vendor/leaflet.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+const {
+  useState,
+  useMemo,
+  useEffect
+} = React;
+
+// ---------------------------------------------------------------------------
+// 160 Akley Rd, Guilford VT — timber-frame home on Broad Brook.
+// 3BR / 2.5BA, ~2,182 sqft, built 2000, on 13.8 wooded acres. Single-family
+// cost-to-own calculator + an interactive parcel map and photo gallery.
+// Zestimate ~$567K (last sold $319K in 2018). Coords 42.8331, -72.6444.
+// ---------------------------------------------------------------------------
+
+const GOLD = "#A07B2B";
+const GOLD_FILL = "#C9A24B";
+const GOLD_DIM = "#8A7338";
+const BG = "#F6F2E9";
+const PANEL = "#FFFFFF";
+const PANEL_2 = "#F3EFE4";
+const LINE = "#E4DECE";
+const TEXT = "#262219";
+const MUTED = "#8C8472";
+const POS = "#4E8A46";
+const NEG = "#B45438";
+const SHADOW = "0 1px 2px rgba(60,50,20,0.05), 0 10px 30px rgba(60,50,20,0.05)";
+const HOUSE = [42.833089, -72.644426];
+// Approximate parcel outline (~13.8 ac) traced loosely from the parcel map —
+// illustrative only; see the surveyed parcel map below for the real lines.
+const BOUNDARY = [[42.8356, -72.6452], [42.8357, -72.6438], [42.8341, -72.6432], [42.8337, -72.6412], [42.8330, -72.6411], [42.8330, -72.6451], [42.8345, -72.6457]];
+const fmt = n => isFinite(n) ? n.toLocaleString("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 0
+}) : "—";
+const pct = n => isFinite(n) ? `${n.toFixed(1)}%` : "—";
+function Slider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  format,
+  hint
+}) {
+  const fillPct = (value - min) / (max - min) * 100;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: MUTED,
+      fontSize: 13,
+      letterSpacing: 0.3
+    }
+  }, label), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: GOLD,
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 600,
+      fontSize: 17
+    }
+  }, format(value))), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: min,
+    max: max,
+    step: step,
+    value: value,
+    onChange: e => onChange(parseFloat(e.target.value)),
+    style: {
+      width: "100%",
+      height: 5,
+      borderRadius: 4,
+      appearance: "none",
+      WebkitAppearance: "none",
+      outline: "none",
+      background: `linear-gradient(90deg, ${GOLD_FILL} 0%, ${GOLD_FILL} ${fillPct}%, ${LINE} ${fillPct}%, ${LINE} 100%)`,
+      cursor: "pointer"
+    }
+  }), hint && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 11,
+      marginTop: 6
+    }
+  }, hint));
+}
+function NumField({
+  label,
+  value,
+  onChange,
+  hint,
+  prefix = "$"
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 12,
+      marginBottom: 6,
+      letterSpacing: 0.3
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      background: PANEL_2,
+      border: `1px solid ${LINE}`,
+      borderRadius: 8,
+      padding: "8px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 14,
+      marginRight: 6
+    }
+  }, prefix), /*#__PURE__*/React.createElement("input", {
+    type: "number",
+    value: value,
+    onChange: e => onChange(parseFloat(e.target.value) || 0),
+    style: {
+      background: "transparent",
+      border: "none",
+      outline: "none",
+      color: TEXT,
+      fontSize: 15,
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 500,
+      width: "100%"
+    }
+  })), hint && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 11,
+      marginTop: 5
+    }
+  }, hint));
+}
+function Panel({
+  title,
+  kicker,
+  children,
+  accent
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: PANEL,
+      border: `1px solid ${LINE}`,
+      borderRadius: 16,
+      padding: "26px 26px 22px",
+      position: "relative",
+      overflow: "hidden",
+      boxShadow: SHADOW
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: 3,
+      background: accent || `linear-gradient(90deg, ${GOLD_FILL}, transparent)`
+    }
+  }), kicker && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 11,
+      letterSpacing: 2,
+      textTransform: "uppercase",
+      marginBottom: 4
+    }
+  }, kicker), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 700,
+      fontSize: 20,
+      color: TEXT,
+      margin: "0 0 20px"
+    }
+  }, title), children);
+}
+function Row({
+  label,
+  value,
+  color,
+  strong,
+  sub
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "baseline",
+      padding: "7px 0",
+      borderBottom: `1px solid ${LINE}`
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: strong ? TEXT : MUTED,
+      fontSize: strong ? 14 : 13,
+      fontWeight: strong ? 600 : 400
+    }
+  }, label, sub && /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: MUTED,
+      fontSize: 11,
+      marginLeft: 6,
+      opacity: 0.8
+    }
+  }, sub)), /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: color || TEXT,
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: strong ? 700 : 500,
+      fontSize: strong ? 16 : 14
+    }
+  }, value));
+}
+function BigStat({
+  label,
+  value,
+  color,
+  sub
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: "1 1 0",
+      minWidth: 150
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 12,
+      letterSpacing: 0.5,
+      marginBottom: 6
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 800,
+      fontSize: 30,
+      color: color || TEXT,
+      lineHeight: 1
+    }
+  }, value), sub && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 12,
+      marginTop: 6
+    }
+  }, sub));
+}
+function Chip({
+  label,
+  value
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: PANEL,
+      border: `1px solid ${LINE}`,
+      borderRadius: 10,
+      padding: "10px 14px",
+      flex: "1 1 0",
+      minWidth: 110
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 10.5,
+      letterSpacing: 0.5,
+      textTransform: "uppercase"
+    }
+  }, label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: TEXT,
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 700,
+      fontSize: 16,
+      marginTop: 3
+    }
+  }, value));
+}
+function computeMetrics(s) {
+  const loan = Math.max(0, s.price - s.down);
+  const downPct = s.down / s.price * 100;
+  const r = s.rate / 100 / 12;
+  const n = s.term * 12;
+  const pi = r > 0 ? loan * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1) : loan / n;
+  const pmiMo = downPct < 20 ? loan * 0.005 / 12 : 0;
+  const taxMo = s.propTax / 12;
+  const insMo = s.insurance / 12;
+  const piti = pi + taxMo + insMo + pmiMo;
+  const maintMo = s.price * (s.maintPct / 100) / 12;
+  const utilMo = (s.heat + s.electric + s.internet) / 12;
+  const trueAllInMo = piti + maintMo + utilMo;
+  const cashToClose = s.down + s.closing + s.prepaids;
+  return {
+    loan,
+    downPct,
+    pi,
+    pmiMo,
+    taxMo,
+    insMo,
+    piti,
+    maintMo,
+    utilMo,
+    trueAllInMo,
+    cashToClose
+  };
+}
+
+// Interactive Leaflet map — aerial / street toggle, marker, approx boundary
+function ParcelMap() {
+  useEffect(() => {
+    if (typeof L === "undefined" || document.getElementById("akley-map")._leaflet_id) return;
+    const map = L.map("akley-map", {
+      scrollWheelZoom: false
+    });
+    const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19,
+      attribution: "Imagery © Esri"
+    }).addTo(map);
+    const vt = L.tileLayer("https://maps.vcgi.vermont.gov/arcgis/rest/services/EGC_services/IMG_VCGI_CLR2024_WM_CACHE/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19,
+      attribution: "VT orthoimagery © VCGI"
+    });
+    const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap"
+    });
+    L.control.layers({
+      "Satellite (Esri)": esri,
+      "VT aerial 2024": vt,
+      "Street map": osm
+    }).addTo(map);
+    const poly = L.polygon(BOUNDARY, {
+      color: "#C9A24B",
+      weight: 2.5,
+      dashArray: "6 5",
+      fillColor: "#C9A24B",
+      fillOpacity: 0.10
+    }).addTo(map);
+    L.circleMarker(HOUSE, {
+      radius: 8,
+      color: "#fff",
+      weight: 2,
+      fillColor: "#B45438",
+      fillOpacity: 1
+    }).addTo(map).bindPopup("160 Akley Rd — timber-frame home on Broad Brook");
+    map.fitBounds(poly.getBounds(), {
+      padding: [24, 24]
+    });
+    return () => map.remove();
+  }, []);
+  return /*#__PURE__*/React.createElement("div", {
+    id: "akley-map",
+    style: {
+      height: 440,
+      width: "100%",
+      border: `1px solid ${LINE}`,
+      boxShadow: SHADOW
+    }
+  });
+}
+function Calculator() {
+  const [price, setPrice] = useState(567000); // Zestimate; last sold $319K (2018)
+  const [down, setDown] = useState(113400); // 20% → no PMI
+  const [rate, setRate] = useState(6.25);
+  const [term, setTerm] = useState(30);
+  const [propTax, setPropTax] = useState(9600); // est ~1.7% — confirm the VT bill
+  const [insurance, setInsurance] = useState(2400);
+  const [closing, setClosing] = useState(13500);
+  const [prepaids, setPrepaids] = useState(5000);
+  const [maintPct, setMaintPct] = useState(1);
+  const [heat, setHeat] = useState(3500); // wood stove + baseboard
+  const [electric, setElectric] = useState(1800);
+  const [internet, setInternet] = useState(840);
+  const inputs = {
+    price,
+    down,
+    rate,
+    term,
+    propTax,
+    insurance,
+    closing,
+    prepaids,
+    maintPct,
+    heat,
+    electric,
+    internet
+  };
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+  const segs = [{
+    label: "Mortgage (P&I)",
+    v: m.pi,
+    c: GOLD_FILL
+  }, {
+    label: "PMI",
+    v: m.pmiMo,
+    c: "#D87652"
+  }, {
+    label: "Property tax",
+    v: m.taxMo,
+    c: "#B8863C"
+  }, {
+    label: "Insurance",
+    v: m.insMo,
+    c: "#9E6F33"
+  }, {
+    label: "Maint. reserve",
+    v: m.maintMo,
+    c: "#A89A7A"
+  }, {
+    label: "Utilities",
+    v: m.utilMo,
+    c: "#7E5E3A"
+  }];
+  const gallery = [{
+    src: "/mortgage/guilford/img/photo-02.webp",
+    cap: "Front exterior — timber-frame, into the hillside"
+  }, {
+    src: "/mortgage/guilford/img/photo-03.webp",
+    cap: "Rear elevation & deck"
+  }, {
+    src: "/mortgage/guilford/img/photo-04.webp",
+    cap: "Brook side — the bay windows over Broad Brook"
+  }, {
+    src: "/mortgage/guilford/img/photo-05.webp",
+    cap: "Timber-frame living room & wood stove"
+  }, {
+    src: "/mortgage/guilford/img/photo-06.webp",
+    cap: "Broad Brook, running through the woods"
+  }, {
+    src: "/mortgage/guilford/img/photo-07.webp",
+    cap: "The grounds"
+  }, {
+    src: "/mortgage/guilford/img/photo-08.webp",
+    cap: "Grounds & setting"
+  }, {
+    src: "/mortgage/guilford/img/photo-09.webp",
+    cap: "Grounds & setting"
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "calc-wrap",
+    style: {
+      background: BG,
+      minHeight: "100%",
+      padding: "32px 20px",
+      fontFamily: "'Funnel Sans', sans-serif"
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `@import url('https://fonts.googleapis.com/css2?family=Funnel+Display:wght@400;500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700&display=swap');
+        input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%; background:${GOLD_FILL}; border:3px solid ${PANEL}; box-shadow:0 0 0 1px ${GOLD_FILL}, 0 1px 3px rgba(0,0,0,0.2); cursor:pointer; }
+        input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:${GOLD_FILL}; border:3px solid ${PANEL}; box-shadow:0 0 0 1px ${GOLD_FILL}; cursor:pointer; }
+        input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+      `), /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxWidth: 1040,
+      margin: "0 auto"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("a", {
+    href: "/mortgage/",
+    style: {
+      display: "inline-block",
+      marginBottom: 12,
+      color: GOLD_DIM,
+      fontSize: 12,
+      letterSpacing: 1,
+      textDecoration: "none"
+    }
+  }, "← All houses"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 12,
+      letterSpacing: 3,
+      textTransform: "uppercase"
+    }
+  }, "Timber-frame · 13.8 acres on Broad Brook · Guilford VT"), /*#__PURE__*/React.createElement("h1", {
+    style: {
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 800,
+      fontSize: 34,
+      color: TEXT,
+      margin: "8px 0 6px",
+      letterSpacing: -0.5,
+      lineHeight: 1.1
+    }
+  }, "160 Akley Rd, Guilford, VT 05301"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: MUTED,
+      fontSize: 15,
+      margin: 0,
+      maxWidth: 660
+    }
+  }, "A one-owner ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: GOLD
+    }
+  }, "timber-frame"), " home built in 2000, nestled into the hillside on 13.8 wooded acres with ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: GOLD
+    }
+  }, "Broad Brook"), " running below — the living-room and primary windows look down onto it like a treehouse.")), /*#__PURE__*/React.createElement("img", {
+    src: "/mortgage/guilford/img/photo-02.webp",
+    alt: "160 Akley Rd — front exterior",
+    loading: "lazy",
+    style: {
+      width: "100%",
+      height: 420,
+      objectFit: "cover",
+      borderRadius: 16,
+      border: `1px solid ${LINE}`,
+      boxShadow: SHADOW,
+      marginBottom: 22
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 22
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 11,
+      letterSpacing: 1.5,
+      textTransform: "uppercase",
+      marginBottom: 8
+    }
+  }, "From the listing · MLS# 4710864"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement(Chip, {
+    label: "Zestimate",
+    value: "$567,000"
+  }), /*#__PURE__*/React.createElement(Chip, {
+    label: "$/sqft",
+    value: "$260"
+  }), /*#__PURE__*/React.createElement(Chip, {
+    label: "Lot",
+    value: "13.8 ac"
+  }), /*#__PURE__*/React.createElement(Chip, {
+    label: "Per acre",
+    value: fmt(price / 13.8)
+  }), /*#__PURE__*/React.createElement(Chip, {
+    label: "Beds / baths",
+    value: "3 / 2.5"
+  }), /*#__PURE__*/React.createElement(Chip, {
+    label: "Built",
+    value: "2000"
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 11,
+      marginTop: 8
+    }
+  }, "~2,182 sqft · timber-frame · last sold ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: TEXT
+    }
+  }, "$319,000 (2018)"), "; $567K is the current Zestimate. Property tax & heating below are estimates — confirm them.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)",
+      border: `1px solid ${LINE}`,
+      borderRadius: 18,
+      padding: "28px 30px",
+      marginBottom: 24,
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 24,
+      alignItems: "center",
+      boxShadow: SHADOW
+    }
+  }, /*#__PURE__*/React.createElement(BigStat, {
+    label: "Monthly payment (PITI)",
+    value: `${fmt(m.piti)}/mo`,
+    color: GOLD,
+    sub: `P&I ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      alignSelf: "stretch",
+      background: LINE
+    }
+  }), /*#__PURE__*/React.createElement(BigStat, {
+    label: "True monthly cost to own",
+    value: `${fmt(m.trueAllInMo)}/mo`,
+    sub: `+ maintenance reserve ${fmt(m.maintMo)} + utilities ${fmt(m.utilMo)}`
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      alignSelf: "stretch",
+      background: LINE
+    }
+  }), /*#__PURE__*/React.createElement(BigStat, {
+    label: "Cash needed to close",
+    value: fmt(m.cashToClose),
+    sub: `${fmt(down)} down (${pct(m.downPct)}) + ${fmt(closing + prepaids)} closing & prepaids`
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "two-col"
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "The Purchase",
+    title: "Loan terms"
+  }, /*#__PURE__*/React.createElement(Slider, {
+    label: "Purchase price",
+    value: price,
+    min: 350000,
+    max: 800000,
+    step: 5000,
+    onChange: setPrice,
+    format: fmt,
+    hint: "Defaulted to the ~$567K Zestimate; adjust to an actual ask or offer."
+  }), /*#__PURE__*/React.createElement(Slider, {
+    label: "Down payment",
+    value: down,
+    min: 0,
+    max: Math.min(400000, price),
+    step: 5000,
+    onChange: setDown,
+    format: v => `${fmt(v)}  ·  ${pct(v / price * 100)}`,
+    hint: "20% clears PMI; below that, PMI (~0.5%/yr of the loan) applies automatically."
+  }), /*#__PURE__*/React.createElement(Slider, {
+    label: "Mortgage rate",
+    value: rate,
+    min: 5,
+    max: 9,
+    step: 0.05,
+    onChange: setRate,
+    format: v => `${v.toFixed(2)}%`,
+    hint: "Estimate. 30-yr fixed conventional."
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, [15, 30].map(t => /*#__PURE__*/React.createElement("button", {
+    key: t,
+    onClick: () => setTerm(t),
+    style: {
+      flex: 1,
+      padding: "10px 0",
+      borderRadius: 8,
+      border: `1px solid ${term === t ? GOLD : LINE}`,
+      background: term === t ? "rgba(201,162,75,0.15)" : "transparent",
+      color: term === t ? GOLD : MUTED,
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 600,
+      fontSize: 14,
+      cursor: "pointer"
+    }
+  }, t, "-year")))), /*#__PURE__*/React.createElement(Panel, {
+    kicker: "Carrying Costs",
+    title: "Taxes, insurance & closing",
+    accent: `linear-gradient(90deg, ${GOLD_DIM}, transparent)`
+  }, /*#__PURE__*/React.createElement(NumField, {
+    label: "Property tax (annual)",
+    value: propTax,
+    onChange: setPropTax,
+    hint: "Estimate (~1.7%). Confirm the actual Guilford / VT bill."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Home insurance (annual)",
+    value: insurance,
+    onChange: setInsurance,
+    hint: "Estimate — get a real quote (wood stove may affect it)."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Closing costs",
+    value: closing,
+    onChange: setClosing,
+    hint: "Estimate (~2.4%): title, VT transfer tax, lender + recording fees."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Prepaids & reserves",
+    value: prepaids,
+    onChange: setPrepaids,
+    hint: "Estimate: prepaid interest + tax/insurance escrow."
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "Where the money goes",
+    title: "Monthly cost breakdown"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      height: 30,
+      borderRadius: 8,
+      overflow: "hidden",
+      marginBottom: 16,
+      border: `1px solid ${LINE}`
+    }
+  }, segs.map((s, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    title: `${s.label}: ${fmt(s.v)}`,
+    style: {
+      width: `${s.v / m.trueAllInMo * 100}%`,
+      background: s.c
+    }
+  }))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: "4px 20px",
+      marginBottom: 18
+    }
+  }, segs.map((s, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 7,
+      fontSize: 12,
+      color: MUTED
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      width: 10,
+      height: 10,
+      borderRadius: 2,
+      background: s.c,
+      display: "inline-block"
+    }
+  }), s.label, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: TEXT
+    }
+  }, fmt(s.v))))), /*#__PURE__*/React.createElement(Row, {
+    label: "Principal & interest",
+    value: `${fmt(m.pi)}/mo`
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Property tax",
+    value: `${fmt(m.taxMo)}/mo`
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Home insurance",
+    value: `${fmt(m.insMo)}/mo`
+  }), m.pmiMo > 0 && /*#__PURE__*/React.createElement(Row, {
+    label: "PMI",
+    sub: "below 20% down",
+    value: `${fmt(m.pmiMo)}/mo`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Lender payment (PITI)",
+    value: `${fmt(m.piti)}/mo`,
+    strong: true,
+    color: GOLD
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "+ Maintenance reserve",
+    sub: `${maintPct}% of value / yr`,
+    value: `${fmt(m.maintMo)}/mo`
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "+ Utilities",
+    sub: "heat, electric, internet",
+    value: `${fmt(m.utilMo)}/mo`
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "True all-in cost to own",
+    value: `${fmt(m.trueAllInMo)}/mo`,
+    strong: true,
+    color: GOLD
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "two-col",
+    style: {
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "Cost to own",
+    title: "Upkeep & utilities",
+    accent: `linear-gradient(90deg, ${POS}, transparent)`
+  }, /*#__PURE__*/React.createElement(Slider, {
+    label: "Maintenance / capex reserve",
+    value: maintPct,
+    min: 0,
+    max: 3,
+    step: 0.25,
+    onChange: setMaintPct,
+    format: v => `${v}% of value  ·  ${fmt(price * v / 100)}/yr`,
+    hint: "A 2000-build is newer than the antiques — ~1%/yr is a fair starting reserve."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Heat (annual)",
+    value: heat,
+    onChange: setHeat,
+    hint: "Wood stove + baseboard. Placeholder — confirm the system & fuel."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Electricity (annual)",
+    value: electric,
+    onChange: setElectric,
+    hint: "Placeholder."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Internet (annual)",
+    value: internet,
+    onChange: setInternet,
+    hint: "Rural Guilford — confirm service."
+  })), /*#__PURE__*/React.createElement(Panel, {
+    kicker: "The Property",
+    title: "Listing details",
+    accent: `linear-gradient(90deg, ${GOLD_DIM}, transparent)`
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "two-col-tight",
+    style: {
+      rowGap: 0
+    }
+  }, /*#__PURE__*/React.createElement(Row, {
+    label: "Type",
+    value: "Single Family"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Style",
+    value: "Timber-frame"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Year built",
+    value: "2000"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Bedrooms",
+    value: "3"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Bathrooms",
+    value: "2.5"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Finished area",
+    value: "2,182 sqft"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Lot size",
+    value: "13.8 acres"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "$/sqft",
+    sub: "at Zestimate",
+    value: "$260"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Water",
+    value: "Broad Brook"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Heat",
+    value: "Wood + baseboard"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Town",
+    value: "Guilford"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "MLS",
+    value: "4710864"
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "Where it sits",
+    title: "Map & property boundary",
+    accent: `linear-gradient(90deg, ${GOLD_DIM}, transparent)`
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      color: MUTED,
+      fontSize: 12.5,
+      lineHeight: 1.5
+    }
+  }, "Pan/zoom the interactive map; switch between satellite, Vermont's 2024 aerial, and a street map. The pin marks the house and the dashed outline is an ", /*#__PURE__*/React.createElement("em", null, "approximate"), " 13.8-acre parcel — see the surveyed parcel & contour map below it for the real lines. Broad Brook runs along the lower edge by Akley Road."), /*#__PURE__*/React.createElement(ParcelMap, null), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 10.5,
+      letterSpacing: 1.5,
+      textTransform: "uppercase",
+      marginBottom: 8
+    }
+  }, "Surveyed parcel & contour map"), /*#__PURE__*/React.createElement("a", {
+    href: "/mortgage/guilford/img/photo-01.webp",
+    target: "_blank",
+    rel: "noreferrer"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/mortgage/guilford/img/photo-01.webp",
+    alt: "Parcel boundary and contour map showing Broad Brook along Akley Road",
+    loading: "lazy",
+    style: {
+      width: "100%",
+      borderRadius: 12,
+      border: `1px solid ${LINE}`,
+      display: "block"
+    }
+  }))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "The Property",
+    title: "Photos"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "gallery"
+  }, gallery.map((g, i) => /*#__PURE__*/React.createElement("a", {
+    key: i,
+    href: g.src,
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      textDecoration: "none"
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: g.src,
+    alt: g.cap,
+    loading: "lazy",
+    style: {
+      width: "100%",
+      aspectRatio: "4 / 3",
+      objectFit: "cover",
+      borderRadius: 10,
+      border: `1px solid ${LINE}`,
+      display: "block"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: MUTED,
+      marginTop: 5,
+      lineHeight: 1.35
+    }
+  }, g.cap)))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "From the listing",
+    title: "About the home",
+    accent: `linear-gradient(90deg, ${MUTED}, transparent)`
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: TEXT,
+      fontSize: 13.5,
+      lineHeight: 1.65,
+      margin: 0
+    }
+  }, "A one-owner, 3-bedroom, 2.5-bath timber-frame home built in 2000, nestled into the hillside along Broad Brook. Prominent windows in the living room and primary bedroom make you feel as though you're in a treehouse looking down onto the brook. The open-concept first floor has a kitchen with a granite-topped island, a stainless 5-burner gas range and double electric oven, and a dining and living area that flow to the south and west with French doors out to a cedar deck and the back yard. Exposed timber framing, hardwood floors, and a wood stove run throughout — set on 13.8 wooded, sloping acres."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 11.5,
+      marginTop: 16,
+      lineHeight: 1.6,
+      borderTop: `1px solid ${LINE}`,
+      paddingTop: 14
+    }
+  }, "Source: PrimeMLS · MLS# 4710864 · last sold $319,000 (Oct 2018); $567K is the current Zestimate. Tax, insurance, heating and closing figures are estimates unless noted — verify independently. Parcel outline on the interactive map is approximate; the surveyed map shows the real lines. Estimate only, not financial advice.")))));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(Calculator, null));
+  </script>
+</body>
+</html>
