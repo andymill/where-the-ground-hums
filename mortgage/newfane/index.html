@@ -680,13 +680,22 @@ function Calculator() {
     style: {
       color: GOLD
     }
-  }, fmt(m.ioPI * 12), "/yr"), " (~", fmt(m.ioPI), "/mo). $0 down, no PMI, no bank. You build equity only by paying him ", /*#__PURE__*/React.createElement("em", null, "more"), " than the interest — the extra pays down the balance."), /*#__PURE__*/React.createElement("div", {
+  }, fmt(m.ioPI * 12), "/yr"), " (~", fmt(m.ioPI), "/mo). $0 down, no PMI, no bank."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      color: MUTED
+    }
+  }, /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: TEXT
+    }
+  }, "Interest-only note:"), " the ", fmt(price), " principal stays outstanding and is repaid later — as a balloon at the note's maturity, a refinance, a sale, or through his estate. You only build equity by paying him ", /*#__PURE__*/React.createElement("em", null, "more"), " than the interest; the extra pays down the balance."), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8,
       fontSize: 11,
       color: MUTED
     }
-  }, "The IRS resets the AFR monthly — confirm the current long-term rate when you set up the note. Switch to “Bank · amortizing” to compare against a conventional mortgage."))), /*#__PURE__*/React.createElement(Panel, {
+  }, "The AFR is locked when the note is signed (then the IRS resets it monthly for new loans), so confirm the current long-term rate at signing. Keep it a real written note with intent to repay. Switch to “Bank · amortizing” to compare against a conventional mortgage."))), /*#__PURE__*/React.createElement(Panel, {
     kicker: "Carrying Costs",
     title: "Taxes, insurance & closing",
     accent: `linear-gradient(90deg, ${GOLD_DIM}, transparent)`
