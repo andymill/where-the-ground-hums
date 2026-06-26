@@ -376,6 +376,17 @@ function Calculator() {
   const [heat, setHeat] = useState(4500); // est — large old Cape in VT
   const [electric, setElectric] = useState(2000);
   const [internet, setInternet] = useState(840);
+
+  // Winter-Airbnb business plan — live here in summer, rent it Dec–Mar
+  const [winterNights, setWinterNights] = useState(120); // nights available to rent (the winter window)
+  const [nightly, setNightly] = useState(650); // blended winter nightly rate
+  const [occ, setOcc] = useState(45); // % of winter nights actually booked
+  const [mgmtPct, setMgmtPct] = useState(15); // co-host / property management
+  const [winterUtil, setWinterUtil] = useState(4000); // extra heat/utilities while renting an old house in winter
+  const [strSupplies, setStrSupplies] = useState(1500); // linens, consumables, turnovers
+  const [strIns, setStrIns] = useState(1500); // short-term-rental insurance rider
+  const PLATFORM_PCT = 3; // Airbnb host service fee
+
   const inputs = {
     price,
     down,
@@ -417,6 +428,19 @@ function Calculator() {
     v: m.utilMo,
     c: "#7E5E3A"
   }];
+
+  // ── Winter-Airbnb business plan, funded by the family AFR loan ──────────
+  const bizAfrInterest = price * LONG_TERM_AFR / 100; // interest-only family loan
+  const maintAnnual = price * maintPct / 100;
+  const bookedNights = winterNights * occ / 100;
+  const grossRev = bookedNights * nightly;
+  const platformFee = grossRev * PLATFORM_PCT / 100;
+  const mgmtFee = grossRev * mgmtPct / 100;
+  const rentalCosts = platformFee + mgmtFee + strSupplies + winterUtil + strIns;
+  const netRental = grossRev - rentalCosts;
+  const ownershipCosts = bizAfrInterest + propTax + insurance + maintAnnual;
+  const netPosition = netRental - ownershipCosts; // negative = net cost to own
+  const coverage = ownershipCosts ? netRental / ownershipCosts * 100 : 0;
   return /*#__PURE__*/React.createElement("div", {
     className: "calc-wrap",
     style: {
@@ -890,6 +914,258 @@ function Calculator() {
     label: "Status",
     value: "Active"
   })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 36
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 12,
+      letterSpacing: 3,
+      textTransform: "uppercase"
+    }
+  }, "Business plan"), /*#__PURE__*/React.createElement("h2", {
+    style: {
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 800,
+      fontSize: 28,
+      color: TEXT,
+      margin: "8px 0 6px",
+      letterSpacing: -0.5
+    }
+  }, "Summer home, winter Airbnb"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: MUTED,
+      fontSize: 14.5,
+      margin: 0,
+      maxWidth: 720,
+      lineHeight: 1.55
+    }
+  }, "Live at Newfane ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: TEXT
+    }
+  }, "May–October"), " — the family's outdoor season, when time on the 40 acres keeps lead-paint exposure in the 1791 house low. Spend ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: TEXT
+    }
+  }, "winters at your current home"), " (lead remediated) and rent Newfane to the ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: TEXT
+    }
+  }, "Mount Snow ski market, December–March"), ". Funded by the family loan — Dad buys for cash and you pay interest-only at the ", LONG_TERM_AFR, "% AFR.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 24,
+      background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)",
+      border: `1px solid ${LINE}`,
+      borderRadius: 18,
+      padding: "26px 28px",
+      marginBottom: 22,
+      boxShadow: SHADOW
+    }
+  }, /*#__PURE__*/React.createElement(BigStat, {
+    label: "Net winter rental income",
+    value: `${fmt(netRental)}/yr`,
+    color: POS,
+    sub: `${Math.round(bookedNights)} booked nights × ${fmt(nightly)} avg`
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      alignSelf: "stretch",
+      background: LINE
+    }
+  }), /*#__PURE__*/React.createElement(BigStat, {
+    label: "Covers of carrying cost",
+    value: `${Math.round(coverage)}%`,
+    sub: "rental income ÷ annual ownership cost"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 1,
+      alignSelf: "stretch",
+      background: LINE
+    }
+  }), /*#__PURE__*/React.createElement(BigStat, {
+    label: netPosition >= 0 ? "Net annual profit" : "Net cost of the summer home",
+    value: `${netPosition >= 0 ? "+" : ""}${fmt(netPosition)}/yr`,
+    color: netPosition >= 0 ? POS : GOLD,
+    sub: `${fmt(Math.abs(netPosition) / 12)}/mo ${netPosition >= 0 ? "profit" : "after Airbnb"}`
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "two-col"
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "Assumptions",
+    title: "Winter rental"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11.5,
+      color: MUTED,
+      marginBottom: 16,
+      lineHeight: 1.5
+    }
+  }, "Comparable 4–5BR homes near Mt. Snow rent roughly ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: TEXT
+    }
+  }, "$435–$935/night"), " on Vrbo; ~20 min from the mountain on 40 acres sits in the upper-middle. Winter window is Dec–Mar."), /*#__PURE__*/React.createElement(Slider, {
+    label: "Winter nights available to rent",
+    value: winterNights,
+    min: 60,
+    max: 150,
+    step: 5,
+    onChange: setWinterNights,
+    format: v => `${v} nights`,
+    hint: "Dec–Mar is ~120 nights. Trim it for nights you use it yourself."
+  }), /*#__PURE__*/React.createElement(Slider, {
+    label: "Average winter nightly rate",
+    value: nightly,
+    min: 300,
+    max: 1200,
+    step: 25,
+    onChange: setNightly,
+    format: fmt,
+    hint: "Blended across holidays (high), weekends, and slower midweek."
+  }), /*#__PURE__*/React.createElement(Slider, {
+    label: "Occupancy of the winter window",
+    value: occ,
+    min: 20,
+    max: 80,
+    step: 5,
+    onChange: setOcc,
+    format: v => `${v}%`,
+    hint: "Ski rentals are weekend- and holiday-heavy; 40–55% over a season is typical."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Management / co-host (% of revenue)",
+    value: mgmtPct,
+    onChange: setMgmtPct,
+    prefix: "",
+    hint: "~20–25% full-service; lower if you self-manage from your winter home."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Extra winter heat & utilities (annual)",
+    value: winterUtil,
+    onChange: setWinterUtil,
+    hint: "Keeping a 1791 house warm — and pipes safe — all winter while it's rented."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "Supplies & turnovers (annual)",
+    value: strSupplies,
+    onChange: setStrSupplies,
+    hint: "Linens, consumables, cleaning between stays."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "STR insurance rider (annual)",
+    value: strIns,
+    onChange: setStrIns,
+    hint: "Short-term-rental coverage on top of homeowner's."
+  })), /*#__PURE__*/React.createElement(Panel, {
+    kicker: "The numbers",
+    title: "Winter rental P&L",
+    accent: `linear-gradient(90deg, ${POS}, transparent)`
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 10.5,
+      letterSpacing: 1.5,
+      textTransform: "uppercase",
+      marginBottom: 6
+    }
+  }, "Rental income"), /*#__PURE__*/React.createElement(Row, {
+    label: "Gross bookings",
+    sub: `${Math.round(bookedNights)} nights × ${fmt(nightly)}`,
+    value: `${fmt(grossRev)}/yr`
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Airbnb host fee",
+    sub: `${PLATFORM_PCT}%`,
+    value: `– ${fmt(platformFee)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Management / co-host",
+    sub: `${mgmtPct}%`,
+    value: `– ${fmt(mgmtFee)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Winter heat & utilities",
+    value: `– ${fmt(winterUtil)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Supplies & turnovers",
+    value: `– ${fmt(strSupplies)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "STR insurance",
+    value: `– ${fmt(strIns)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Net rental income",
+    value: `${fmt(netRental)}/yr`,
+    strong: true,
+    color: POS
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 10.5,
+      letterSpacing: 1.5,
+      textTransform: "uppercase",
+      margin: "18px 0 6px"
+    }
+  }, "Annual ownership cost · family loan"), /*#__PURE__*/React.createElement(Row, {
+    label: "AFR interest",
+    sub: `${fmt(price)} × ${LONG_TERM_AFR}%`,
+    value: `– ${fmt(bizAfrInterest)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Property tax",
+    value: `– ${fmt(propTax)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Insurance",
+    value: `– ${fmt(insurance)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Maintenance reserve",
+    sub: `${maintPct}% of value`,
+    value: `– ${fmt(maintAnnual)}`,
+    color: NEG
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Total ownership cost",
+    value: `${fmt(ownershipCosts)}/yr`,
+    strong: true,
+    color: GOLD
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 10
+    }
+  }, /*#__PURE__*/React.createElement(Row, {
+    label: netPosition >= 0 ? "Net annual profit" : "Net cost of your summer home",
+    value: `${netPosition >= 0 ? "+" : ""}${fmt(netPosition)}/yr`,
+    strong: true,
+    color: netPosition >= 0 ? POS : GOLD
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Per month",
+    value: `${netPosition >= 0 ? "+" : ""}${fmt(netPosition / 12)}/mo`,
+    color: netPosition >= 0 ? POS : GOLD
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 11.5,
+      marginTop: 14,
+      lineHeight: 1.6,
+      padding: "12px 16px",
+      background: "rgba(201,162,75,0.06)",
+      borderRadius: 10,
+      border: `1px dashed ${LINE}`
+    }
+  }, /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: TEXT
+    }
+  }, "How to read it:"), " the winter Airbnb offsets ", /*#__PURE__*/React.createElement("strong", null, Math.round(coverage), "%"), " of what it costs to own Newfane on the family loan, leaving a net ", netPosition >= 0 ? "profit" : "cost", " of ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: netPosition >= 0 ? POS : GOLD
+    }
+  }, fmt(Math.abs(netPosition)), "/yr"), " — effectively the price of a private summer home on 40 acres. The 9% rooms tax + 3% STR surcharge are collected from guests and remitted, so they're a pass-through, not a cost here. Principal isn't repaid under the interest-only family loan, so this is cash flow, not equity. Confirm Newfane's STR rules, a state wastewater nod for rental use, and watch the H.242 one-per-parcel proposal before counting on it.")), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24
     }
