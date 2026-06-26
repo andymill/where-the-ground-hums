@@ -348,7 +348,7 @@ function computeMetrics(s) {
   const utilMo = (s.heat + s.electric + s.internet) / 12;
   const trueAllInMo = piti + maintMo + utilMo;
   const cashToClose = family ? 0 : s.down + s.closing + s.prepaids;
-  const dadOutlay = family ? s.price : 0; // family cash purchase — no closing costs
+  const dadOutlay = family ? s.price + Math.max(0, s.closing - s.lenderFees) : 0; // family: drop lender fees, keep title/transfer tax
   return {
     loan,
     downPct,
@@ -438,6 +438,7 @@ function Calculator() {
   const [propTax, setPropTax] = useState(9600); // est ~1.7% — confirm the VT bill
   const [insurance, setInsurance] = useState(2400);
   const [closing, setClosing] = useState(13500);
+  const [lenderFees, setLenderFees] = useState(3500); // bank/lender portion — dropped in a family cash purchase
   const [prepaids, setPrepaids] = useState(5000);
   const [maintPct, setMaintPct] = useState(1);
   const [heat, setHeat] = useState(3500); // wood stove + baseboard
@@ -452,13 +453,14 @@ function Calculator() {
     propTax,
     insurance,
     closing,
+    lenderFees,
     prepaids,
     maintPct,
     heat,
     electric,
     internet
   };
-  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, financing, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, financing, propTax, insurance, closing, lenderFees, prepaids, maintPct, heat, electric, internet]);
   const segs = [{
     label: "Mortgage (P&I)",
     v: m.pi,
@@ -752,7 +754,7 @@ function Calculator() {
       color: TEXT,
       lineHeight: 1.55
     }
-  }, /*#__PURE__*/React.createElement("strong", null, "Your family buys it for cash"), " (", /*#__PURE__*/React.createElement("strong", null, fmt(m.dadOutlay)), ", no closing costs) and you pay them interest-only at the ", /*#__PURE__*/React.createElement("strong", null, LONG_TERM_AFR, "% long-term AFR"), " — the IRS minimum that keeps it a loan rather than a gift.", /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("strong", null, "Your family buys it for cash"), " (", /*#__PURE__*/React.createElement("strong", null, fmt(m.dadOutlay)), " — price plus title & transfer tax, no lender fees) and you pay them interest-only at the ", /*#__PURE__*/React.createElement("strong", null, LONG_TERM_AFR, "% long-term AFR"), " — the IRS minimum that keeps it a loan rather than a gift.", /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8,
       color: MUTED
@@ -782,10 +784,15 @@ function Calculator() {
     onChange: setInsurance,
     hint: "Estimate — get a real quote (wood stove may affect it)."
   }), /*#__PURE__*/React.createElement(NumField, {
-    label: "Closing costs",
+    label: "Closing costs (bank purchase)",
     value: closing,
     onChange: setClosing,
-    hint: "Estimate (~2.4%): title, VT transfer tax, lender + recording fees."
+    hint: "Est ~$13.5K: title, VT transfer tax, recording + lender fees."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "— of which, lender fees",
+    value: lenderFees,
+    onChange: setLenderFees,
+    hint: "Bank origination / appraisal / underwriting. Dropped in a family cash purchase; title & transfer tax still apply."
   }), /*#__PURE__*/React.createElement(NumField, {
     label: "Prepaids & reserves",
     value: prepaids,

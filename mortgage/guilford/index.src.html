@@ -162,7 +162,7 @@ function computeMetrics(s) {
   const utilMo = (s.heat + s.electric + s.internet) / 12;
   const trueAllInMo = piti + maintMo + utilMo;
   const cashToClose = family ? 0 : (s.down + s.closing + s.prepaids);
-  const dadOutlay = family ? s.price : 0; // family cash purchase — no closing costs
+  const dadOutlay = family ? (s.price + Math.max(0, s.closing - s.lenderFees)) : 0; // family: drop lender fees, keep title/transfer tax
   return { loan, downPct, family, effRate, pi, amortPI, ioPI, pmiMo, taxMo, insMo, piti, maintMo, utilMo, trueAllInMo, cashToClose, dadOutlay };
 }
 
@@ -198,14 +198,15 @@ function Calculator() {
   const [propTax, setPropTax] = useState(9600);   // est ~1.7% — confirm the VT bill
   const [insurance, setInsurance] = useState(2400);
   const [closing, setClosing] = useState(13500);
+  const [lenderFees, setLenderFees] = useState(3500); // bank/lender portion — dropped in a family cash purchase
   const [prepaids, setPrepaids] = useState(5000);
   const [maintPct, setMaintPct] = useState(1);
   const [heat, setHeat] = useState(3500);         // wood stove + baseboard
   const [electric, setElectric] = useState(1800);
   const [internet, setInternet] = useState(840);
 
-  const inputs = { price, down, rate, term, financing, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet };
-  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, financing, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+  const inputs = { price, down, rate, term, financing, propTax, insurance, closing, lenderFees, prepaids, maintPct, heat, electric, internet };
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, financing, propTax, insurance, closing, lenderFees, prepaids, maintPct, heat, electric, internet]);
 
   const segs = [
     { label: "Mortgage (P&I)", v: m.pi, c: GOLD_FILL },
@@ -291,7 +292,7 @@ function Calculator() {
               </React.Fragment>
             ) : (
               <div style={{ background: "rgba(201,162,75,0.10)", border: `1px solid ${LINE}`, borderRadius: 10, padding: "14px 16px", fontSize: 12.5, color: TEXT, lineHeight: 1.55 }}>
-                <strong>Your family buys it for cash</strong> (<strong>{fmt(m.dadOutlay)}</strong>, no closing costs) and you pay them interest-only at the <strong>{LONG_TERM_AFR}% long-term AFR</strong> — the IRS minimum that keeps it a loan rather than a gift.
+                <strong>Your family buys it for cash</strong> (<strong>{fmt(m.dadOutlay)}</strong> — price plus title &amp; transfer tax, no lender fees) and you pay them interest-only at the <strong>{LONG_TERM_AFR}% long-term AFR</strong> — the IRS minimum that keeps it a loan rather than a gift.
                 <div style={{ marginTop: 8, color: MUTED }}>
                   Interest: {fmt(price)} × {LONG_TERM_AFR}% = <strong style={{ color: GOLD }}>{fmt(m.ioPI * 12)}/yr</strong> (~{fmt(m.ioPI)}/mo). $0 down, no PMI, no bank. The principal stays outstanding (interest-only); you build equity only by paying down extra. Title in your name, they hold the note.
                 </div>
@@ -303,7 +304,8 @@ function Calculator() {
           <Panel kicker="Carrying Costs" title="Taxes, insurance & closing" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
             <NumField label="Property tax (annual)" value={propTax} onChange={setPropTax} hint="Estimate (~1.7%). Confirm the actual Guilford / VT bill." />
             <NumField label="Home insurance (annual)" value={insurance} onChange={setInsurance} hint="Estimate — get a real quote (wood stove may affect it)." />
-            <NumField label="Closing costs" value={closing} onChange={setClosing} hint="Estimate (~2.4%): title, VT transfer tax, lender + recording fees." />
+            <NumField label="Closing costs (bank purchase)" value={closing} onChange={setClosing} hint="Est ~$13.5K: title, VT transfer tax, recording + lender fees." />
+            <NumField label="— of which, lender fees" value={lenderFees} onChange={setLenderFees} hint="Bank origination / appraisal / underwriting. Dropped in a family cash purchase; title & transfer tax still apply." />
             <NumField label="Prepaids & reserves" value={prepaids} onChange={setPrepaids} hint="Estimate: prepaid interest + tax/insurance escrow." />
           </Panel>
         </div>
