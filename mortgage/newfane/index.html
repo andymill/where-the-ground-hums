@@ -311,25 +311,38 @@ function Chip({
     }
   }, value));
 }
+
+// IRS long-term Applicable Federal Rate (annual compounding) — the minimum
+// interest an intrafamily loan can charge before the IRS treats the forgone
+// interest as a gift. June 2026 long-term AFR. The IRS resets it monthly.
+const LONG_TERM_AFR = 4.87;
 function computeMetrics(s) {
-  const loan = Math.max(0, s.price - s.down);
-  const downPct = s.down / s.price * 100;
-  const r = s.rate / 100 / 12;
+  const family = s.financing === "family"; // Dad buys for cash; you pay him the AFR
+  const io = family || s.financing === "io"; // interest-only payment
+  const effRate = family ? LONG_TERM_AFR : s.rate; // family loan is pinned to the AFR
+  const down = family ? 0 : s.down; // Dad fronts the whole price
+  const loan = family ? s.price : Math.max(0, s.price - s.down);
+  const downPct = down / s.price * 100;
+  const r = effRate / 100 / 12;
   const n = s.term * 12;
   const amortPI = r > 0 ? loan * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1) : loan / n;
   const ioPI = loan * r; // interest-only: pay the interest, no principal
-  const pi = s.interestOnly ? ioPI : amortPI;
-  const pmiMo = downPct < 20 ? loan * 0.005 / 12 : 0;
+  const pi = io ? ioPI : amortPI;
+  const pmiMo = !family && downPct < 20 ? loan * 0.005 / 12 : 0;
   const taxMo = s.propTax / 12;
   const insMo = s.insurance / 12;
   const piti = pi + taxMo + insMo + pmiMo;
   const maintMo = s.price * (s.maintPct / 100) / 12;
   const utilMo = (s.heat + s.electric + s.internet) / 12;
   const trueAllInMo = piti + maintMo + utilMo;
-  const cashToClose = s.down + s.closing + s.prepaids;
+  const cashToClose = family ? 0 : s.down + s.closing + s.prepaids;
+  const dadOutlay = family ? s.price + s.closing : 0; // Dad's all-cash purchase
   return {
     loan,
     downPct,
+    effRate,
+    family,
+    io,
     pi,
     amortPI,
     ioPI,
@@ -340,7 +353,8 @@ function computeMetrics(s) {
     maintMo,
     utilMo,
     trueAllInMo,
-    cashToClose
+    cashToClose,
+    dadOutlay
   };
 }
 function Calculator() {
@@ -349,7 +363,7 @@ function Calculator() {
   const [down, setDown] = useState(145800); // 20% → no PMI, $583,200 loan
   const [rate, setRate] = useState(6.25);
   const [term, setTerm] = useState(30);
-  const [interestOnly, setInterestOnly] = useState(false);
+  const [financing, setFinancing] = useState("amortizing"); // amortizing | io | family
 
   // Carrying costs
   const [propTax, setPropTax] = useState(11700); // est ~1.6% — listing didn't publish taxes
@@ -367,7 +381,7 @@ function Calculator() {
     down,
     rate,
     term,
-    interestOnly,
+    financing,
     propTax,
     insurance,
     closing,
@@ -377,7 +391,7 @@ function Calculator() {
     electric,
     internet
   };
-  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, interestOnly, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, financing, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
   const segs = [{
     label: "Mortgage (P&I)",
     v: m.pi,
@@ -527,10 +541,10 @@ function Calculator() {
       boxShadow: SHADOW
     }
   }, /*#__PURE__*/React.createElement(BigStat, {
-    label: interestOnly ? "Monthly payment (interest-only)" : "Monthly payment (PITI)",
+    label: m.family ? "Monthly payment (family loan)" : m.io ? "Monthly payment (interest-only)" : "Monthly payment (PITI)",
     value: `${fmt(m.piti)}/mo`,
     color: GOLD,
-    sub: `${interestOnly ? "Interest" : "P&I"} ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`
+    sub: `${m.io ? "Interest" : "P&I"} ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 1,
@@ -548,9 +562,9 @@ function Calculator() {
       background: LINE
     }
   }), /*#__PURE__*/React.createElement(BigStat, {
-    label: "Cash needed to close",
-    value: fmt(m.cashToClose),
-    sub: `${fmt(down)} down (${pct(m.downPct)}) + ${fmt(closing + prepaids)} closing & prepaids`
+    label: m.family ? "Dad's cash outlay" : "Cash needed to close",
+    value: m.family ? fmt(m.dadOutlay) : fmt(m.cashToClose),
+    sub: m.family ? "you put $0 in upfront — it's his cash purchase" : `${fmt(down)} down (${pct(m.downPct)}) + ${fmt(closing + prepaids)} closing & prepaids`
   })), /*#__PURE__*/React.createElement("div", {
     className: "two-col"
   }, /*#__PURE__*/React.createElement(Panel, {
@@ -565,7 +579,44 @@ function Calculator() {
     onChange: setPrice,
     format: fmt,
     hint: "Listed at $729,000 — adjust to model an offer above or below ask."
-  }), /*#__PURE__*/React.createElement(Slider, {
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: MUTED,
+      marginBottom: 7
+    }
+  }, "Financing"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 16
+    }
+  }, [{
+    k: "amortizing",
+    l: "Bank · amortizing"
+  }, {
+    k: "io",
+    l: "Bank · interest-only"
+  }, {
+    k: "family",
+    l: "Family @ AFR"
+  }].map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.k,
+    onClick: () => setFinancing(o.k),
+    style: {
+      flex: 1,
+      padding: "10px 4px",
+      borderRadius: 8,
+      border: `1px solid ${financing === o.k ? GOLD : LINE}`,
+      background: financing === o.k ? "rgba(201,162,75,0.15)" : "transparent",
+      color: financing === o.k ? GOLD : MUTED,
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 600,
+      fontSize: 12.5,
+      cursor: "pointer",
+      lineHeight: 1.25
+    }
+  }, o.l))), !m.family ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Slider, {
     label: "Down payment",
     value: down,
     min: 0,
@@ -587,7 +638,7 @@ function Calculator() {
     style: {
       display: "flex",
       gap: 8,
-      marginBottom: 10
+      marginBottom: 8
     }
   }, [15, 30].map(t => /*#__PURE__*/React.createElement("button", {
     key: t,
@@ -606,38 +657,36 @@ function Calculator() {
     }
   }, t, "-year"))), /*#__PURE__*/React.createElement("div", {
     style: {
-      display: "flex",
-      gap: 8,
-      marginBottom: 4
-    }
-  }, [{
-    k: false,
-    l: "Amortizing"
-  }, {
-    k: true,
-    l: "Interest-only"
-  }].map(o => /*#__PURE__*/React.createElement("button", {
-    key: o.l,
-    onClick: () => setInterestOnly(o.k),
-    style: {
-      flex: 1,
-      padding: "10px 0",
-      borderRadius: 8,
-      border: `1px solid ${interestOnly === o.k ? GOLD : LINE}`,
-      background: interestOnly === o.k ? "rgba(201,162,75,0.15)" : "transparent",
-      color: interestOnly === o.k ? GOLD : MUTED,
-      fontFamily: "'Funnel Display', sans-serif",
-      fontWeight: 600,
-      fontSize: 14,
-      cursor: "pointer"
-    }
-  }, o.l))), /*#__PURE__*/React.createElement("div", {
-    style: {
       color: MUTED,
       fontSize: 11,
-      marginTop: 8
+      marginTop: 4
     }
-  }, interestOnly ? `Interest-only: ${fmt(m.ioPI)}/mo, but you build $0 equity — the ${fmt(m.loan)} balance never amortizes. The ${term}-yr amortizing payment would be ${fmt(m.amortPI)}/mo (${fmt(m.amortPI - m.ioPI)}/mo more, going to principal).` : `Amortizing ${term}-yr: ${fmt(m.amortPI)}/mo, building equity from day one. Interest-only would drop the payment to ${fmt(m.ioPI)}/mo — ${fmt(m.amortPI - m.ioPI)}/mo less, but $0 equity.`)), /*#__PURE__*/React.createElement(Panel, {
+  }, m.io ? `Interest-only: ${fmt(m.ioPI)}/mo, but you build $0 equity — the ${fmt(m.loan)} balance never amortizes. The ${term}-yr amortizing payment would be ${fmt(m.amortPI)}/mo (${fmt(m.amortPI - m.ioPI)}/mo more, to principal).` : `Amortizing ${term}-yr: ${fmt(m.amortPI)}/mo, building equity from day one. Interest-only would drop it to ${fmt(m.ioPI)}/mo — but $0 equity.`)) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "rgba(201,162,75,0.10)",
+      border: `1px solid ${LINE}`,
+      borderRadius: 10,
+      padding: "14px 16px",
+      fontSize: 12.5,
+      color: TEXT,
+      lineHeight: 1.55
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Dad buys it for cash"), " (", fmt(price), " + ", fmt(closing), " closing = ", /*#__PURE__*/React.createElement("strong", null, fmt(m.dadOutlay)), "), and you pay him the ", /*#__PURE__*/React.createElement("strong", null, "minimum interest the IRS allows"), " — the ", LONG_TERM_AFR, "% long-term Applicable Federal Rate (June 2026, annual). That keeps it a genuine loan rather than a taxable gift.", /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      color: MUTED
+    }
+  }, "Interest owed: ", fmt(price), " × ", LONG_TERM_AFR, "% = ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: GOLD
+    }
+  }, fmt(m.ioPI * 12), "/yr"), " (~", fmt(m.ioPI), "/mo). $0 down, no PMI, no bank. You build equity only by paying him ", /*#__PURE__*/React.createElement("em", null, "more"), " than the interest — the extra pays down the balance."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 11,
+      color: MUTED
+    }
+  }, "The IRS resets the AFR monthly — confirm the current long-term rate when you set up the note. Switch to “Bank · amortizing” to compare against a conventional mortgage."))), /*#__PURE__*/React.createElement(Panel, {
     kicker: "Carrying Costs",
     title: "Taxes, insurance & closing",
     accent: `linear-gradient(90deg, ${GOLD_DIM}, transparent)`
@@ -713,8 +762,8 @@ function Calculator() {
       color: TEXT
     }
   }, fmt(s.v))))), /*#__PURE__*/React.createElement(Row, {
-    label: interestOnly ? "Interest only" : "Principal & interest",
-    sub: interestOnly ? "no principal · $0 equity" : null,
+    label: m.io ? "Interest only" : "Principal & interest",
+    sub: m.io ? m.family ? "family loan @ AFR · $0 equity" : "no principal · $0 equity" : null,
     value: `${fmt(m.pi)}/mo`
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Property tax",
