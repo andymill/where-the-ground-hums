@@ -55,6 +55,11 @@ const BOUNDARY = [
   [42.8356, -72.6452], [42.8357, -72.6438], [42.8341, -72.6432],
   [42.8337, -72.6412], [42.8330, -72.6411], [42.8330, -72.6451], [42.8345, -72.6457],
 ];
+// Broad Brook — approximate path along the parcel's lower (south) line by Akley Rd.
+const BROOK = [
+  [42.8331, -72.6457], [42.8329, -72.6448], [42.8330, -72.6435],
+  [42.8328, -72.6422], [42.8330, -72.6411], [42.8332, -72.6402],
+];
 
 const fmt = (n) =>
   isFinite(n) ? n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }) : "—";
@@ -131,21 +136,31 @@ function Chip({ label, value }) {
   );
 }
 
+// IRS long-term Applicable Federal Rate (annual) — the minimum interest an
+// intrafamily loan can charge to avoid gift treatment. June 2026; resets monthly.
+const LONG_TERM_AFR = 4.87;
+
 function computeMetrics(s) {
-  const loan = Math.max(0, s.price - s.down);
-  const downPct = (s.down / s.price) * 100;
-  const r = s.rate / 100 / 12;
+  const family = s.financing === "family";        // family buys cash; you pay the AFR, interest-only
+  const effRate = family ? LONG_TERM_AFR : s.rate;
+  const down = family ? 0 : s.down;
+  const loan = family ? s.price : Math.max(0, s.price - s.down);
+  const downPct = (down / s.price) * 100;
+  const r = effRate / 100 / 12;
   const n = s.term * 12;
-  const pi = r > 0 ? (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : loan / n;
-  const pmiMo = downPct < 20 ? (loan * 0.005) / 12 : 0;
+  const amortPI = r > 0 ? (loan * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1) : loan / n;
+  const ioPI = loan * r; // interest-only (family loan)
+  const pi = family ? ioPI : amortPI;
+  const pmiMo = (!family && downPct < 20) ? (loan * 0.005) / 12 : 0;
   const taxMo = s.propTax / 12;
   const insMo = s.insurance / 12;
   const piti = pi + taxMo + insMo + pmiMo;
   const maintMo = (s.price * (s.maintPct / 100)) / 12;
   const utilMo = (s.heat + s.electric + s.internet) / 12;
   const trueAllInMo = piti + maintMo + utilMo;
-  const cashToClose = s.down + s.closing + s.prepaids;
-  return { loan, downPct, pi, pmiMo, taxMo, insMo, piti, maintMo, utilMo, trueAllInMo, cashToClose };
+  const cashToClose = family ? 0 : (s.down + s.closing + s.prepaids);
+  const dadOutlay = family ? (s.price + s.closing) : 0;
+  return { loan, downPct, family, effRate, pi, amortPI, ioPI, pmiMo, taxMo, insMo, piti, maintMo, utilMo, trueAllInMo, cashToClose, dadOutlay };
 }
 
 // Interactive Leaflet map — aerial / street toggle, marker, approx boundary
@@ -161,6 +176,8 @@ function ParcelMap() {
       { maxZoom: 19, attribution: "© OpenStreetMap" });
     L.control.layers({ "Satellite (Esri)": esri, "VT aerial 2024": vt, "Street map": osm }).addTo(map);
     const poly = L.polygon(BOUNDARY, { color: "#C9A24B", weight: 2.5, dashArray: "6 5", fillColor: "#C9A24B", fillOpacity: 0.10 }).addTo(map);
+    L.polyline(BROOK, { color: "#2a7fff", weight: 4, opacity: 0.85 })
+      .addTo(map).bindTooltip("Broad Brook", { sticky: true });
     L.circleMarker(HOUSE, { radius: 8, color: "#fff", weight: 2, fillColor: "#B45438", fillOpacity: 1 })
       .addTo(map).bindPopup("160 Akley Rd — timber-frame home on Broad Brook");
     map.fitBounds(poly.getBounds(), { padding: [24, 24] });
@@ -174,6 +191,7 @@ function Calculator() {
   const [down, setDown] = useState(113400);     // 20% → no PMI
   const [rate, setRate] = useState(6.25);
   const [term, setTerm] = useState(30);
+  const [financing, setFinancing] = useState("bank"); // bank | family
   const [propTax, setPropTax] = useState(9600);   // est ~1.7% — confirm the VT bill
   const [insurance, setInsurance] = useState(2400);
   const [closing, setClosing] = useState(13500);
@@ -183,8 +201,8 @@ function Calculator() {
   const [electric, setElectric] = useState(1800);
   const [internet, setInternet] = useState(840);
 
-  const inputs = { price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet };
-  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+  const inputs = { price, down, rate, term, financing, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet };
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, financing, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
 
   const segs = [
     { label: "Mortgage (P&I)", v: m.pi, c: GOLD_FILL },
@@ -196,14 +214,10 @@ function Calculator() {
   ];
 
   const gallery = [
-    { src: "/mortgage/guilford/img/photo-02.webp", cap: "Front exterior — timber-frame, into the hillside" },
-    { src: "/mortgage/guilford/img/photo-03.webp", cap: "Rear elevation & deck" },
-    { src: "/mortgage/guilford/img/photo-04.webp", cap: "Brook side — the bay windows over Broad Brook" },
-    { src: "/mortgage/guilford/img/photo-05.webp", cap: "Timber-frame living room & wood stove" },
-    { src: "/mortgage/guilford/img/photo-06.webp", cap: "Broad Brook, running through the woods" },
-    { src: "/mortgage/guilford/img/photo-07.webp", cap: "The grounds" },
-    { src: "/mortgage/guilford/img/photo-08.webp", cap: "Grounds & setting" },
-    { src: "/mortgage/guilford/img/photo-09.webp", cap: "Grounds & setting" },
+    { src: "/mortgage/guilford/img/exterior-brookside.webp", cap: "Brook side — bay windows over Broad Brook" },
+    { src: "/mortgage/guilford/img/living-room.webp", cap: "Timber-frame living room & wood stove" },
+    { src: "/mortgage/guilford/img/brook.webp", cap: "Broad Brook, running through the woods" },
+    { src: "/mortgage/guilford/img/driveway.webp", cap: "The approach up the drive" },
   ];
 
   return (
@@ -226,7 +240,7 @@ function Calculator() {
         </div>
 
         {/* Hero photo */}
-        <img src="/mortgage/guilford/img/photo-02.webp" alt="160 Akley Rd — front exterior" loading="lazy"
+        <img src="/mortgage/guilford/img/exterior-rear.webp" alt="160 Akley Rd — timber-frame exterior" loading="lazy"
           style={{ width: "100%", height: 420, objectFit: "cover", borderRadius: 16, border: `1px solid ${LINE}`, boxShadow: SHADOW, marginBottom: 22 }} />
 
         {/* Chips */}
@@ -245,23 +259,42 @@ function Calculator() {
 
         {/* TOP SUMMARY */}
         <div style={{ background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)", border: `1px solid ${LINE}`, borderRadius: 18, padding: "28px 30px", marginBottom: 24, display: "flex", flexWrap: "wrap", gap: 24, alignItems: "center", boxShadow: SHADOW }}>
-          <BigStat label="Monthly payment (PITI)" value={`${fmt(m.piti)}/mo`} color={GOLD} sub={`P&I ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`} />
+          <BigStat label={m.family ? "Monthly payment (family loan)" : "Monthly payment (PITI)"} value={`${fmt(m.piti)}/mo`} color={GOLD} sub={`${m.family ? "Interest" : "P&I"} ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`} />
           <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
           <BigStat label="True monthly cost to own" value={`${fmt(m.trueAllInMo)}/mo`} sub={`+ maintenance reserve ${fmt(m.maintMo)} + utilities ${fmt(m.utilMo)}`} />
           <div style={{ width: 1, alignSelf: "stretch", background: LINE }} />
-          <BigStat label="Cash needed to close" value={fmt(m.cashToClose)} sub={`${fmt(down)} down (${pct(m.downPct)}) + ${fmt(closing + prepaids)} closing & prepaids`} />
+          <BigStat label={m.family ? "Family's cash outlay" : "Cash needed to close"} value={m.family ? fmt(m.dadOutlay) : fmt(m.cashToClose)} sub={m.family ? "you put $0 in upfront — it's their cash purchase" : `${fmt(down)} down (${pct(m.downPct)}) + ${fmt(closing + prepaids)} closing & prepaids`} />
         </div>
 
         <div className="two-col">
           <Panel kicker="The Purchase" title="Loan terms">
             <Slider label="Purchase price" value={price} min={350000} max={800000} step={5000} onChange={setPrice} format={fmt} hint="Defaulted to the ~$567K Zestimate; adjust to an actual ask or offer." />
-            <Slider label="Down payment" value={down} min={0} max={Math.min(400000, price)} step={5000} onChange={setDown} format={(v) => `${fmt(v)}  ·  ${pct((v / price) * 100)}`} hint="20% clears PMI; below that, PMI (~0.5%/yr of the loan) applies automatically." />
-            <Slider label="Mortgage rate" value={rate} min={5} max={9} step={0.05} onChange={setRate} format={(v) => `${v.toFixed(2)}%`} hint="Estimate. 30-yr fixed conventional." />
-            <div style={{ display: "flex", gap: 8 }}>
-              {[15, 30].map((t) => (
-                <button key={t} onClick={() => setTerm(t)} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${term === t ? GOLD : LINE}`, background: term === t ? "rgba(201,162,75,0.15)" : "transparent", color: term === t ? GOLD : MUTED, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{t}-year</button>
+            <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 7 }}>Financing</div>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              {[{ k: "bank", l: "Bank mortgage" }, { k: "family", l: "Family @ AFR" }].map((o) => (
+                <button key={o.k} onClick={() => setFinancing(o.k)} style={{ flex: 1, padding: "10px 4px", borderRadius: 8, border: `1px solid ${financing === o.k ? GOLD : LINE}`, background: financing === o.k ? "rgba(201,162,75,0.15)" : "transparent", color: financing === o.k ? GOLD : MUTED, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 13.5, cursor: "pointer" }}>{o.l}</button>
               ))}
             </div>
+
+            {!m.family ? (
+              <React.Fragment>
+                <Slider label="Down payment" value={down} min={0} max={Math.min(400000, price)} step={5000} onChange={setDown} format={(v) => `${fmt(v)}  ·  ${pct((v / price) * 100)}`} hint="20% clears PMI; below that, PMI (~0.5%/yr of the loan) applies automatically." />
+                <Slider label="Mortgage rate" value={rate} min={5} max={9} step={0.05} onChange={setRate} format={(v) => `${v.toFixed(2)}%`} hint="Estimate. 30-yr fixed conventional." />
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[15, 30].map((t) => (
+                    <button key={t} onClick={() => setTerm(t)} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `1px solid ${term === t ? GOLD : LINE}`, background: term === t ? "rgba(201,162,75,0.15)" : "transparent", color: term === t ? GOLD : MUTED, fontFamily: "'Funnel Display', sans-serif", fontWeight: 600, fontSize: 14, cursor: "pointer" }}>{t}-year</button>
+                  ))}
+                </div>
+              </React.Fragment>
+            ) : (
+              <div style={{ background: "rgba(201,162,75,0.10)", border: `1px solid ${LINE}`, borderRadius: 10, padding: "14px 16px", fontSize: 12.5, color: TEXT, lineHeight: 1.55 }}>
+                <strong>Your family buys it for cash</strong> ({fmt(price)} + {fmt(closing)} closing = <strong>{fmt(m.dadOutlay)}</strong>) and you pay them interest-only at the <strong>{LONG_TERM_AFR}% long-term AFR</strong> — the IRS minimum that keeps it a loan rather than a gift.
+                <div style={{ marginTop: 8, color: MUTED }}>
+                  Interest: {fmt(price)} × {LONG_TERM_AFR}% = <strong style={{ color: GOLD }}>{fmt(m.ioPI * 12)}/yr</strong> (~{fmt(m.ioPI)}/mo). $0 down, no PMI, no bank. The principal stays outstanding (interest-only); you build equity only by paying down extra. Title in your name, they hold the note.
+                </div>
+                <div style={{ marginTop: 8, fontSize: 11, color: MUTED }}>AFR resets monthly — confirm the long-term rate at signing.</div>
+              </div>
+            )}
           </Panel>
 
           <Panel kicker="Carrying Costs" title="Taxes, insurance & closing" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
@@ -286,7 +319,7 @@ function Calculator() {
                 </div>
               ))}
             </div>
-            <Row label="Principal & interest" value={`${fmt(m.pi)}/mo`} />
+            <Row label={m.family ? "Interest only" : "Principal & interest"} sub={m.family ? "family loan @ AFR · $0 equity" : null} value={`${fmt(m.pi)}/mo`} />
             <Row label="Property tax" value={`${fmt(m.taxMo)}/mo`} />
             <Row label="Home insurance" value={`${fmt(m.insMo)}/mo`} />
             {m.pmiMo > 0 && <Row label="PMI" sub="below 20% down" value={`${fmt(m.pmiMo)}/mo`} color={NEG} />}
@@ -324,6 +357,19 @@ function Calculator() {
           </Panel>
         </div>
 
+        {/* Schools for Gabe */}
+        <div style={{ marginTop: 24 }}>
+          <Panel kicker="For Gabe" title="Schools, by grade" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
+            <p style={{ marginTop: 0, color: MUTED, fontSize: 13 }}>Guilford is in the Windham Southeast School District. Where Gabe would go as he grows:</p>
+            <Row label="PreK – Grade 6" sub="elementary" value="Guilford Central School" />
+            <Row label="Grades 7 – 8" sub="middle" value="Brattleboro Area Middle School" />
+            <Row label="Grades 9 – 12" sub="high" value="Brattleboro Union High School" />
+            <div style={{ color: MUTED, fontSize: 11.5, marginTop: 12, lineHeight: 1.55 }}>
+              Guilford Central (374 School Rd — a couple miles away) covers PreK–6; from 7th grade, Guilford students attend Brattleboro Area Middle School, then Brattleboro Union High School (9–12) in Brattleboro. Confirm current assignments and any school-choice options with the district.
+            </div>
+          </Panel>
+        </div>
+
         {/* MAP */}
         <div style={{ marginTop: 24 }}>
           <Panel kicker="Where it sits" title="Map & property boundary" accent={`linear-gradient(90deg, ${GOLD_DIM}, transparent)`}>
@@ -333,8 +379,8 @@ function Calculator() {
             <ParcelMap />
             <div style={{ marginTop: 18 }}>
               <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Surveyed parcel &amp; contour map</div>
-              <a href="/mortgage/guilford/img/photo-01.webp" target="_blank" rel="noreferrer">
-                <img src="/mortgage/guilford/img/photo-01.webp" alt="Parcel boundary and contour map showing Broad Brook along Akley Road" loading="lazy"
+              <a href="/mortgage/guilford/img/parcel-map.webp" target="_blank" rel="noreferrer">
+                <img src="/mortgage/guilford/img/parcel-map.webp" alt="Parcel boundary and contour map showing Broad Brook along Akley Road" loading="lazy"
                   style={{ width: "100%", borderRadius: 12, border: `1px solid ${LINE}`, display: "block" }} />
               </a>
             </div>
