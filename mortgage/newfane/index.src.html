@@ -180,6 +180,9 @@ function Calculator() {
   const [strSupplies, setStrSupplies] = useState(1500);  // linens, consumables, turnovers
   const [strIns, setStrIns] = useState(1500);            // short-term-rental insurance rider
   const PLATFORM_PCT = 3;                                 // Airbnb host service fee
+  // The other half of the plan: you keep your current house to live in over winter
+  const [currentCarry, setCurrentCarry] = useState(21600); // annual cost to keep it (mortgage+tax+ins+utils) — placeholder
+  const [currentRent, setCurrentRent] = useState(30000);   // rent given up by keeping it off the market — placeholder
 
   const inputs = { price, down, rate, term, financing, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet };
   const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, financing, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
@@ -203,8 +206,11 @@ function Calculator() {
   const rentalCosts = platformFee + mgmtFee + strSupplies + winterUtil + strIns;
   const netRental = grossRev - rentalCosts;
   const ownershipCosts = bizAfrInterest + propTax + insurance + maintAnnual;
-  const netPosition = netRental - ownershipCosts;          // negative = net cost to own
+  const netPosition = netRental - ownershipCosts;          // negative = net cost to own Newfane
   const coverage = ownershipCosts ? (netRental / ownershipCosts) * 100 : 0;
+  // Whole two-house plan: also carrying the current house (unrented) for winter
+  const planCashCost = netPosition - currentCarry;         // cash cost of both homes
+  const planEconomicCost = planCashCost - currentRent;     // also counting the rent given up
 
   return (
     <div className="calc-wrap" style={{ background: BG, minHeight: "100%", padding: "32px 20px", fontFamily: "'Funnel Sans', sans-serif" }}>
@@ -381,6 +387,10 @@ function Calculator() {
               <NumField label="Extra winter heat & utilities (annual)" value={winterUtil} onChange={setWinterUtil} hint="Keeping a 1791 house warm — and pipes safe — all winter while it's rented." />
               <NumField label="Supplies & turnovers (annual)" value={strSupplies} onChange={setStrSupplies} hint="Linens, consumables, cleaning between stays." />
               <NumField label="STR insurance rider (annual)" value={strIns} onChange={setStrIns} hint="Short-term-rental coverage on top of homeowner's." />
+              <div style={{ borderTop: `1px solid ${LINE}`, margin: "16px 0 14px" }} />
+              <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }}>Your winter home (current house, kept unrented)</div>
+              <NumField label="Cost to keep it (annual)" value={currentCarry} onChange={setCurrentCarry} hint="Mortgage + tax + insurance + utilities on the home you live in over winter. Placeholder — set to your real figure." />
+              <NumField label="Rent you give up (annual)" value={currentRent} onChange={setCurrentRent} hint="What it could earn if you rented it instead of keeping it for yourselves — the opportunity cost of holding it off the market." />
             </Panel>
 
             <Panel kicker="The numbers" title="Winter rental P&L" accent={`linear-gradient(90deg, ${POS}, transparent)`}>
@@ -405,6 +415,19 @@ function Calculator() {
                 <Row label="Per month" value={`${netPosition >= 0 ? "+" : ""}${fmt(netPosition / 12)}/mo`} color={netPosition >= 0 ? POS : GOLD} />
               </div>
             </Panel>
+          </div>
+
+          <div style={{ marginTop: 22, padding: "22px 24px", background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)", border: `1px solid ${LINE}`, borderRadius: 18, boxShadow: SHADOW }}>
+            <h3 style={{ fontSize: 16, marginBottom: 4 }}>The whole two-house plan</h3>
+            <p style={{ marginTop: 0, fontSize: 12.5, color: MUTED }}>You're carrying both homes — Newfane for summers, your current house for winters — but the winter Airbnb only offsets Newfane.</p>
+            <Row label="Newfane — net of winter Airbnb" value={`${fmt(netPosition)}/yr`} color={GOLD} />
+            <Row label="Current house — kept unrented for winter" sub="cash carry" value={`– ${fmt(currentCarry)}/yr`} color={NEG} />
+            <Row label="Total cash cost of the plan" value={`${fmt(planCashCost)}/yr`} strong color={GOLD} />
+            <Row label="+ Rent given up on the current house" sub="opportunity cost" value={`– ${fmt(currentRent)}/yr`} color={MUTED} />
+            <Row label="Economic cost incl. forgone rent" value={`${fmt(planEconomicCost)}/yr`} strong color={GOLD} />
+            <div style={{ marginTop: 14, fontSize: 12.5, color: TEXT, lineHeight: 1.55, background: "rgba(180,84,56,0.08)", border: `1px solid ${LINE}`, borderRadius: 10, padding: "12px 14px" }}>
+              <strong>You're right:</strong> the winter Airbnb nets <strong style={{ color: POS }}>{fmt(netRental)}/yr</strong> — roughly enough to cover the <em>cash</em> carry of your winter house ({fmt(currentCarry)}), but <strong>not</strong> the {fmt(currentRent)} of rent you give up by keeping it off the market. Counting that, the two-house plan runs about <strong style={{ color: GOLD }}>{fmt(Math.abs(planEconomicCost))}/yr</strong> (~{fmt(Math.abs(planEconomicCost) / 12)}/mo).
+            </div>
           </div>
 
           <div style={{ color: MUTED, fontSize: 11.5, marginTop: 14, lineHeight: 1.6, padding: "12px 16px", background: "rgba(201,162,75,0.06)", borderRadius: 10, border: `1px dashed ${LINE}` }}>
