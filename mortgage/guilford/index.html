@@ -39,7 +39,7 @@ const {
 // 160 Akley Rd, Guilford VT — timber-frame home on Broad Brook.
 // 3BR / 2.5BA, ~2,182 sqft, built 2000, on 13.8 wooded acres. Single-family
 // cost-to-own calculator + an interactive parcel map and photo gallery.
-// Zestimate ~$567K (last sold $319K in 2018). Coords 42.8331, -72.6444.
+// List price $490K (last sold $319K in 2018). Coords 42.8331, -72.6444.
 // ---------------------------------------------------------------------------
 
 const GOLD = "#A07B2B";
@@ -348,7 +348,7 @@ function computeMetrics(s) {
   const utilMo = (s.heat + s.electric + s.internet) / 12;
   const trueAllInMo = piti + maintMo + utilMo;
   const cashToClose = family ? 0 : s.down + s.closing + s.prepaids;
-  const dadOutlay = family ? s.price + s.closing : 0;
+  const dadOutlay = family ? s.price : 0; // family cash purchase — no closing costs
   return {
     loan,
     downPct,
@@ -430,8 +430,8 @@ function ParcelMap() {
   });
 }
 function Calculator() {
-  const [price, setPrice] = useState(567000); // Zestimate; last sold $319K (2018)
-  const [down, setDown] = useState(113400); // 20% → no PMI
+  const [price, setPrice] = useState(490000); // list price; last sold $319K (2018)
+  const [down, setDown] = useState(98000); // 20% → no PMI
   const [rate, setRate] = useState(6.25);
   const [term, setTerm] = useState(30);
   const [financing, setFinancing] = useState("bank"); // bank | family
@@ -592,11 +592,11 @@ function Calculator() {
       gap: 10
     }
   }, /*#__PURE__*/React.createElement(Chip, {
-    label: "Zestimate",
-    value: "$567,000"
+    label: "List price",
+    value: "$490,000"
   }), /*#__PURE__*/React.createElement(Chip, {
     label: "$/sqft",
-    value: "$260"
+    value: "$225"
   }), /*#__PURE__*/React.createElement(Chip, {
     label: "Lot",
     value: "13.8 ac"
@@ -615,11 +615,11 @@ function Calculator() {
       fontSize: 11,
       marginTop: 8
     }
-  }, "~2,182 sqft · timber-frame · last sold ", /*#__PURE__*/React.createElement("strong", {
+  }, "~2,182 sqft · timber-frame · ", /*#__PURE__*/React.createElement("strong", {
     style: {
       color: TEXT
     }
-  }, "$319,000 (2018)"), "; $567K is the current Zestimate. Property tax & heating below are estimates — confirm them.")), /*#__PURE__*/React.createElement("div", {
+  }, "$490,000 list"), " (last sold $319,000 in 2018). Property tax & heating below are estimates — confirm them.")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)",
       border: `1px solid ${LINE}`,
@@ -670,7 +670,7 @@ function Calculator() {
     step: 5000,
     onChange: setPrice,
     format: fmt,
-    hint: "Defaulted to the ~$567K Zestimate; adjust to an actual ask or offer."
+    hint: "Defaulted to the $490K list price; adjust to model an offer above or below ask."
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 12.5,
@@ -752,7 +752,7 @@ function Calculator() {
       color: TEXT,
       lineHeight: 1.55
     }
-  }, /*#__PURE__*/React.createElement("strong", null, "Your family buys it for cash"), " (", fmt(price), " + ", fmt(closing), " closing = ", /*#__PURE__*/React.createElement("strong", null, fmt(m.dadOutlay)), ") and you pay them interest-only at the ", /*#__PURE__*/React.createElement("strong", null, LONG_TERM_AFR, "% long-term AFR"), " — the IRS minimum that keeps it a loan rather than a gift.", /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("strong", null, "Your family buys it for cash"), " (", /*#__PURE__*/React.createElement("strong", null, fmt(m.dadOutlay)), ", no closing costs) and you pay them interest-only at the ", /*#__PURE__*/React.createElement("strong", null, LONG_TERM_AFR, "% long-term AFR"), " — the IRS minimum that keeps it a loan rather than a gift.", /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 8,
       color: MUTED
@@ -940,8 +940,8 @@ function Calculator() {
     value: "13.8 acres"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "$/sqft",
-    sub: "at Zestimate",
-    value: "$260"
+    sub: "at list",
+    value: "$225"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Water",
     value: "Broad Brook"
@@ -1088,7 +1088,7 @@ function Calculator() {
       borderTop: `1px solid ${LINE}`,
       paddingTop: 14
     }
-  }, "Source: PrimeMLS · MLS# 4710864 · last sold $319,000 (Oct 2018); $567K is the current Zestimate. Tax, insurance, heating and closing figures are estimates unless noted — verify independently. Parcel outline on the interactive map is approximate; the surveyed map shows the real lines. Estimate only, not financial advice.")))));
+  }, "Source: PrimeMLS · MLS# 4710864 · $490,000 list (last sold $319,000 in Oct 2018). Tax, insurance, heating and closing figures are estimates unless noted — verify independently. Parcel outline on the interactive map is approximate; the surveyed map shows the real lines. Estimate only, not financial advice.")))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(Calculator, null));
   </script>

@@ -35,7 +35,7 @@
 // 160 Akley Rd, Guilford VT — timber-frame home on Broad Brook.
 // 3BR / 2.5BA, ~2,182 sqft, built 2000, on 13.8 wooded acres. Single-family
 // cost-to-own calculator + an interactive parcel map and photo gallery.
-// Zestimate ~$567K (last sold $319K in 2018). Coords 42.8331, -72.6444.
+// List price $490K (last sold $319K in 2018). Coords 42.8331, -72.6444.
 // ---------------------------------------------------------------------------
 
 const GOLD = "#A07B2B";
@@ -162,7 +162,7 @@ function computeMetrics(s) {
   const utilMo = (s.heat + s.electric + s.internet) / 12;
   const trueAllInMo = piti + maintMo + utilMo;
   const cashToClose = family ? 0 : (s.down + s.closing + s.prepaids);
-  const dadOutlay = family ? (s.price + s.closing) : 0;
+  const dadOutlay = family ? s.price : 0; // family cash purchase — no closing costs
   return { loan, downPct, family, effRate, pi, amortPI, ioPI, pmiMo, taxMo, insMo, piti, maintMo, utilMo, trueAllInMo, cashToClose, dadOutlay };
 }
 
@@ -190,8 +190,8 @@ function ParcelMap() {
 }
 
 function Calculator() {
-  const [price, setPrice] = useState(567000);   // Zestimate; last sold $319K (2018)
-  const [down, setDown] = useState(113400);     // 20% → no PMI
+  const [price, setPrice] = useState(490000);   // list price; last sold $319K (2018)
+  const [down, setDown] = useState(98000);      // 20% → no PMI
   const [rate, setRate] = useState(6.25);
   const [term, setTerm] = useState(30);
   const [financing, setFinancing] = useState("bank"); // bank | family
@@ -250,14 +250,14 @@ function Calculator() {
         <div style={{ marginBottom: 22 }}>
           <div style={{ color: GOLD_DIM, fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>From the listing · MLS# 4710864</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            <Chip label="Zestimate" value="$567,000" />
-            <Chip label="$/sqft" value="$260" />
+            <Chip label="List price" value="$490,000" />
+            <Chip label="$/sqft" value="$225" />
             <Chip label="Lot" value="13.8 ac" />
             <Chip label="Per acre" value={fmt(price / 13.8)} />
             <Chip label="Beds / baths" value="3 / 2.5" />
             <Chip label="Built" value="2000" />
           </div>
-          <div style={{ color: MUTED, fontSize: 11, marginTop: 8 }}>~2,182 sqft · timber-frame · last sold <strong style={{ color: TEXT }}>$319,000 (2018)</strong>; $567K is the current Zestimate. Property tax &amp; heating below are estimates — confirm them.</div>
+          <div style={{ color: MUTED, fontSize: 11, marginTop: 8 }}>~2,182 sqft · timber-frame · <strong style={{ color: TEXT }}>$490,000 list</strong> (last sold $319,000 in 2018). Property tax &amp; heating below are estimates — confirm them.</div>
         </div>
 
         {/* TOP SUMMARY */}
@@ -271,7 +271,7 @@ function Calculator() {
 
         <div className="two-col">
           <Panel kicker="The Purchase" title="Loan terms">
-            <Slider label="Purchase price" value={price} min={350000} max={800000} step={5000} onChange={setPrice} format={fmt} hint="Defaulted to the ~$567K Zestimate; adjust to an actual ask or offer." />
+            <Slider label="Purchase price" value={price} min={350000} max={800000} step={5000} onChange={setPrice} format={fmt} hint="Defaulted to the $490K list price; adjust to model an offer above or below ask." />
             <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 7 }}>Financing</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               {[{ k: "bank", l: "Bank mortgage" }, { k: "family", l: "Family @ AFR" }].map((o) => (
@@ -291,7 +291,7 @@ function Calculator() {
               </React.Fragment>
             ) : (
               <div style={{ background: "rgba(201,162,75,0.10)", border: `1px solid ${LINE}`, borderRadius: 10, padding: "14px 16px", fontSize: 12.5, color: TEXT, lineHeight: 1.55 }}>
-                <strong>Your family buys it for cash</strong> ({fmt(price)} + {fmt(closing)} closing = <strong>{fmt(m.dadOutlay)}</strong>) and you pay them interest-only at the <strong>{LONG_TERM_AFR}% long-term AFR</strong> — the IRS minimum that keeps it a loan rather than a gift.
+                <strong>Your family buys it for cash</strong> (<strong>{fmt(m.dadOutlay)}</strong>, no closing costs) and you pay them interest-only at the <strong>{LONG_TERM_AFR}% long-term AFR</strong> — the IRS minimum that keeps it a loan rather than a gift.
                 <div style={{ marginTop: 8, color: MUTED }}>
                   Interest: {fmt(price)} × {LONG_TERM_AFR}% = <strong style={{ color: GOLD }}>{fmt(m.ioPI * 12)}/yr</strong> (~{fmt(m.ioPI)}/mo). $0 down, no PMI, no bank. The principal stays outstanding (interest-only); you build equity only by paying down extra. Title in your name, they hold the note.
                 </div>
@@ -351,7 +351,7 @@ function Calculator() {
               <Row label="Bathrooms" value="2.5" />
               <Row label="Finished area" value="2,182 sqft" />
               <Row label="Lot size" value="13.8 acres" />
-              <Row label="$/sqft" sub="at Zestimate" value="$260" />
+              <Row label="$/sqft" sub="at list" value="$225" />
               <Row label="Water" value="Broad Brook" />
               <Row label="Heat" value="Wood + baseboard" />
               <Row label="Town" value="Guilford" />
@@ -412,7 +412,7 @@ function Calculator() {
               A one-owner, 3-bedroom, 2.5-bath timber-frame home built in 2000, nestled into the hillside along Broad Brook. Prominent windows in the living room and primary bedroom make you feel as though you're in a treehouse looking down onto the brook. The open-concept first floor has a kitchen with a granite-topped island, a stainless 5-burner gas range and double electric oven, and a dining and living area that flow to the south and west with French doors out to a cedar deck and the back yard. Exposed timber framing, hardwood floors, and a wood stove run throughout — set on 13.8 wooded, sloping acres.
             </p>
             <div style={{ color: MUTED, fontSize: 11.5, marginTop: 16, lineHeight: 1.6, borderTop: `1px solid ${LINE}`, paddingTop: 14 }}>
-              Source: PrimeMLS · MLS# 4710864 · last sold $319,000 (Oct 2018); $567K is the current Zestimate. Tax, insurance, heating and closing figures are estimates unless noted — verify independently. Parcel outline on the interactive map is approximate; the surveyed map shows the real lines. Estimate only, not financial advice.
+              Source: PrimeMLS · MLS# 4710864 · $490,000 list (last sold $319,000 in Oct 2018). Tax, insurance, heating and closing figures are estimates unless noted — verify independently. Parcel outline on the interactive map is approximate; the surveyed map shows the real lines. Estimate only, not financial advice.
             </div>
           </Panel>
         </div>
