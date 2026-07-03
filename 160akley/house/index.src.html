@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>160 Akley Rd, Guilford, VT 05301</title>
   <meta name="description" content="Timber-frame home on Broad Brook — finance calculator, map & photos" />
-  <link rel="stylesheet" href="/mortgage/vendor/leaflet.css" />
+  <link rel="stylesheet" href="/160akley/vendor/leaflet.css" />
   <style>
     html, body { margin: 0; padding: 0; min-height: 100%; background: #F6F2E9; }
     * { box-sizing: border-box; }
@@ -22,9 +22,9 @@
     }
     .leaflet-container { border-radius: 14px; }
   </style>
-  <script src="/mortgage/vendor/react.production.min.js"></script>
-  <script src="/mortgage/vendor/react-dom.production.min.js"></script>
-  <script src="/mortgage/vendor/leaflet.js"></script>
+  <script src="/160akley/vendor/react.production.min.js"></script>
+  <script src="/160akley/vendor/react-dom.production.min.js"></script>
+  <script src="/160akley/vendor/leaflet.js"></script>
 </head>
 <body>
   <div id="root"></div>
@@ -218,10 +218,10 @@ function Calculator() {
   ];
 
   const gallery = [
-    { src: "/mortgage/guilford/img/exterior-brookside.webp", cap: "Brook side — bay windows over Broad Brook" },
-    { src: "/mortgage/guilford/img/living-room.webp", cap: "Timber-frame living room & wood stove" },
-    { src: "/mortgage/guilford/img/brook.webp", cap: "Broad Brook, running through the woods" },
-    { src: "/mortgage/guilford/img/driveway.webp", cap: "The approach up the drive" },
+    { src: "/160akley/house/img/exterior-brookside.webp", cap: "Brook side — bay windows over Broad Brook" },
+    { src: "/160akley/house/img/living-room.webp", cap: "Timber-frame living room & wood stove" },
+    { src: "/160akley/house/img/brook.webp", cap: "Broad Brook, running through the woods" },
+    { src: "/160akley/house/img/driveway.webp", cap: "The approach up the drive" },
   ];
 
   return (
@@ -235,7 +235,7 @@ function Calculator() {
       <div style={{ maxWidth: 1040, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ marginBottom: 18 }}>
-          <a href="/mortgage/" style={{ display: "inline-block", marginBottom: 12, color: GOLD_DIM, fontSize: 12, letterSpacing: 1, textDecoration: "none" }}>← All houses</a>
+          <a href="/160akley/" style={{ display: "inline-block", marginBottom: 12, color: GOLD_DIM, fontSize: 12, letterSpacing: 1, textDecoration: "none" }}>← 160 Akley hub</a>
           <div style={{ color: GOLD_DIM, fontSize: 12, letterSpacing: 3, textTransform: "uppercase" }}>Timber-frame · 13.8 acres on Broad Brook · Guilford VT</div>
           <h1 style={{ fontFamily: "'Funnel Display', sans-serif", fontWeight: 800, fontSize: 34, color: TEXT, margin: "8px 0 6px", letterSpacing: -0.5, lineHeight: 1.1 }}>160 Akley Rd, Guilford, VT 05301</h1>
           <p style={{ color: MUTED, fontSize: 15, margin: 0, maxWidth: 660 }}>
@@ -244,7 +244,7 @@ function Calculator() {
         </div>
 
         {/* Hero photo */}
-        <img src="/mortgage/guilford/img/exterior-rear.webp" alt="160 Akley Rd — timber-frame exterior" loading="lazy"
+        <img src="/160akley/house/img/exterior-rear.webp" alt="160 Akley Rd — timber-frame exterior" loading="lazy"
           style={{ width: "100%", height: 420, objectFit: "cover", borderRadius: 16, border: `1px solid ${LINE}`, boxShadow: SHADOW, marginBottom: 22 }} />
 
         {/* Chips */}
@@ -384,8 +384,8 @@ function Calculator() {
             <ParcelMap />
             <div style={{ marginTop: 18 }}>
               <div style={{ color: GOLD_DIM, fontSize: 10.5, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 8 }}>Surveyed parcel &amp; contour map</div>
-              <a href="/mortgage/guilford/img/parcel-map.webp" target="_blank" rel="noreferrer">
-                <img src="/mortgage/guilford/img/parcel-map.webp" alt="Parcel boundary and contour map showing Broad Brook along Akley Road" loading="lazy"
+              <a href="/160akley/house/img/parcel-map.webp" target="_blank" rel="noreferrer">
+                <img src="/160akley/house/img/parcel-map.webp" alt="Parcel boundary and contour map showing Broad Brook along Akley Road" loading="lazy"
                   style={{ width: "100%", borderRadius: 12, border: `1px solid ${LINE}`, display: "block" }} />
               </a>
             </div>

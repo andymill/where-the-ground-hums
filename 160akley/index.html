@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>160 Akley Road</title>
+  <meta name="description" content="Home hub for 160 Akley Road, Guilford VT — budget, tasks, trackers, log, files, resources, and the land." />
+  <meta name="theme-color" content="#33604C" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='9' fill='%2333604C'/><g fill='%23F5F1E9'><path d='M16 6 L23 17 L18.5 17 L24 26 L8 26 L13.5 17 L9 17 Z'/><rect x='14.5' y='24' width='3' height='4'/></g></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bitter:wght@400;500;600;700&family=Karla:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    :root{
+      --forest:#33604C; --forest-2:#274A3B; --forest-soft:#E7EEE6;
+      --cedar:#5C3F28; --cedar-soft:#EDE4D6;
+      --bone:#F5F1E9; --bone-2:#EDE7DB; --card:#FFFDFA; --line:#E4DCCE;
+      --ink:#241D15; --ink-2:#4A4034; --muted:#8B7F6E; --faint:#B4A891;
+      --green:#4E7A42; --green-soft:#E7EEE0;
+      --shadow:0 1px 3px rgba(0,0,0,.04); --shadow-lg:0 10px 30px rgba(28,25,23,.10);
+      --display:'Bitter',Georgia,serif; --sans:'Karla',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+    }
+    [data-theme="dark"]{
+      --forest:#7FB79D; --forest-2:#6AA588; --forest-soft:rgba(127,183,157,.15);
+      --cedar:#C79A6E; --cedar-soft:rgba(199,154,110,.14);
+      --bone:#16130D; --bone-2:#201C13; --card:#221E15; --line:#38311F;
+      --ink:#ECE6D6; --ink-2:#C6BEAB; --muted:#9A907C; --faint:#6E6549;
+      --green:#84BE74; --green-soft:rgba(132,190,116,.14);
+      --shadow:0 1px 3px rgba(0,0,0,.3); --shadow-lg:0 16px 40px rgba(0,0,0,.4);
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;height:100%;background:var(--bone);font-family:var(--sans);color:var(--ink);-webkit-font-smoothing:antialiased;}
+    .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+    .num{font-variant-numeric:tabular-nums;}
+    a{color:var(--forest);}
+    .app{display:flex;height:100vh;overflow:hidden;}
+    .rail{width:92px;flex:none;border-right:1px solid var(--line);background:var(--bone);padding:20px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;overflow-y:auto;scrollbar-width:none;}
+    .rail::-webkit-scrollbar{display:none;}
+    .mark{width:38px;height:38px;border-radius:11px;background:var(--forest);display:flex;align-items:center;justify-content:center;color:#fff;margin-bottom:14px;flex:none;}
+    .mark svg{width:20px;height:20px;}
+    .navbtn{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;padding:11px 4px;border-radius:12px;color:var(--muted);cursor:pointer;border:none;background:none;font-family:var(--sans);transition:background .16s,color .16s;}
+    .navbtn svg{width:20px;height:20px;}
+    .navbtn span{font-size:9.5px;font-weight:600;letter-spacing:.02em;}
+    .navbtn:hover{color:var(--ink-2);}
+    .navbtn.on{background:var(--forest-soft);color:var(--forest);}
+    .rail-foot{margin-top:auto;padding-top:12px;text-align:center;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7;}
+    .railctl{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;cursor:pointer;font-family:var(--sans);font-size:11px;font-weight:600;padding:7px 4px;width:100%;flex:none;margin-top:6px;}
+    .railctl:hover{border-color:var(--forest);}
+    main{flex:1;position:relative;overflow:hidden;}
+    .screen{display:none;height:100%;overflow-y:auto;}
+    .screen.on{display:block;}
+    .pad{padding:34px 40px 80px;max-width:1080px;}
+    .kick{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--forest);}
+    .h1{font-family:var(--display);font-size:34px;font-weight:700;letter-spacing:-0.015em;margin:8px 0 0;line-height:1.1;}
+    .lede{font-size:14px;color:var(--muted);margin:10px 0 0;line-height:1.55;max-width:640px;}
+    .seclabel{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);}
+    .bar{height:7px;background:var(--bone-2);border-radius:999px;overflow:hidden;}
+    .bar > i{display:block;height:100%;background:var(--forest);border-radius:999px;}
+    .btn{border:none;background:var(--forest);color:#fff;font-weight:600;font-size:14px;padding:11px 18px;border-radius:9px;cursor:pointer;font-family:var(--sans);}
+    .btn.sm{padding:8px 12px;font-size:13px;}
+    input,select,textarea{font-family:var(--sans);color:var(--ink);}
+    .fld{border:1px solid var(--line);border-radius:9px;padding:11px 14px;font-size:14.5px;background:var(--bone);outline:none;color:var(--ink);}
+    .fld:focus{border-color:var(--forest);}
+    ::-webkit-scrollbar{width:10px;height:10px;}
+    ::-webkit-scrollbar-thumb{background:var(--line);border-radius:999px;border:3px solid var(--bone);}
+    .hero{height:280px;position:relative;overflow:hidden;background:linear-gradient(155deg,#31241a 0%,#43331f 45%,#33604C 125%);}
+    .hero .photo{position:absolute;inset:0;background-size:cover;background-position:center;}
+    .hero .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,15,10,.15) 0%,rgba(20,15,10,.15) 45%,rgba(20,15,10,.72) 100%);}
+    .hero .copy{position:absolute;left:40px;bottom:28px;right:40px;color:#fff;max-width:720px;}
+    .hero .met{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.82);}
+    .hero .head{font-family:var(--display);font-size:31px;font-weight:700;letter-spacing:-0.015em;margin-top:8px;line-height:1.12;text-shadow:0 1px 20px rgba(0,0,0,.35);}
+    .home-row{display:flex;}
+    .feed-wrap{flex:1;padding:30px 36px;min-width:0;}
+    .home-rail{width:320px;flex:none;border-left:1px solid var(--line);padding:30px 26px;background:var(--bone);}
+    .timeline{position:relative;padding-left:26px;}
+    .timeline .rule{position:absolute;left:6px;top:5px;bottom:5px;width:1.5px;background:var(--line);}
+    .entry{position:relative;margin-bottom:24px;}
+    .entry:last-child{margin-bottom:0;}
+    .entry .dot{position:absolute;left:-26px;top:3px;width:13px;height:13px;border-radius:999px;background:var(--card);border:2px solid var(--line);}
+    .entry.new .dot{background:var(--forest);border:2.5px solid var(--card);}
+    .entry.done .dot{background:var(--green);border:2.5px solid var(--card);}
+    .entry .meta{font-family:var(--mono);font-size:11.5px;color:var(--muted);}
+    .entry .ti{font-size:15.5px;font-weight:600;margin-top:3px;}
+    .entry .bo{font-size:14px;color:var(--ink-2);margin-top:3px;}
+    .amt{font-family:var(--display);color:var(--forest);}
+    .reading{display:flex;justify-content:space-between;align-items:center;}
+    .reading .l{display:flex;align-items:center;gap:10px;font-size:14.5px;}
+    .reading .l svg{width:16px;height:16px;color:var(--forest);}
+    .reading .v{font-family:var(--display);font-weight:700;}
+    .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+    .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+    .stat .k{font-family:var(--mono);font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+    .stat .v{font-family:var(--display);font-size:30px;font-weight:700;margin-top:8px;}
+    .listcard{padding:8px 24px;}
+    .lrow{display:flex;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid var(--line);}
+    .lrow:last-child{border-bottom:none;}
+    .editable{cursor:pointer;border-bottom:1px dashed transparent;}
+    .editable:hover{border-bottom-color:var(--forest);}
+    .trk .hd{display:flex;justify-content:space-between;align-items:center;}
+    .trk .hd svg{width:18px;height:18px;color:var(--forest);}
+    .trk .big{font-family:var(--display);font-size:30px;font-weight:700;margin-top:14px;cursor:pointer;}
+    .trk .big small{font-size:14px;color:var(--muted);font-weight:400;}
+    .trk .det{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.7;}
+    .task{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid var(--line);}
+    .task:last-child{border-bottom:none;}
+    .task .main{flex:1;display:flex;align-items:center;gap:14px;cursor:pointer;min-width:0;}
+    .box{width:18px;height:18px;border:1.5px solid var(--line);border-radius:5px;flex:none;display:flex;align-items:center;justify-content:center;}
+    .box svg{width:13px;height:13px;}
+    .task.done{opacity:.5;}
+    .task.done .box{background:var(--green);border:none;color:#fff;}
+    .task.done .tlabel{text-decoration:line-through;}
+    .tlabel{flex:1;font-size:15.5px;}
+    .tby{font-family:var(--mono);font-size:10.5px;color:var(--faint);}
+    .tarea{font-family:var(--mono);font-size:12px;color:var(--muted);}
+    .tdue{font-size:13px;color:var(--muted);width:56px;text-align:right;}
+    .xbtn{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px 6px;}
+    .xbtn:hover{color:var(--cedar);}
+    .dropzone{border:1.5px dashed var(--line);border-radius:14px;background:var(--card);padding:34px;text-align:center;cursor:pointer;transition:border-color .16s,background .16s;}
+    .dropzone.over{border-color:var(--forest);background:var(--forest-soft);}
+    .dz-ic{width:46px;height:46px;border-radius:12px;background:var(--forest-soft);color:var(--forest);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;}
+    .fcard{overflow:hidden;}
+    .fthumb{height:118px;background:var(--bone-2);display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);background-size:cover;background-position:center;}
+    .fthumb svg{width:30px;height:30px;color:var(--forest);}
+    .search{width:100%;padding:12px 14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;font-size:15px;font-family:inherit;box-shadow:var(--shadow);}
+    .search:focus{outline:none;border-color:var(--forest);}
+    details.res{background:var(--card);border:1px solid var(--line);border-radius:13px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);}
+    details.res>summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    details.res>summary::-webkit-details-marker{display:none;}
+    .rescat{font-family:var(--display);font-weight:700;font-size:15.5px;}
+    .rescat .subt{display:block;color:var(--muted);font-size:11.5px;font-weight:500;font-family:var(--sans);}
+    .rescount{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;}
+    .chev{transition:transform .18s;color:var(--forest);}
+    details.res[open] .chev{transform:rotate(90deg);}
+    .resbody{padding:0 16px 8px;}
+    .prov{padding:11px 0;border-top:1px dashed var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .prov .pn{font-weight:600;font-size:14.5px;}
+    .prov .pmeta{color:var(--muted);font-size:12.5px;margin-top:2px;line-height:1.4;}
+    .prov .flag{color:var(--cedar);font-weight:600;}
+    .acts{display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap;align-items:center;}
+    .act{display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-size:12.5px;font-weight:600;padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:var(--bone-2);color:var(--ink);white-space:nowrap;}
+    .act svg{width:13px;height:13px;}
+    .act.call{background:var(--forest-soft);border-color:transparent;color:var(--forest);}
+    .plot{flex:1;height:560px;position:relative;overflow:hidden;background:var(--bone-2);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:32px 32px;}
+    .node{position:absolute;display:flex;align-items:center;gap:8px;}
+    .node .d{width:11px;height:11px;border-radius:999px;background:var(--ink);border:2px solid var(--card);flex:none;}
+    .node .lb{font-family:var(--mono);font-size:12px;color:var(--ink-2);}
+    .node.house .d{width:20px;height:20px;background:var(--forest);border:3px solid var(--card);box-shadow:0 10px 26px rgba(51,96,76,.38);}
+    .node.house .lb{font-family:var(--display);font-weight:700;font-size:15px;color:var(--ink);}
+    a.calc{display:block;padding:20px;border-radius:14px;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);transition:transform .12s,border-color .12s;position:relative;overflow:hidden;}
+    a.calc::before{content:"";position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,var(--forest),transparent);}
+    a.calc:hover{transform:translateY(-2px);border-color:var(--forest);}
+    a.calc .t{font-family:var(--display);font-weight:700;font-size:17px;}
+    a.calc .d{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.45;}
+    a.calc .go{color:var(--forest);font-weight:700;font-size:13px;margin-top:10px;display:inline-block;}
+    .addform{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:14px 16px;}
+    @media (max-width:820px){
+      .app{flex-direction:column;height:100vh;}
+      .rail{width:100%;height:auto;flex-direction:row;border-right:none;border-bottom:1px solid var(--line);padding:8px 10px;gap:2px;align-items:center;position:sticky;top:0;z-index:20;overflow-x:auto;overflow-y:hidden;background:color-mix(in srgb,var(--bone) 90%,transparent);backdrop-filter:blur(8px);}
+      .mark{margin-bottom:0;margin-right:6px;width:32px;height:32px;}
+      .navbtn{width:auto;flex-direction:row;gap:6px;padding:8px 11px;border-radius:10px;flex:none;}
+      .navbtn span{font-size:12.5px;}
+      .rail-foot{display:none;}
+      .railctl{width:auto;margin-top:0;margin-left:4px;order:99;white-space:nowrap;}
+      .pad{padding:22px 16px 90px;}
+      .h1{font-size:27px;}
+      .hero{height:220px;}
+      .hero .copy{left:20px;right:20px;bottom:20px;}
+      .hero .head{font-size:23px;}
+      .home-row{flex-direction:column;}
+      .feed-wrap{padding:24px 18px;}
+      .home-rail{width:auto;border-left:none;border-top:1px solid var(--line);}
+      .g3,.g4{grid-template-columns:1fr;}
+      .g3.two,.g4.two{grid-template-columns:1fr 1fr;}
+      .listcard{padding:6px 16px;}
+      .lrow{flex-wrap:wrap;gap:8px 12px;}
+      .plot{height:420px;}
+      .map-row{flex-direction:column;}
+      .map-legend{width:auto !important;}
+    }
+    @media (max-width:420px){ .g4.two,.g3.two{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="rail" id="rail">
+      <div class="mark"><i data-lucide="trees"></i></div>
+      <button class="navbtn on" data-nav="home"><i data-lucide="home"></i><span>Home</span></button>
+      <button class="navbtn" data-nav="budget"><i data-lucide="wallet"></i><span>Budget</span></button>
+      <button class="navbtn" data-nav="tasks"><i data-lucide="list-checks"></i><span>Tasks</span></button>
+      <button class="navbtn" data-nav="trackers"><i data-lucide="gauge"></i><span>Trackers</span></button>
+      <button class="navbtn" data-nav="log"><i data-lucide="notebook-pen"></i><span>Log</span></button>
+      <button class="navbtn" data-nav="files"><i data-lucide="receipt"></i><span>Files</span></button>
+      <button class="navbtn" data-nav="resources"><i data-lucide="book-open"></i><span>Resources</span></button>
+      <button class="navbtn" data-nav="map"><i data-lucide="map"></i><span>Map</span></button>
+      <div class="rail-foot">13.8 ac<br>Guilford</div>
+      <button class="railctl" id="whoBtn" title="Who's using this?">👤 —</button>
+      <button class="railctl" id="themeBtn" title="Light / dark">🌙</button>
+    </nav>
+
+    <main>
+      <!-- HOME -->
+      <section class="screen on" data-screen="home">
+        <div class="hero">
+          <div class="photo" style="background-image:url('/160akley/house/img/exterior-brookside.webp')"></div>
+          <div class="scrim"></div>
+          <div class="copy"><div class="met" id="heroMet"></div><div class="head" id="heroHead">The house is quiet.</div></div>
+        </div>
+        <div class="home-row">
+          <div class="feed-wrap">
+            <div class="seclabel" style="margin-bottom:18px;">The log</div>
+            <div class="timeline" id="homeFeed"><div class="rule"></div></div>
+          </div>
+          <div class="home-rail">
+            <div class="seclabel" style="margin-bottom:16px;">Readings</div>
+            <div id="homeReadings" style="display:flex;flex-direction:column;gap:15px;"></div>
+            <div style="height:1px;background:var(--line);margin:24px 0;"></div>
+            <div class="seclabel" style="margin-bottom:16px;">Monthly surplus</div>
+            <div style="font-family:var(--display);font-size:32px;font-weight:700;color:var(--forest);line-height:1;" id="homeSurplus">—</div>
+            <div style="font-size:13px;color:var(--muted);margin-top:6px;" id="homeSurplusCap"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BUDGET -->
+      <section class="screen" data-screen="budget">
+        <div class="pad">
+          <div class="kick">Money</div><h1 class="h1">Monthly budget</h1>
+          <p class="lede">Your household budget after the move. Tap any number to edit — it's shared with Zoe. Deeper what-ifs live in the calculator.</p>
+          <div class="g3" style="margin-top:24px;">
+            <div class="card stat" style="padding:22px;"><div class="k">Net income</div><div class="v num editable" id="bIncome">—</div></div>
+            <div class="card stat" style="padding:22px;"><div class="k">Total spend</div><div class="v num" id="bSpend">—</div></div>
+            <div class="card stat" style="padding:22px;"><div class="k">Surplus</div><div class="v num" id="bSurplus" style="color:var(--forest);">—</div></div>
+          </div>
+          <p class="mono" id="bJan" style="font-size:12.5px;color:var(--muted);margin:12px 2px 0;"></p>
+
+          <div class="seclabel" style="margin:32px 0 12px;">House &amp; fixed</div>
+          <div class="card listcard" id="bFixed"></div>
+          <div class="seclabel" style="margin:28px 0 12px;">Living &amp; variable</div>
+          <div class="card listcard" id="bLiving"></div>
+
+          <div class="seclabel" style="margin:34px 0 16px;">Calculators</div>
+          <div class="g3 two">
+            <a class="calc" href="/160akley/budget/"><div class="t">Budget what-ifs</div><div class="d">Income scenarios, the AFR slider, a 12-month projection.</div><span class="go">Open →</span></a>
+            <a class="calc" href="/160akley/house/"><div class="t">Cost to own</div><div class="d">Payment, cash to close, true cost — plus the parcel map & gallery.</div><span class="go">Open →</span></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- TASKS -->
+      <section class="screen" data-screen="tasks">
+        <div class="pad" style="max-width:900px;">
+          <div class="kick">To do</div><h1 class="h1">Tasks</h1>
+          <p class="lede">Tap a task to mark it done. Shared with Zoe in real time (refresh to sync).</p>
+          <div class="card addform" style="margin:20px 0 26px;">
+            <input class="fld" id="tkText" placeholder="Add a task, e.g. Schedule septic inspection" style="flex:2;min-width:180px;">
+            <input class="fld" id="tkArea" placeholder="Tag" style="width:100px;">
+            <select class="fld" id="tkGroup"><option value="week">This week</option><option value="soon">Soon</option></select>
+            <button class="btn" id="tkAdd">Add</button>
+          </div>
+          <div id="taskGroups"></div>
+        </div>
+      </section>
+
+      <!-- TRACKERS -->
+      <section class="screen" data-screen="trackers">
+        <div class="pad">
+          <div class="kick">Readings</div><h1 class="h1">Trackers</h1>
+          <p class="lede">Current readings for the house systems. Tap a value to update it. <em>(Saved on this device for now.)</em></p>
+          <div class="g3 two" id="trackerGrid" style="margin-top:22px;"></div>
+        </div>
+      </section>
+
+      <!-- LOG -->
+      <section class="screen" data-screen="log">
+        <div class="pad" style="max-width:780px;">
+          <div class="kick">Journal</div><h1 class="h1">The log</h1>
+          <div class="card addform" style="margin:24px 0 34px;">
+            <input class="fld" id="logText" placeholder="Add to the log, e.g. Split and stacked the birch" style="flex:1;min-width:200px;">
+            <select class="fld" id="logCat"><option>log</option><option>task</option><option>spending</option><option>done</option></select>
+            <button class="btn" id="logAdd">Add</button>
+          </div>
+          <div class="timeline" id="logFeed"><div class="rule"></div></div>
+        </div>
+      </section>
+
+      <!-- FILES -->
+      <section class="screen" data-screen="files">
+        <div class="pad">
+          <div class="kick">Paperwork</div><h1 class="h1">Documents &amp; receipts</h1>
+          <p class="lede">Receipts, invoices, permits, and photos. Drag files in or click to add. <em>(Uploads are session-only for now — real storage in R2 is next.)</em></p>
+          <div class="dropzone" id="dropzone" style="margin:22px 0 30px;">
+            <div class="dz-ic"><i data-lucide="upload"></i></div>
+            <div style="font-size:15.5px;font-weight:600;">Drop receipts or photos here</div>
+            <div style="font-size:13.5px;color:var(--muted);margin-top:4px;">or click to choose files · PDF, JPG, PNG</div>
+            <input id="fileInput" type="file" multiple accept="image/*,application/pdf" style="display:none;">
+          </div>
+          <div class="seclabel" style="margin-bottom:16px;">On file</div>
+          <div class="g4 two" id="fileGrid"></div>
+        </div>
+      </section>
+
+      <!-- RESOURCES -->
+      <section class="screen" data-screen="resources">
+        <div class="pad">
+          <div class="kick">On file</div><h1 class="h1">Resources</h1>
+          <p class="lede">Local attorneys, trades and services. Tap a phone to call. Add your own or remove ones you won't use — shared with Zoe.</p>
+          <input class="search" id="resSearch" type="search" placeholder="Search providers, categories, phone…" autocomplete="off" style="margin:18px 0 10px;">
+          <div class="card addform" id="resAddForm" style="margin-bottom:10px;">
+            <input class="fld" id="raName" placeholder="Name" style="flex:2;min-width:150px;">
+            <input class="fld" id="raPhone" placeholder="Phone" style="width:130px;">
+            <input class="fld" id="raCat" list="resCats" placeholder="Category" style="width:150px;">
+            <datalist id="resCats"></datalist>
+            <button class="btn sm" id="raAdd">Add provider</button>
+          </div>
+          <p class="mono" id="resMeta" style="font-size:12.5px;color:var(--muted);margin:6px 0 14px;"></p>
+          <div id="resList"></div>
+        </div>
+      </section>
+
+      <!-- MAP -->
+      <section class="screen" data-screen="map">
+        <div class="pad">
+          <div class="kick">The land</div><h1 class="h1">Land map</h1>
+          <p class="lede">13.8 acres on Broad Brook in Guilford. A working sketch, not to scale.</p>
+          <div class="map-row" style="display:flex;gap:24px;align-items:stretch;margin-top:20px;">
+            <div class="card plot">
+              <div style="position:absolute;inset:40px;border:1.5px dashed var(--muted);border-radius:8px;"></div>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:40px;width:calc(100% - 80px);height:calc(100% - 80px);"><path d="M2 86 C 22 74, 40 78, 56 62 S 82 40, 96 18" fill="none" stroke="#33604C" stroke-opacity="0.45" stroke-width="2.6"/></svg>
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;inset:40px;width:calc(100% - 80px);height:calc(100% - 80px);"><path d="M98 40 C 80 42, 70 48, 56 50" fill="none" stroke="#6b6660" stroke-opacity="0.5" stroke-width="2" stroke-dasharray="1.5 2"/></svg>
+              <div class="node house" style="left:48%;top:44%;"><span class="d"></span><span class="lb">The house</span></div>
+              <div class="node" style="left:40%;top:34%;"><span class="d"></span><span class="lb">Well</span></div>
+              <div class="node" style="left:58%;top:52%;"><span class="d"></span><span class="lb">Woodshed</span></div>
+              <div class="node" style="left:28%;top:66%;"><span class="d"></span><span class="lb">Broad Brook</span></div>
+              <div style="position:absolute;right:40px;top:42%;transform:translateY(-50%);"><span class="mono" style="font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:6px;padding:3px 8px;">Akley Road →</span></div>
+            </div>
+            <div class="card map-legend" style="width:240px;flex:none;padding:22px;">
+              <div class="seclabel" style="margin-bottom:16px;">Legend</div>
+              <div style="display:flex;flex-direction:column;gap:14px;font-size:14px;">
+                <div style="display:flex;align-items:center;gap:11px;"><span style="width:14px;height:14px;border-radius:999px;background:var(--forest);flex:none;"></span>The house</div>
+                <div style="display:flex;align-items:center;gap:11px;"><span style="width:12px;height:12px;border-radius:999px;background:var(--ink);flex:none;"></span>Fixed points</div>
+                <div style="display:flex;align-items:center;gap:11px;"><span style="width:20px;height:3px;background:#33604C;opacity:.5;flex:none;border-radius:2px;"></span>Broad Brook</div>
+                <div style="display:flex;align-items:center;gap:11px;"><span style="width:20px;height:0;border-top:2px dashed var(--muted);flex:none;"></span>Driveway</div>
+              </div>
+              <div style="height:1px;background:var(--line);margin:22px 0;"></div>
+              <div class="mono" style="font-size:12px;color:var(--muted);line-height:1.8;">Parcel 13.8 ac<br>Built 2000<br>3BR / 2.5BA · 2,182 sqft<br>Timber-frame · Broad Brook</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+  (function(){
+    "use strict";
+    var $=function(s,r){return (r||document).querySelector(s);};
+    var $$=function(s,r){return Array.from((r||document).querySelectorAll(s));};
+    var LS=window.localStorage;
+    function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+    function money(n){return "$"+Math.round(n).toLocaleString("en-US");}
+    function icons(){ if(window.lucide&&window.lucide.createIcons) window.lucide.createIcons(); }
+    var API="/160akley/api";
+    function api(method,path,body){
+      return fetch(API+path,{method:method,headers:body?{"content-type":"application/json"}:undefined,body:body?JSON.stringify(body):undefined})
+        .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.status===204?null:r.json(); });
+    }
+
+    /* ---------- identity + theme (local prefs) ---------- */
+    var who=LS.getItem("akley-who")||"";
+    function applyWho(){ $("#whoBtn").textContent="👤 "+(who||"set name"); }
+    $("#whoBtn").addEventListener("click",function(){ who = who==="Andy"?"Zoe":(who==="Zoe"?"Andy":"Andy"); LS.setItem("akley-who",who); applyWho(); });
+    if(!who){ who="Andy"; } applyWho();
+    var theme=LS.getItem("akley-theme")||((window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light");
+    function applyTheme(){ document.documentElement.setAttribute("data-theme",theme); $("#themeBtn").textContent=theme==="dark"?"☀️":"🌙"; }
+    $("#themeBtn").addEventListener("click",function(){ theme=theme==="dark"?"light":"dark"; LS.setItem("akley-theme",theme); applyTheme(); });
+    applyTheme();
+
+    /* ---------- trackers now shared via D1 ---------- */
+    var trackerList=[];
+    function trk(k){ return trackerList.find(function(t){return t.key===k;})||{}; }
+
+    /* ---------- remote state ---------- */
+    var tasks=[], resGroups=[], budget={lines:[],meta:{}}, logEntries=[];
+
+    /* ---------- nav ---------- */
+    var SCREENS=["home","budget","tasks","trackers","log","files","resources","map"];
+    function show(name){
+      if(SCREENS.indexOf(name)<0) name="home";
+      $$(".screen").forEach(function(s){ s.classList.toggle("on",s.getAttribute("data-screen")===name); });
+      $$(".navbtn").forEach(function(b){ b.classList.toggle("on",b.getAttribute("data-nav")===name); });
+      var sc=$(".screen.on"); if(sc) sc.scrollTop=0;
+      if(("#"+name)!==location.hash) history.replaceState(null,"","#"+name);
+      icons();
+    }
+    $$(".navbtn").forEach(function(b){ b.addEventListener("click",function(){ show(b.getAttribute("data-nav")); }); });
+    window.addEventListener("hashchange",function(){ show(location.hash.slice(1)); });
+
+    /* ---------- home ---------- */
+    function fmtDate(){ return new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}); }
+    function entryHTML(e,cls){
+      var amt=(e.amount&&e.amount>0)?' <span class="amt">'+money(e.amount)+'</span>':'';
+      return '<div class="entry '+(cls||"")+'"><span class="dot"></span><div class="meta">'+esc(e.date)+' · '+esc(e.cat)+'</div>'
+        +'<div class="ti">'+esc(e.title)+amt+'</div>'+(e.body?'<div class="bo">'+esc(e.body)+'</div>':'')+'</div>';
+    }
+    function budgetTotals(){
+      var income=(budget.meta.net_income&&budget.meta.net_income.num)||0;
+      var total=budget.lines.reduce(function(a,l){return a+(+l.amount||0);},0);
+      var jan=(budget.meta.jan_step&&budget.meta.jan_step.num)||0;
+      return {income:income,total:total,surplus:income-total,jan:jan};
+    }
+    function renderHome(){
+      var open=tasks.filter(function(t){return !t.done && t.grp==="week";}).length;
+      $("#heroMet").textContent=fmtDate()+" · Guilford, Vermont";
+      $("#heroHead").textContent=open>0?("The house is quiet. "+open+" thing"+(open===1?"":"s")+" need"+(open===1?"s":"")+" you today."):"The house is quiet. You're all caught up.";
+      var feed=$("#homeFeed"); feed.innerHTML='<div class="rule"></div>';
+      logEntries.slice(0,5).forEach(function(e,i){ feed.insertAdjacentHTML("beforeend", entryHTML(e,i===0?"new":(e.cat==="done"?"done":""))); });
+      var rows=[["firewood","Firewood"],["oil","Heating oil"],["well","Well"],["rain","Rain / wk"]];
+      $("#homeReadings").innerHTML=rows.map(function(x){var t=trk(x[0]);if(!t.key)return "";var val=t.value+(x[0]==="oil"?"%":(x[0]==="rain"?'"':((t.unit||"").indexOf("cords")>=0?" cords":"")));var col=x[0]==="well"?' style="color:var(--green)"':'';return '<div class="reading"><span class="l"><i data-lucide="'+t.icon+'"></i>'+x[1]+'</span><span class="v"'+col+'>'+esc(val)+'</span></div>';}).join("");
+      var b=budgetTotals();
+      $("#homeSurplus").textContent = b.income? money(b.surplus) : "—";
+      var pct=b.income?Math.round(b.surplus/b.income*100):0;
+      $("#homeSurplusCap").textContent = b.income? (pct+"% of take-home · "+money(b.income)+" in, "+money(b.total)+" out") : "";
+      icons();
+    }
+
+    /* ---------- budget ---------- */
+    function loadBudget(){ return api("GET","/budget").then(function(d){ budget=d||{lines:[],meta:{}}; }); }
+    function renderBudget(){
+      var b=budgetTotals();
+      $("#bIncome").textContent=money(b.income); $("#bSpend").textContent=money(b.total); $("#bSurplus").textContent=money(b.surplus);
+      $("#bJan").textContent = b.jan? ("From Jan 2027, net income rises ~"+money(b.jan)+"/mo → surplus ≈ "+money(b.surplus+b.jan)+".") : "";
+      function lines(grp){ return budget.lines.filter(function(l){return l.grp===grp;}).map(function(l){
+        return '<div class="lrow"><span style="flex:1;font-size:15px;">'+esc(l.label)+(l.note?'<span class="mono" style="display:block;font-size:11px;color:var(--muted);">'+esc(l.note)+'</span>':'')+'</span>'
+          +'<span class="editable num" data-bl="'+l.id+'" style="font-family:var(--display);font-weight:700;font-size:16px;">'+money(l.amount)+'</span></div>';
+      }).join(""); }
+      $("#bFixed").innerHTML=lines("fixed"); $("#bLiving").innerHTML=lines("living");
+      $$("[data-bl]").forEach(function(el){ el.addEventListener("click",function(){
+        var id=el.getAttribute("data-bl"), l=budget.lines.find(function(x){return x.id===id;});
+        var v=window.prompt("Update “"+l.label+"” ($/month):", Math.round(l.amount)); if(v===null)return;
+        var num=parseFloat(v); if(isNaN(num))return;
+        api("PATCH","/budget",{id:id,amount:num}).then(loadBudget).then(function(){ renderBudget(); renderHome(); });
+      }); });
+      $("#bIncome").onclick=function(){
+        var v=window.prompt("Net monthly income ($):", Math.round(b.income)); if(v===null)return;
+        var num=parseFloat(v); if(isNaN(num))return;
+        api("PATCH","/budget",{key:"net_income",num:num}).then(loadBudget).then(function(){ renderBudget(); renderHome(); });
+      };
+    }
+
+    /* ---------- tasks ---------- */
+    function loadTasks(){ return api("GET","/tasks").then(function(d){ tasks=d||[]; }); }
+    function taskRow(t){
+      var by=(t.created_by&&t.created_by!=="seed")?' <span class="tby">· '+esc(t.created_by)+'</span>':'';
+      return '<div class="task '+(t.done?"done":"")+'" data-id="'+t.id+'">'
+        +'<div class="main" data-toggle="'+t.id+'"><span class="box">'+(t.done?'<i data-lucide="check"></i>':'')+'</span>'
+        +'<span class="tlabel">'+esc(t.text)+by+'</span></div>'
+        +(t.area?'<span class="tarea">'+esc(t.area)+'</span>':'')
+        +'<span class="tdue">'+esc(t.due||"")+'</span>'
+        +'<button class="xbtn" data-del="'+t.id+'">✕</button></div>';
+    }
+    function renderTasks(){
+      var groups=[["week","This week"],["soon","Soon"]], html="";
+      groups.forEach(function(g){
+        var items=tasks.filter(function(t){return t.grp===g[0] && !t.done;});
+        html+='<div class="seclabel" style="margin:0 0 12px;">'+g[1]+'</div><div class="card listcard" style="margin-bottom:26px;">'+(items.map(taskRow).join("")||'<div style="padding:13px 0;color:var(--faint);">Nothing here.</div>')+'</div>';
+      });
+      var done=tasks.filter(function(t){return t.done;});
+      html+='<div class="seclabel" style="margin:0 0 12px;">Done</div><div class="card listcard">'+(done.map(taskRow).join("")||'<div style="padding:13px 0;color:var(--faint);">Nothing done yet.</div>')+'</div>';
+      $("#taskGroups").innerHTML=html;
+      $$("[data-toggle]").forEach(function(el){ el.addEventListener("click",function(){
+        var t=tasks.find(function(x){return x.id===el.getAttribute("data-toggle");}); if(!t)return;
+        api("PATCH","/tasks/"+t.id,{done:!t.done}).then(loadTasks).then(function(){ renderTasks(); renderHome(); });
+      }); });
+      $$("[data-del]").forEach(function(el){ el.addEventListener("click",function(){
+        api("DELETE","/tasks/"+el.getAttribute("data-del")).then(loadTasks).then(function(){ renderTasks(); renderHome(); });
+      }); });
+      icons();
+    }
+    $("#tkAdd").addEventListener("click",function(){
+      var text=$("#tkText").value.trim(); if(!text)return;
+      api("POST","/tasks",{text:text,area:$("#tkArea").value.trim(),grp:$("#tkGroup").value,who:who})
+        .then(loadTasks).then(function(){ $("#tkText").value="";$("#tkArea").value=""; renderTasks(); renderHome(); });
+    });
+
+    /* ---------- resources ---------- */
+    function loadResources(){ return api("GET","/resources").then(function(d){ resGroups=d||[]; }); }
+    function digits(s){return (s||"").replace(/[^0-9]/g,"");}
+    function tel(p){var d=digits(p); if(d.length===10)d="1"+d; return d.length===11?("tel:+"+d):null;}
+    function acts(it){
+      var o="";
+      (it.p||[]).forEach(function(p){var t=tel(p); o+= t?'<a class="act call" href="'+t+'"><i data-lucide="phone"></i>'+p+'</a>':'<span class="act"><i data-lucide="phone"></i>'+p+'</span>';});
+      if(it.e) o+='<a class="act" href="mailto:'+it.e+'"><i data-lucide="mail"></i>email</a>';
+      if(it.w) o+='<a class="act" href="https://'+it.w+'" target="_blank" rel="noreferrer"><i data-lucide="external-link"></i>site</a>';
+      o+='<button class="xbtn" data-rdel="'+it.id+'" title="Remove">✕</button>';
+      return o;
+    }
+    function pmeta(it){ var b=[]; if(it.a)b.push(it.a); if(it.note)b.push(it.note); var s=b.join(" · "); var f=it.flag?'<span class="flag">⚑ '+it.flag+'</span>':''; return s&&f?s+" · "+f:(s||f); }
+    function totalProv(){ return resGroups.reduce(function(a,g){return a+g.items.length;},0); }
+    function renderRes(q){
+      q=(q||"").trim().toLowerCase(); var html="",shown=0;
+      resGroups.forEach(function(g){
+        var cm=g.cat.toLowerCase().indexOf(q)>=0;
+        var items=q?g.items.filter(function(it){ if(cm)return true; var h=(it.n+" "+(it.a||"")+" "+(it.note||"")+" "+(it.p||[]).join(" ")).toLowerCase(); return h.indexOf(q)>=0; }):g.items;
+        if(!items.length)return; shown+=items.length;
+        var rows=items.map(function(it){ return '<div class="prov"><div><div class="pn">'+esc(it.n)+'</div>'+(pmeta(it)?'<div class="pmeta">'+pmeta(it)+'</div>':'')+'</div><div class="acts">'+acts(it)+'</div></div>'; }).join("");
+        html+='<details class="res"'+(q?" open":"")+'><summary><span class="rescat">'+esc(g.cat)+(g.subt?'<span class="subt">'+esc(g.subt)+'</span>':'')+'</span><span class="rescount">'+items.length+' <span class="chev">▸</span></span></summary><div class="resbody">'+rows+'</div></details>';
+      });
+      $("#resList").innerHTML=html||'<p class="mono" style="color:var(--muted);">No matches.</p>';
+      $("#resMeta").textContent=q?(shown+" match"+(shown===1?"":"es")):(totalProv()+" providers across "+resGroups.length+" categories");
+      $("#resCats").innerHTML=resGroups.map(function(g){return '<option value="'+esc(g.cat)+'">';}).join("");
+      $$("[data-rdel]").forEach(function(el){ el.addEventListener("click",function(){
+        if(!window.confirm("Remove this provider?"))return;
+        api("DELETE","/resources/"+el.getAttribute("data-rdel")).then(loadResources).then(function(){ renderRes($("#resSearch").value); });
+      }); });
+      icons();
+    }
+    $("#resSearch").addEventListener("input",function(e){ renderRes(e.target.value); });
+    $("#raAdd").addEventListener("click",function(){
+      var name=$("#raName").value.trim(), cat=$("#raCat").value.trim(), phone=$("#raPhone").value.trim();
+      if(!name||!cat){ alert("Name and category are required."); return; }
+      api("POST","/resources",{name:name,category:cat,phone:phone,who:who}).then(loadResources).then(function(){
+        $("#raName").value="";$("#raPhone").value="";$("#raCat").value=""; renderRes("");
+      });
+    });
+
+    /* ---------- trackers (shared, D1) ---------- */
+    function loadTrackers(){ return api("GET","/trackers").then(function(d){ trackerList=d||[]; }); }
+    function renderTrackers(){
+      $("#trackerGrid").innerHTML=trackerList.map(function(x){
+        var bar=(x.pct!=null)?'<div class="bar" style="margin-top:14px;"><i style="width:'+x.pct+'%"></i></div>':'';
+        var col=x.key==="well"?' style="color:var(--green);cursor:pointer;"':' style="cursor:pointer;"';
+        return '<div class="card trk" style="padding:22px;"><div class="hd"><span style="font-size:14.5px;font-weight:600;">'+esc(x.label)+'</span><i data-lucide="'+x.icon+'"></i></div>'
+          +'<div class="big" data-trk="'+x.key+'"'+col+'>'+esc(x.value)+' <small>'+esc(x.unit)+'</small></div>'+bar+'<div class="det">'+esc(x.detail)+'</div></div>';
+      }).join("");
+      $$("[data-trk]").forEach(function(el){ el.addEventListener("click",function(){
+        var k=el.getAttribute("data-trk"), x=trk(k);
+        var v=window.prompt("Update "+x.label+":",x.value); if(v===null)return;
+        var dt=window.prompt("Detail line:",x.detail);
+        var body={key:k,value:v.trim()}; if(dt!==null) body.detail=dt.trim();
+        api("PATCH","/trackers",body).then(loadTrackers).then(function(){ renderTrackers(); renderHome(); });
+      }); });
+      icons();
+    }
+
+    /* ---------- log (shared, D1) ---------- */
+    function loadLog(){ return api("GET","/log").then(function(d){ logEntries=(d||[]).map(function(r){return {date:r.date,cat:r.category,title:r.title,body:r.body,amount:r.amount};}); }); }
+    function renderLog(){ var feed=$("#logFeed"); feed.innerHTML='<div class="rule"></div>'; logEntries.forEach(function(e,i){ feed.insertAdjacentHTML("beforeend", entryHTML(e,i===0?"new":(e.cat==="done"?"done":""))); }); icons(); }
+    $("#logAdd").addEventListener("click",addLog);
+    $("#logText").addEventListener("keydown",function(e){ if(e.key==="Enter") addLog(); });
+    function addLog(){ var text=$("#logText").value.trim(); if(!text)return; api("POST","/log",{title:text,category:$("#logCat").value,who:who}).then(loadLog).then(function(){ $("#logText").value=""; renderLog(); renderHome(); }); }
+
+    /* ---------- files (shared, R2) ---------- */
+    var files=[];
+    function loadFiles(){ return api("GET","/files").then(function(d){ files=d||[]; }); }
+    function fmtSize(n){ n=+n||0; return n>=1048576?(Math.round(n/104857.6)/10+" MB"):(Math.max(1,Math.round(n/1024))+" KB"); }
+    function renderFiles(){
+      if(!files.length){ $("#fileGrid").innerHTML='<p class="mono" style="color:var(--faint);padding:6px 0;">No files yet — drop receipts or photos above.</p>'; return; }
+      $("#fileGrid").innerHTML=files.map(function(f){
+        var url=API+"/files/"+f.id;
+        var isImg=(f.content_type||"").indexOf("image/")===0;
+        var head='<a href="'+url+'" target="_blank" rel="noreferrer">'+(isImg?'<div class="fthumb" style="background-image:url('+url+')"></div>':'<div class="fthumb"><i data-lucide="file-text"></i></div>')+'</a>';
+        var dt=new Date(f.created_at).toLocaleDateString("en-US",{month:"short",day:"numeric"});
+        var by=f.uploaded_by?(" · "+esc(f.uploaded_by)):"";
+        return '<div class="card fcard">'+head+'<div style="padding:14px 16px;">'
+          +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;"><a href="'+url+'" target="_blank" rel="noreferrer" style="font-size:14px;font-weight:600;line-height:1.3;color:inherit;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(f.name)+'</a><button class="xbtn" data-fdel="'+f.id+'">✕</button></div>'
+          +'<div class="mono" style="font-size:11.5px;color:var(--muted);margin-top:5px;">'+dt+by+' · '+fmtSize(f.size)+'</div></div></div>';
+      }).join("");
+      $$("[data-fdel]").forEach(function(el){ el.addEventListener("click",function(){ if(!window.confirm("Delete this file?"))return; api("DELETE","/files/"+el.getAttribute("data-fdel")).then(loadFiles).then(renderFiles); }); });
+      icons();
+    }
+    (function(){ var dz=$("#dropzone"),fi=$("#fileInput");
+      function handle(list){
+        var arr=Array.from(list||[]); if(!arr.length)return;
+        $("#fileGrid").innerHTML='<p class="mono" style="color:var(--muted);padding:6px 0;">Uploading…</p>';
+        Promise.all(arr.map(function(f){ var fd=new FormData(); fd.append("file",f); fd.append("who",who); return fetch(API+"/files",{method:"POST",body:fd}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); }))
+          .then(loadFiles).then(renderFiles);
+      }
+      dz.addEventListener("click",function(){ fi.click(); });
+      fi.addEventListener("change",function(){ handle(fi.files); fi.value=""; });
+      dz.addEventListener("dragover",function(e){ e.preventDefault(); dz.classList.add("over"); });
+      dz.addEventListener("dragleave",function(){ dz.classList.remove("over"); });
+      dz.addEventListener("drop",function(e){ e.preventDefault(); dz.classList.remove("over"); handle(e.dataTransfer.files); });
+    })();
+
+    /* ---------- boot ---------- */
+    $("#taskGroups").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
+    $("#resList").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
+    $("#fileGrid").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
+    $("#trackerGrid").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
+    Promise.all([
+      loadTasks().then(renderTasks).catch(function(){ $("#taskGroups").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load tasks.</p>'; }),
+      loadResources().then(function(){ renderRes(""); }).catch(function(){ $("#resList").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load resources.</p>'; }),
+      loadBudget().then(renderBudget).catch(function(){}),
+      loadLog().then(renderLog).catch(function(){}),
+      loadFiles().then(renderFiles).catch(function(){ $("#fileGrid").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load files.</p>'; }),
+      loadTrackers().then(renderTrackers).catch(function(){ $("#trackerGrid").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load trackers.</p>'; })
+    ]).then(renderHome);
+    show(location.hash.slice(1)||"home");
+    icons(); setTimeout(icons,500);
+  })();
+  </script>
+</body>
+</html>

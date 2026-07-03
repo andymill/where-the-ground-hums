@@ -1,0 +1,18 @@
+# Cloudflare Pages config for andy-miller.com (migration off Netlify).
+# The site is built by `npm run build` (Vite + scripts/post-build.mjs) into
+# dist/. The basic-auth gate for /160akley lives in functions/_middleware.js.
+name = "andy-miller"
+pages_build_output_dir = "dist"
+compatibility_date = "2025-01-01"
+
+# Shared database for the 160 Akley hub (tasks, resources, budget) — read/written
+# by the Pages Functions under functions/160akley/api/.
+[[d1_databases]]
+binding = "DB"
+database_name = "andy-miller-trail"
+database_id = "909b2655-ed68-4096-ab0b-faaa5146dc41"
+
+# File storage for the Files screen (receipts, permits, photos).
+[[r2_buckets]]
+binding = "FILES"
+bucket_name = "andy-miller-files"

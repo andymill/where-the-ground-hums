@@ -5,34 +5,41 @@
 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3524 Deer Park Road, Halifax, VT 05358</title>
-  <meta name="description" content="Single-family home finance calculator — 22.8 acres" />
+  <title>160 Akley Rd, Guilford, VT 05301</title>
+  <meta name="description" content="Timber-frame home on Broad Brook — finance calculator, map & photos" />
+  <link rel="stylesheet" href="/160akley/vendor/leaflet.css" />
   <style>
     html, body { margin: 0; padding: 0; min-height: 100%; background: #F6F2E9; }
     * { box-sizing: border-box; }
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .two-col-tight { display: grid; grid-template-columns: 1fr 1fr; gap: 0 32px; }
+    .gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
     @media (max-width: 760px) {
       .two-col, .two-col-tight { grid-template-columns: 1fr; gap: 16px; }
+      .gallery { grid-template-columns: 1fr 1fr; }
       .calc-wrap { padding: 20px 14px !important; }
+      h1 { font-size: 25px !important; line-height: 1.18 !important; }
     }
+    .leaflet-container { border-radius: 14px; }
   </style>
-  <script src="/mortgage/vendor/react.production.min.js"></script>
-  <script src="/mortgage/vendor/react-dom.production.min.js"></script>
+  <script src="/160akley/vendor/react.production.min.js"></script>
+  <script src="/160akley/vendor/react-dom.production.min.js"></script>
+  <script src="/160akley/vendor/leaflet.js"></script>
 </head>
 <body>
   <div id="root"></div>
   <script>
 const {
   useState,
-  useMemo
+  useMemo,
+  useEffect
 } = React;
 
 // ---------------------------------------------------------------------------
-// 3524 Deer Park Road, Halifax VT — single-family finance calculator.
-// 3BR/2BA contemporary on 22.8 acres. No rentals — this is a plain
-// cost-to-own model: monthly payment, cash to close, true cost to live.
-// Listing: Randi Ziter, Brattleboro Area Realty · MLS 5094710 · $467,000.
+// 160 Akley Rd, Guilford VT — timber-frame home on Broad Brook.
+// 3BR / 2.5BA, ~2,182 sqft, built 2000, on 13.8 wooded acres. Single-family
+// cost-to-own calculator + an interactive parcel map and photo gallery.
+// List price $490K (last sold $319K in 2018). Coords 42.8331, -72.6444.
 // ---------------------------------------------------------------------------
 
 const GOLD = "#A07B2B";
@@ -47,6 +54,12 @@ const MUTED = "#8C8472";
 const POS = "#4E8A46";
 const NEG = "#B45438";
 const SHADOW = "0 1px 2px rgba(60,50,20,0.05), 0 10px 30px rgba(60,50,20,0.05)";
+const HOUSE = [42.833089, -72.644426];
+// Approximate parcel outline (~13.8 ac) traced loosely from the parcel map —
+// illustrative only; see the surveyed parcel map below for the real lines.
+const BOUNDARY = [[42.8332, -72.6453], [42.8345, -72.6456], [42.8356, -72.6451], [42.8357, -72.6441], [42.8344, -72.6434], [42.8340, -72.6431], [42.8338, -72.6410], [42.8332, -72.6407], [42.8331, -72.6428]];
+// Broad Brook — approximate path along the parcel's lower (south) property line by Akley Rd.
+const BROOK = [[42.8335, -72.6461], [42.8332, -72.6453], [42.8331, -72.6440], [42.8330, -72.6428], [42.8331, -72.6415], [42.8332, -72.6407], [42.8333, -72.6400]];
 const fmt = n => isFinite(n) ? n.toLocaleString("en-US", {
   style: "currency",
   currency: "USD",
@@ -293,7 +306,7 @@ function Chip({
       borderRadius: 10,
       padding: "10px 14px",
       flex: "1 1 0",
-      minWidth: 120
+      minWidth: 110
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
@@ -312,25 +325,38 @@ function Chip({
     }
   }, value));
 }
+
+// IRS long-term Applicable Federal Rate (annual) — the minimum interest an
+// intrafamily loan can charge to avoid gift treatment. June 2026; resets monthly.
+const LONG_TERM_AFR = 4.87;
 function computeMetrics(s) {
-  const loan = Math.max(0, s.price - s.down);
-  const downPct = s.down / s.price * 100;
-  const r = s.rate / 100 / 12;
+  const family = s.financing === "family"; // family buys cash; you pay the AFR, interest-only
+  const effRate = family ? LONG_TERM_AFR : s.rate;
+  const down = family ? 0 : s.down;
+  const loan = family ? s.price : Math.max(0, s.price - s.down);
+  const downPct = down / s.price * 100;
+  const r = effRate / 100 / 12;
   const n = s.term * 12;
-  const pi = r > 0 ? loan * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1) : loan / n;
-  // PMI ~0.5%/yr of the loan when below 20% down; auto-zero at/above 20%.
-  const pmiMo = downPct < 20 ? loan * 0.005 / 12 : 0;
+  const amortPI = r > 0 ? loan * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1) : loan / n;
+  const ioPI = loan * r; // interest-only (family loan)
+  const pi = family ? ioPI : amortPI;
+  const pmiMo = !family && downPct < 20 ? loan * 0.005 / 12 : 0;
   const taxMo = s.propTax / 12;
   const insMo = s.insurance / 12;
   const piti = pi + taxMo + insMo + pmiMo;
-  const maintMo = s.price * (s.maintPct / 100) / 12; // reserve as % of value/yr
+  const maintMo = s.price * (s.maintPct / 100) / 12;
   const utilMo = (s.heat + s.electric + s.internet) / 12;
   const trueAllInMo = piti + maintMo + utilMo;
-  const cashToClose = s.down + s.closing + s.prepaids;
+  const cashToClose = family ? 0 : s.down + s.closing + s.prepaids;
+  const dadOutlay = family ? s.price + Math.max(0, s.closing - s.lenderFees) : 0; // family: drop lender fees, keep title/transfer tax
   return {
     loan,
     downPct,
+    family,
+    effRate,
     pi,
+    amortPI,
+    ioPI,
     pmiMo,
     taxMo,
     insMo,
@@ -338,43 +364,103 @@ function computeMetrics(s) {
     maintMo,
     utilMo,
     trueAllInMo,
-    cashToClose
+    cashToClose,
+    dadOutlay
   };
 }
+
+// Interactive Leaflet map — aerial / street toggle, marker, approx boundary
+function ParcelMap() {
+  useEffect(() => {
+    if (typeof L === "undefined" || document.getElementById("akley-map")._leaflet_id) return;
+    const map = L.map("akley-map", {
+      scrollWheelZoom: false
+    });
+    const esri = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19,
+      attribution: "Imagery © Esri"
+    }).addTo(map);
+    const vt = L.tileLayer("https://maps.vcgi.vermont.gov/arcgis/rest/services/EGC_services/IMG_VCGI_CLR2024_WM_CACHE/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19,
+      attribution: "VT orthoimagery © VCGI"
+    });
+    const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap"
+    });
+    L.control.layers({
+      "Satellite (Esri)": esri,
+      "VT aerial 2024": vt,
+      "Street map": osm
+    }).addTo(map);
+    const poly = L.polygon(BOUNDARY, {
+      color: "#C9A24B",
+      weight: 2.5,
+      dashArray: "6 5",
+      fillColor: "#C9A24B",
+      fillOpacity: 0.10
+    }).addTo(map);
+    L.polyline(BROOK, {
+      color: "#2a7fff",
+      weight: 4,
+      opacity: 0.85
+    }).addTo(map).bindTooltip("Broad Brook", {
+      sticky: true
+    });
+    L.circleMarker(HOUSE, {
+      radius: 8,
+      color: "#fff",
+      weight: 2,
+      fillColor: "#B45438",
+      fillOpacity: 1
+    }).addTo(map).bindPopup("160 Akley Rd — timber-frame home on Broad Brook");
+    map.fitBounds(poly.getBounds(), {
+      padding: [24, 24]
+    });
+    return () => map.remove();
+  }, []);
+  return /*#__PURE__*/React.createElement("div", {
+    id: "akley-map",
+    style: {
+      height: 440,
+      width: "100%",
+      border: `1px solid ${LINE}`,
+      boxShadow: SHADOW
+    }
+  });
+}
 function Calculator() {
-  // Purchase — listed at $467,000
-  const [price, setPrice] = useState(467000);
-  const [down, setDown] = useState(93400); // 20% → no PMI, $373,600 loan
+  const [price, setPrice] = useState(490000); // list price; last sold $319K (2018)
+  const [down, setDown] = useState(98000); // 20% → no PMI
   const [rate, setRate] = useState(6.25);
   const [term, setTerm] = useState(30);
-
-  // Carrying costs
-  const [propTax, setPropTax] = useState(7480); // 2025 tax bill from the listing
-  const [insurance, setInsurance] = useState(2400); // est — rural, wood stoves; get a real quote
-  const [closing, setClosing] = useState(11000); // est ~2.4% (title, transfer tax, fees)
-  const [prepaids, setPrepaids] = useState(4500); // est prepaid interest + tax/ins escrow
-
-  // Cost to own (optional) — utilities + maintenance reserve
-  const [maintPct, setMaintPct] = useState(1); // 1% of value/yr is the rule of thumb
-  const [heat, setHeat] = useState(2800); // oil + wood; offset by heat pump / mini-split
+  const [financing, setFinancing] = useState("bank"); // bank | family
+  const [propTax, setPropTax] = useState(9600); // est ~1.7% — confirm the VT bill
+  const [insurance, setInsurance] = useState(2400);
+  const [closing, setClosing] = useState(13500);
+  const [lenderFees, setLenderFees] = useState(3500); // bank/lender portion — dropped in a family cash purchase
+  const [prepaids, setPrepaids] = useState(5000);
+  const [maintPct, setMaintPct] = useState(1);
+  const [heat, setHeat] = useState(3500); // wood stove + baseboard
   const [electric, setElectric] = useState(1800);
-  const [internet, setInternet] = useState(840); // upgraded fiber on the road
-
+  const [internet, setInternet] = useState(840);
   const inputs = {
     price,
     down,
     rate,
     term,
+    financing,
     propTax,
     insurance,
     closing,
+    lenderFees,
     prepaids,
     maintPct,
     heat,
     electric,
     internet
   };
-  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, propTax, insurance, closing, prepaids, maintPct, heat, electric, internet]);
+  const m = useMemo(() => computeMetrics(inputs), [price, down, rate, term, financing, propTax, insurance, closing, lenderFees, prepaids, maintPct, heat, electric, internet]);
   const segs = [{
     label: "Mortgage (P&I)",
     v: m.pi,
@@ -400,6 +486,19 @@ function Calculator() {
     v: m.utilMo,
     c: "#7E5E3A"
   }];
+  const gallery = [{
+    src: "/160akley/house/img/exterior-brookside.webp",
+    cap: "Brook side — bay windows over Broad Brook"
+  }, {
+    src: "/160akley/house/img/living-room.webp",
+    cap: "Timber-frame living room & wood stove"
+  }, {
+    src: "/160akley/house/img/brook.webp",
+    cap: "Broad Brook, running through the woods"
+  }, {
+    src: "/160akley/house/img/driveway.webp",
+    cap: "The approach up the drive"
+  }];
   return /*#__PURE__*/React.createElement("div", {
     className: "calc-wrap",
     style: {
@@ -419,10 +518,10 @@ function Calculator() {
     }
   }, /*#__PURE__*/React.createElement("div", {
     style: {
-      marginBottom: 22
+      marginBottom: 18
     }
   }, /*#__PURE__*/React.createElement("a", {
-    href: "/mortgage/",
+    href: "/160akley/",
     style: {
       display: "inline-block",
       marginBottom: 12,
@@ -431,14 +530,14 @@ function Calculator() {
       letterSpacing: 1,
       textDecoration: "none"
     }
-  }, "← All houses"), /*#__PURE__*/React.createElement("div", {
+  }, "← 160 Akley hub"), /*#__PURE__*/React.createElement("div", {
     style: {
       color: GOLD_DIM,
       fontSize: 12,
       letterSpacing: 3,
       textTransform: "uppercase"
     }
-  }, "Single-family · 22.8 acres · Halifax VT"), /*#__PURE__*/React.createElement("h1", {
+  }, "Timber-frame · 13.8 acres on Broad Brook · Guilford VT"), /*#__PURE__*/React.createElement("h1", {
     style: {
       fontFamily: "'Funnel Display', sans-serif",
       fontWeight: 800,
@@ -448,18 +547,35 @@ function Calculator() {
       letterSpacing: -0.5,
       lineHeight: 1.1
     }
-  }, "3524 Deer Park Road, Halifax, VT 05358"), /*#__PURE__*/React.createElement("p", {
+  }, "160 Akley Rd, Guilford, VT 05301"), /*#__PURE__*/React.createElement("p", {
     style: {
       color: MUTED,
       fontSize: 15,
       margin: 0,
       maxWidth: 660
     }
-  }, "Coming soon at ", /*#__PURE__*/React.createElement("span", {
+  }, "A one-owner ", /*#__PURE__*/React.createElement("span", {
     style: {
       color: GOLD
     }
-  }, "$467,000"), " — a 1976 contemporary with vaulted ceilings and two wood stoves on 22 wooded acres, 10 miles from Brattleboro. No rentals here; the headline is simply your monthly payment and true cost to own.")), /*#__PURE__*/React.createElement("div", {
+  }, "timber-frame"), " home built in 2000, nestled into the hillside on 13.8 wooded acres with ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: GOLD
+    }
+  }, "Broad Brook"), " running below — the living-room and primary windows look down onto it like a treehouse.")), /*#__PURE__*/React.createElement("img", {
+    src: "/160akley/house/img/exterior-rear.webp",
+    alt: "160 Akley Rd — timber-frame exterior",
+    loading: "lazy",
+    style: {
+      width: "100%",
+      height: 420,
+      objectFit: "cover",
+      borderRadius: 16,
+      border: `1px solid ${LINE}`,
+      boxShadow: SHADOW,
+      marginBottom: 22
+    }
+  }), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 22
     }
@@ -471,7 +587,7 @@ function Calculator() {
       textTransform: "uppercase",
       marginBottom: 8
     }
-  }, "From the PrimeMLS listing · Randi Ziter, Brattleboro Area Realty"), /*#__PURE__*/React.createElement("div", {
+  }, "From the listing · MLS# 4710864"), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       flexWrap: "wrap",
@@ -479,38 +595,33 @@ function Calculator() {
     }
   }, /*#__PURE__*/React.createElement(Chip, {
     label: "List price",
-    value: "$467,000"
+    value: "$490,000"
   }), /*#__PURE__*/React.createElement(Chip, {
-    label: "$/finished sqft",
-    value: fmt(price / 2400)
+    label: "$/sqft",
+    value: "$225"
   }), /*#__PURE__*/React.createElement(Chip, {
     label: "Lot",
-    value: "22.80 ac"
+    value: "13.8 ac"
   }), /*#__PURE__*/React.createElement(Chip, {
     label: "Per acre",
-    value: fmt(price / 22.8)
+    value: fmt(price / 13.8)
   }), /*#__PURE__*/React.createElement(Chip, {
-    label: "Annual tax (2025)",
-    value: "$7,480"
+    label: "Beds / baths",
+    value: "3 / 2.5"
+  }), /*#__PURE__*/React.createElement(Chip, {
+    label: "Built",
+    value: "2000"
   })), /*#__PURE__*/React.createElement("div", {
     style: {
       color: MUTED,
       fontSize: 11,
       marginTop: 8
     }
-  }, "MLS ", /*#__PURE__*/React.createElement("strong", {
+  }, "~2,182 sqft · timber-frame · ", /*#__PURE__*/React.createElement("strong", {
     style: {
       color: TEXT
     }
-  }, "5094710"), " · ", /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: TEXT
-    }
-  }, "Coming Soon"), " · showings start ", /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: TEXT
-    }
-  }, "Thursday June 18"), " by appointment. 3BR / 2BA (1 full + 1 half) · 2,400 finished sqft · built 1976 · new septic/leach field, mini-split, standby generator, upgraded fiber.")), /*#__PURE__*/React.createElement("div", {
+  }, "$490,000 list"), " (last sold $319,000 in 2018). Property tax & heating below are estimates — confirm them.")), /*#__PURE__*/React.createElement("div", {
     style: {
       background: "linear-gradient(135deg, #FFFDF7, #FBF6EA)",
       border: `1px solid ${LINE}`,
@@ -524,10 +635,10 @@ function Calculator() {
       boxShadow: SHADOW
     }
   }, /*#__PURE__*/React.createElement(BigStat, {
-    label: "Monthly payment (PITI)",
+    label: m.family ? "Monthly payment (family loan)" : "Monthly payment (PITI)",
     value: `${fmt(m.piti)}/mo`,
     color: GOLD,
-    sub: `P&I ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`
+    sub: `${m.family ? "Interest" : "P&I"} ${fmt(m.pi)} + tax ${fmt(m.taxMo)} + ins ${fmt(m.insMo)}${m.pmiMo > 0 ? ` + PMI ${fmt(m.pmiMo)}` : ""}`
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       width: 1,
@@ -545,9 +656,9 @@ function Calculator() {
       background: LINE
     }
   }), /*#__PURE__*/React.createElement(BigStat, {
-    label: "Cash needed to close",
-    value: fmt(m.cashToClose),
-    sub: `${fmt(down)} down (${pct(m.downPct)}) + ${fmt(closing + prepaids)} closing & prepaids`
+    label: m.family ? "Family's cash outlay" : "Cash needed to close",
+    value: m.family ? fmt(m.dadOutlay) : fmt(m.cashToClose),
+    sub: m.family ? "you put $0 in upfront — it's their cash purchase" : `${fmt(down)} down (${pct(m.downPct)}) + ${fmt(closing + prepaids)} closing & prepaids`
   })), /*#__PURE__*/React.createElement("div", {
     className: "two-col"
   }, /*#__PURE__*/React.createElement(Panel, {
@@ -557,20 +668,53 @@ function Calculator() {
     label: "Purchase price",
     value: price,
     min: 350000,
-    max: 600000,
+    max: 800000,
     step: 5000,
     onChange: setPrice,
     format: fmt,
-    hint: "Listed at $467,000 — Coming Soon, so the eventual sale price may move."
-  }), /*#__PURE__*/React.createElement(Slider, {
+    hint: "Defaulted to the $490K list price; adjust to model an offer above or below ask."
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 12.5,
+      color: MUTED,
+      marginBottom: 7
+    }
+  }, "Financing"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 16
+    }
+  }, [{
+    k: "bank",
+    l: "Bank mortgage"
+  }, {
+    k: "family",
+    l: "Family @ AFR"
+  }].map(o => /*#__PURE__*/React.createElement("button", {
+    key: o.k,
+    onClick: () => setFinancing(o.k),
+    style: {
+      flex: 1,
+      padding: "10px 4px",
+      borderRadius: 8,
+      border: `1px solid ${financing === o.k ? GOLD : LINE}`,
+      background: financing === o.k ? "rgba(201,162,75,0.15)" : "transparent",
+      color: financing === o.k ? GOLD : MUTED,
+      fontFamily: "'Funnel Display', sans-serif",
+      fontWeight: 600,
+      fontSize: 13.5,
+      cursor: "pointer"
+    }
+  }, o.l))), !m.family ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Slider, {
     label: "Down payment",
     value: down,
     min: 0,
-    max: Math.min(300000, price),
-    step: 2500,
+    max: Math.min(400000, price),
+    step: 5000,
     onChange: setDown,
     format: v => `${fmt(v)}  ·  ${pct(v / price * 100)}`,
-    hint: "20% ($93,400) clears PMI. Drop below 20% and PMI (~0.5%/yr of the loan) kicks in automatically."
+    hint: "20% clears PMI; below that, PMI (~0.5%/yr of the loan) applies automatically."
   }), /*#__PURE__*/React.createElement(Slider, {
     label: "Mortgage rate",
     value: rate,
@@ -579,12 +723,11 @@ function Calculator() {
     step: 0.05,
     onChange: setRate,
     format: v => `${v.toFixed(2)}%`,
-    hint: "Estimate. 30-yr fixed conventional; get a real quote."
+    hint: "Estimate. 30-yr fixed conventional."
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
-      gap: 8,
-      marginBottom: 4
+      gap: 8
     }
   }, [15, 30].map(t => /*#__PURE__*/React.createElement("button", {
     key: t,
@@ -601,7 +744,32 @@ function Calculator() {
       fontSize: 14,
       cursor: "pointer"
     }
-  }, t, "-year")))), /*#__PURE__*/React.createElement(Panel, {
+  }, t, "-year")))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "rgba(201,162,75,0.10)",
+      border: `1px solid ${LINE}`,
+      borderRadius: 10,
+      padding: "14px 16px",
+      fontSize: 12.5,
+      color: TEXT,
+      lineHeight: 1.55
+    }
+  }, /*#__PURE__*/React.createElement("strong", null, "Your family buys it for cash"), " (", /*#__PURE__*/React.createElement("strong", null, fmt(m.dadOutlay)), " — price plus title & transfer tax, no lender fees) and you pay them interest-only at the ", /*#__PURE__*/React.createElement("strong", null, LONG_TERM_AFR, "% long-term AFR"), " — the IRS minimum that keeps it a loan rather than a gift.", /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      color: MUTED
+    }
+  }, "Interest: ", fmt(price), " × ", LONG_TERM_AFR, "% = ", /*#__PURE__*/React.createElement("strong", {
+    style: {
+      color: GOLD
+    }
+  }, fmt(m.ioPI * 12), "/yr"), " (~", fmt(m.ioPI), "/mo). $0 down, no PMI, no bank. The principal stays outstanding (interest-only); you build equity only by paying down extra. Title in your name, they hold the note."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      fontSize: 11,
+      color: MUTED
+    }
+  }, "AFR resets monthly — confirm the long-term rate at signing."))), /*#__PURE__*/React.createElement(Panel, {
     kicker: "Carrying Costs",
     title: "Taxes, insurance & closing",
     accent: `linear-gradient(90deg, ${GOLD_DIM}, transparent)`
@@ -609,22 +777,27 @@ function Calculator() {
     label: "Property tax (annual)",
     value: propTax,
     onChange: setPropTax,
-    hint: "$7,480 — the 2025 bill from the listing. VT education tax recalibrates yearly, so treat as a floor."
+    hint: "Estimate (~1.7%). Confirm the actual Guilford / VT bill."
   }), /*#__PURE__*/React.createElement(NumField, {
     label: "Home insurance (annual)",
     value: insurance,
     onChange: setInsurance,
-    hint: "Estimate. Rural + two wood stoves can raise premiums — get a real quote."
+    hint: "Estimate — get a real quote (wood stove may affect it)."
   }), /*#__PURE__*/React.createElement(NumField, {
-    label: "Closing costs",
+    label: "Closing costs (bank purchase)",
     value: closing,
     onChange: setClosing,
-    hint: "Estimate (~2.4%): title, VT transfer tax, lender + recording fees."
+    hint: "Est ~$13.5K: title, VT transfer tax, recording + lender fees."
+  }), /*#__PURE__*/React.createElement(NumField, {
+    label: "— of which, lender fees",
+    value: lenderFees,
+    onChange: setLenderFees,
+    hint: "Bank origination / appraisal / underwriting. Dropped in a family cash purchase; title & transfer tax still apply."
   }), /*#__PURE__*/React.createElement(NumField, {
     label: "Prepaids & reserves",
     value: prepaids,
     onChange: setPrepaids,
-    hint: "Estimate: prepaid interest + tax/insurance escrow set up at close."
+    hint: "Estimate: prepaid interest + tax/insurance escrow."
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24
@@ -677,7 +850,8 @@ function Calculator() {
       color: TEXT
     }
   }, fmt(s.v))))), /*#__PURE__*/React.createElement(Row, {
-    label: "Principal & interest",
+    label: m.family ? "Interest only" : "Principal & interest",
+    sub: m.family ? "family loan @ AFR · $0 equity" : null,
     value: `${fmt(m.pi)}/mo`
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Property tax",
@@ -725,22 +899,22 @@ function Calculator() {
     step: 0.25,
     onChange: setMaintPct,
     format: v => `${v}% of value  ·  ${fmt(price * v / 100)}/yr`,
-    hint: "1%/yr is the standard rule of thumb for an older home; a 1976 build may warrant more."
+    hint: "A 2000-build is newer than the antiques — ~1%/yr is a fair starting reserve."
   }), /*#__PURE__*/React.createElement(NumField, {
     label: "Heat (annual)",
     value: heat,
     onChange: setHeat,
-    hint: "Oil + two wood stoves, with a heat pump and mini-split to lean on. Placeholder — replace with actuals."
+    hint: "Wood stove + baseboard. Placeholder — confirm the system & fuel."
   }), /*#__PURE__*/React.createElement(NumField, {
     label: "Electricity (annual)",
     value: electric,
     onChange: setElectric,
-    hint: "200+ amp service; standby generator. Placeholder."
+    hint: "Placeholder."
   }), /*#__PURE__*/React.createElement(NumField, {
     label: "Internet (annual)",
     value: internet,
     onChange: setInternet,
-    hint: "Listing notes upgraded fiber-optic on the road."
+    hint: "Rural Guilford — confirm service."
   })), /*#__PURE__*/React.createElement(Panel, {
     kicker: "The Property",
     title: "Listing details",
@@ -755,60 +929,155 @@ function Calculator() {
     value: "Single Family"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Style",
-    value: "Contemporary"
+    value: "Timber-frame"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Year built",
-    value: "1976"
-  }), /*#__PURE__*/React.createElement(Row, {
-    label: "Stories",
-    value: "2"
+    value: "2000"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Bedrooms",
     value: "3"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Bathrooms",
-    sub: "1 full + 1 half",
-    value: "2"
+    value: "2.5"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Finished area",
-    value: "2,400 sqft"
-  }), /*#__PURE__*/React.createElement(Row, {
-    label: "Unfinished basement",
-    value: "1,012 sqft"
+    value: "2,182 sqft"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Lot size",
-    value: "22.80 acres"
+    value: "13.8 acres"
   }), /*#__PURE__*/React.createElement(Row, {
-    label: "$/finished sqft",
+    label: "$/sqft",
     sub: "at list",
-    value: "$194.58"
+    value: "$225"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Water",
+    value: "Broad Brook"
   }), /*#__PURE__*/React.createElement(Row, {
     label: "Heat",
-    value: "Oil · wood · heat pump"
+    value: "Wood + baseboard"
   }), /*#__PURE__*/React.createElement(Row, {
-    label: "Cooling",
-    value: "Mini split"
+    label: "Town",
+    value: "Guilford"
   }), /*#__PURE__*/React.createElement(Row, {
-    label: "Water / sewer",
-    value: "Drilled well / septic"
-  }), /*#__PURE__*/React.createElement(Row, {
-    label: "Garage",
-    sub: "+ 2-bay barn, shed",
-    value: "1-car attached"
-  }), /*#__PURE__*/React.createElement(Row, {
-    label: "Zoning",
-    value: "Residential"
-  }), /*#__PURE__*/React.createElement(Row, {
-    label: "Schools",
-    sub: "Halifax · Brattleboro HS",
-    value: "Halifax SD"
+    label: "MLS",
+    value: "4710864"
   })))), /*#__PURE__*/React.createElement("div", {
     style: {
       marginTop: 24
     }
   }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "For Gabe",
+    title: "Schools, by grade",
+    accent: `linear-gradient(90deg, ${POS}, transparent)`
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      color: MUTED,
+      fontSize: 13
+    }
+  }, "Guilford is in the Windham Southeast School District. Where Gabe would go as he grows:"), /*#__PURE__*/React.createElement(Row, {
+    label: "PreK – Grade 6",
+    sub: "elementary",
+    value: "Guilford Central School"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Grades 7 – 8",
+    sub: "middle",
+    value: "Brattleboro Area Middle School"
+  }), /*#__PURE__*/React.createElement(Row, {
+    label: "Grades 9 – 12",
+    sub: "high",
+    value: "Brattleboro Union High School"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: MUTED,
+      fontSize: 11.5,
+      marginTop: 12,
+      lineHeight: 1.55
+    }
+  }, "Guilford Central (374 School Rd — a couple miles away) covers PreK–6; from 7th grade, Guilford students attend Brattleboro Area Middle School, then Brattleboro Union High School (9–12) in Brattleboro. Confirm current assignments and any school-choice options with the district."))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "Where it sits",
+    title: "Map & property boundary",
+    accent: `linear-gradient(90deg, ${GOLD_DIM}, transparent)`
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      marginTop: 0,
+      color: MUTED,
+      fontSize: 12.5,
+      lineHeight: 1.5
+    }
+  }, "Pan/zoom the interactive map; switch between satellite, Vermont's 2024 aerial, and a street map. The pin marks the house and the dashed outline is an ", /*#__PURE__*/React.createElement("em", null, "approximate"), " 13.8-acre parcel — see the surveyed parcel & contour map below it for the real lines. Broad Brook runs along the lower edge by Akley Road."), /*#__PURE__*/React.createElement(ParcelMap, null), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: GOLD_DIM,
+      fontSize: 10.5,
+      letterSpacing: 1.5,
+      textTransform: "uppercase",
+      marginBottom: 8
+    }
+  }, "Surveyed parcel & contour map"), /*#__PURE__*/React.createElement("a", {
+    href: "/160akley/house/img/parcel-map.webp",
+    target: "_blank",
+    rel: "noreferrer"
+  }, /*#__PURE__*/React.createElement("img", {
+    src: "/160akley/house/img/parcel-map.webp",
+    alt: "Parcel boundary and contour map showing Broad Brook along Akley Road",
+    loading: "lazy",
+    style: {
+      width: "100%",
+      borderRadius: 12,
+      border: `1px solid ${LINE}`,
+      display: "block"
+    }
+  }))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement(Panel, {
+    kicker: "The Property",
+    title: "Photos"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "gallery"
+  }, gallery.map((g, i) => /*#__PURE__*/React.createElement("a", {
+    key: i,
+    href: g.src,
+    target: "_blank",
+    rel: "noreferrer",
+    style: {
+      textDecoration: "none"
+    }
+  }, /*#__PURE__*/React.createElement("img", {
+    src: g.src,
+    alt: g.cap,
+    loading: "lazy",
+    style: {
+      width: "100%",
+      aspectRatio: "4 / 3",
+      objectFit: "cover",
+      borderRadius: 10,
+      border: `1px solid ${LINE}`,
+      display: "block"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: MUTED,
+      marginTop: 5,
+      lineHeight: 1.35
+    }
+  }, g.cap)))))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 24
+    }
+  }, /*#__PURE__*/React.createElement(Panel, {
     kicker: "From the listing",
-    title: "Public remarks",
+    title: "About the home",
     accent: `linear-gradient(90deg, ${MUTED}, transparent)`
   }, /*#__PURE__*/React.createElement("p", {
     style: {
@@ -817,7 +1086,7 @@ function Calculator() {
       lineHeight: 1.65,
       margin: 0
     }
-  }, "Elevated from the road, this spectacular three-bedroom, two-bath home with 22 acres offers gardening, farming, hiking, and snowshoeing trails. Bright sunlight abundantly welcomes you from room to room. The spacious kitchen includes a dinette with a cozy wood stove and a walkout to the rebuilt, large deck overlooking your picturesque open meadow. The quality craftsmanship is evident throughout — gorgeous hardwood floors, vaulted ceilings, and a fireplace in the great room. A second wood stove offers endless charm, warmth, and efficiency. The attached garage has a breezeway, storage space, and workshop; a detached two-bay barn and shed could be ideal for garden equipment or even chickens. This tranquil location has no visible neighbors and sits within a 10-mile radius of Brattleboro and Interstate 91, and 21 miles to Mt. Snow. Additional features: a mini-split, generator, upgraded fiber-optics, 2026 exterior paint, 2025 new garage door, and new septic/leach field."), /*#__PURE__*/React.createElement("div", {
+  }, "A one-owner, 3-bedroom, 2.5-bath timber-frame home built in 2000, nestled into the hillside along Broad Brook. Prominent windows in the living room and primary bedroom make you feel as though you're in a treehouse looking down onto the brook. The open-concept first floor has a kitchen with a granite-topped island, a stainless 5-burner gas range and double electric oven, and a dining and living area that flow to the south and west with French doors out to a cedar deck and the back yard. Exposed timber framing, hardwood floors, and a wood stove run throughout — set on 13.8 wooded, sloping acres."), /*#__PURE__*/React.createElement("div", {
     style: {
       color: MUTED,
       fontSize: 11.5,
@@ -826,11 +1095,7 @@ function Calculator() {
       borderTop: `1px solid ${LINE}`,
       paddingTop: 14
     }
-  }, "Listing courtesy of ", /*#__PURE__*/React.createElement("strong", {
-    style: {
-      color: TEXT
-    }
-  }, "Randi Ziter, Brattleboro Area Realty"), " · Source: PrimeMLS · MLS# 5094710 · Coming Soon, activation 06/18/2026. Tax, insurance, closing, utilities and maintenance figures above are estimates unless noted from the listing — verify everything independently. Estimate only, not financial advice.")))));
+  }, "Source: PrimeMLS · MLS# 4710864 · $490,000 list (last sold $319,000 in Oct 2018). Tax, insurance, heating and closing figures are estimates unless noted — verify independently. Parcel outline on the interactive map is approximate; the surveyed map shows the real lines. Estimate only, not financial advice.")))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(/*#__PURE__*/React.createElement(Calculator, null));
   </script>

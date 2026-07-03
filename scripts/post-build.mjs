@@ -24,25 +24,26 @@ for (const entry of fs.readdirSync(distDir)) {
   fs.renameSync(path.join(distDir, entry), path.join(humDir, entry))
 }
 
-// Write Netlify redirects: SPA fallback for /hum/*, friendly route for
-// /mortgage so the URL stays clean (the edge function at
-// netlify/edge-functions/mortgage-auth.js gates access with Basic Auth
-// before this rewrite resolves).
+// Write Netlify redirects: SPA fallback for /hum/*, friendly routes for the
+// /160akley home hub (the edge function at netlify/edge-functions/akley-auth.js
+// gates access with Basic Auth before these rewrites resolve).
 fs.writeFileSync(
   path.join(distDir, '_redirects'),
   `# SPA fallback so deep links under /hum/ load the app shell.
 /hum         /hum/index.html   200
 /hum/*       /hum/index.html   200
 
-# Clean URLs for the mortgage calculators. Source lives in mortgage/ at the
-# project root (a picker at /mortgage plus one page per house); the whole
-# tree is copied to dist/mortgage/ below. Now public — the basic-auth edge
-# function has been removed.
-/mortgage              /mortgage/index.html             200
-/mortgage/gingko       /mortgage/gingko/index.html      200
-/mortgage/deer-park    /mortgage/deer-park/index.html   200
-/mortgage/newfane      /mortgage/newfane/index.html     200
-/mortgage/guilford     /mortgage/guilford/index.html    200
+# Clean URLs for the 160 Akley home hub. Source lives in 160akley/ at the
+# project root: the hub (index.html) plus a house cost-to-own calculator
+# (house/) and a household budget calculator (budget/); the whole tree is
+# copied to dist/160akley/ below. Gated by the basic-auth edge function.
+/160akley              /160akley/index.html            200
+/160akley/house        /160akley/house/index.html      200
+/160akley/budget       /160akley/budget/index.html     200
+
+# Legacy: the old /mortgage links now point at the 160 Akley hub.
+/mortgage              /160akley/                       301
+/mortgage/*            /160akley/:splat                 301
 
 # Clean URL for the renovation review page. Source lives in renovation/ at
 # the project root; copied to dist/renovation/ below.
@@ -73,14 +74,14 @@ if (fs.existsSync(faviconSrc)) {
   fs.copyFileSync(faviconSrc, path.join(distDir, 'favicon.svg'))
 }
 
-// Copy the mortgage calculators (standalone HTML files, no build step) into
-// dist/mortgage/. The whole tree comes along: the picker at mortgage/index.html,
-// one page per house (gingko/, deer-park/), and the shared img/ folder the
-// Gingko page references at /mortgage/img/. Now public — the basic-auth edge
-// function (netlify/edge-functions/mortgage-auth.js) has been removed.
-const mortgageSrc = path.resolve(__dirname, '..', 'mortgage')
-if (fs.existsSync(mortgageSrc)) {
-  fs.cpSync(mortgageSrc, path.join(distDir, 'mortgage'), { recursive: true })
+// Copy the 160 Akley home hub (standalone HTML, no build step) into
+// dist/160akley/. The whole tree comes along: the hub (index.html), the house
+// cost-to-own calculator (house/), the household budget calculator (budget/),
+// and the shared vendor/ folder. Gated by the basic-auth edge function
+// (netlify/edge-functions/akley-auth.js).
+const akleySrc = path.resolve(__dirname, '..', '160akley')
+if (fs.existsSync(akleySrc)) {
+  fs.cpSync(akleySrc, path.join(distDir, '160akley'), { recursive: true })
 }
 
 // Copy the renovation review page (a standalone, self-contained static app —
@@ -103,4 +104,4 @@ if (fs.existsSync(omniSrc)) {
   fs.cpSync(omniSrc, path.join(distDir, 'omnichannel'), { recursive: true })
 }
 
-console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /mortgage/ holds the house picker + calculators; /renovation/ holds the renovation review; /omnichannel/ holds the P&L builder.')
+console.log('✓ Reshaped dist/: /hum/ holds the SPA; / holds the apex homepage; /160akley/ holds the home hub (finances, resources, to-do); /renovation/ holds the renovation review; /omnichannel/ holds the P&L builder.')

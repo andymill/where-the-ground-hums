@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='13' fill='none' stroke='%232E5D4B' stroke-width='2.6'/><line x1='16' y1='3' x2='16' y2='29' stroke='%232E5D4B' stroke-width='2.6'/><line x1='16' y1='16' x2='6.8' y2='25.2' stroke='%232E5D4B' stroke-width='2.6'/><line x1='16' y1='16' x2='25.2' y2='25.2' stroke='%232E5D4B' stroke-width='2.6'/></svg>" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monthly budget — 160 Akley Road</title>
+  <meta name="description" content="Household budget planner for life at 160 Akley Road, Guilford VT" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Funnel+Display:wght@500;600;700;800&family=Funnel+Sans:wght@300;400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <style>
+    /* ------------------------------------------------------------------ *
+     * 160 Akley Road — household budget planner.                         *
+     * Single-page, client-side only. Baseline numbers are the source of  *
+     * truth (see budget-calculator-spec). Must reproduce: total spend    *
+     * $6,148, surplus $477, post-January surplus $1,165, AFR 4.6% =>      *
+     * loan interest $2,013.                                              *
+     * ------------------------------------------------------------------ */
+    :root{
+      --paper:#F4EFE4; --panel:#FCFAF3; --panel-2:#EFE9DB; --line:#E1D9C6;
+      --text:#24221C; --muted:#867E6B; --faint:#B4AC98;
+      --accent:#2E5D4B;      /* deep spruce — the one accent from the setting */
+      --accent-soft:rgba(46,93,75,0.13);
+      --pos:#2E5D4B; --neg:#B0472F;
+      --gold:#A07B2B;        /* second group tone, echoes the house pages */
+      --gold-soft:rgba(160,123,43,0.14);
+      --shadow:0 1px 2px rgba(60,50,20,0.05), 0 12px 34px rgba(60,50,20,0.06);
+      --track:#E7E0CF;
+    }
+    [data-theme="dark"]{
+      --paper:#15130E; --panel:#1E1B14; --panel-2:#262218; --line:#35311F;
+      --text:#EDE7D6; --muted:#9A927E; --faint:#6C6552;
+      --accent:#78B69C; --accent-soft:rgba(120,182,156,0.16);
+      --pos:#78B69C; --neg:#E08163;
+      --gold:#C9A24B; --gold-soft:rgba(201,162,75,0.16);
+      --shadow:0 1px 2px rgba(0,0,0,0.3), 0 16px 40px rgba(0,0,0,0.35);
+      --track:#2C2819;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;padding:0;min-height:100%;background:var(--paper);
+      font-family:'Funnel Sans',system-ui,sans-serif;color:var(--text);
+      -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;}
+    .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1;}
+    .wrap{max-width:920px;margin:0 auto;padding:34px 18px 72px;}
+    a{color:var(--accent);}
+
+    /* header */
+    header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:26px;}
+    .eyebrow{color:var(--accent);font-size:11.5px;letter-spacing:2.6px;text-transform:uppercase;font-weight:600;}
+    h1{font-family:'Funnel Display',sans-serif;font-weight:800;font-size:30px;letter-spacing:-0.5px;line-height:1.12;margin:8px 0 4px;}
+    .sub{color:var(--muted);font-size:14px;margin:0;}
+    .top-actions{display:flex;gap:8px;flex-shrink:0;}
+    .icon-btn{appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--text);
+      border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;
+      display:inline-flex;align-items:center;gap:6px;transition:border-color .14s,background .14s;}
+    .icon-btn:hover{border-color:var(--accent);}
+    .backlink{color:var(--muted);font-size:12.5px;text-decoration:none;font-weight:600;}
+    .backlink:hover{color:var(--accent);}
+
+    /* hero */
+    .hero{background:var(--panel);border:1px solid var(--line);border-radius:20px;
+      padding:28px 28px 24px;box-shadow:var(--shadow);position:relative;overflow:hidden;margin-bottom:22px;}
+    .hero::before{content:"";position:absolute;top:0;left:0;width:100%;height:3px;
+      background:linear-gradient(90deg,var(--accent),transparent);}
+    .hero-label{font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:var(--muted);font-weight:600;}
+    .hero-num{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:72px;line-height:0.98;
+      letter-spacing:-1.5px;margin:8px 0 6px;color:var(--pos);}
+    .hero-num.neg{color:var(--neg);}
+    .hero-sentence{font-size:15px;color:var(--text);max-width:560px;line-height:1.5;margin:0;}
+    .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+    .chip{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;flex:1;min-width:150px;}
+    .chip .k{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);font-weight:600;}
+    .chip .v{font-family:'Funnel Display',sans-serif;font-weight:700;font-size:20px;margin-top:2px;}
+
+    /* section + card */
+    .section-title{font-family:'Funnel Display',sans-serif;font-weight:700;font-size:16px;
+      letter-spacing:-0.2px;margin:30px 0 12px;display:flex;align-items:baseline;gap:10px;}
+    .section-title small{font-weight:500;font-size:12.5px;color:var(--muted);letter-spacing:0;}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px;box-shadow:var(--shadow);}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+    @media (max-width:720px){.cols{grid-template-columns:1fr;}}
+
+    /* scenario controls */
+    .ctrl{padding:14px 0;border-bottom:1px solid var(--line);}
+    .ctrl:last-child{border-bottom:none;}
+    .ctrl-head{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    .ctrl-name{font-weight:600;font-size:14px;}
+    .ctrl-note{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.45;}
+    .ctrl-val{font-family:'Funnel Display',sans-serif;font-weight:700;font-size:15px;color:var(--accent);white-space:nowrap;}
+    input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;
+      background:var(--track);margin-top:14px;cursor:pointer;}
+    input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+      background:var(--accent);border:3px solid var(--panel);box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer;}
+    input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--accent);border:3px solid var(--panel);cursor:pointer;}
+
+    /* toggle switch */
+    .switch{position:relative;width:44px;height:26px;flex-shrink:0;}
+    .switch input{opacity:0;width:0;height:0;}
+    .slider-sw{position:absolute;inset:0;background:var(--track);border-radius:99px;transition:.16s;}
+    .slider-sw::before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;background:var(--panel);border-radius:50%;transition:.16s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+    .switch input:checked + .slider-sw{background:var(--accent);}
+    .switch input:checked + .slider-sw::before{transform:translateX(18px);}
+
+    /* number input */
+    .field{display:flex;align-items:center;gap:8px;}
+    .field .pre{color:var(--muted);font-size:14px;}
+    input.money,input.mon{font-family:'Funnel Sans',sans-serif;font-variant-numeric:tabular-nums;
+      border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:9px;
+      padding:8px 10px;font-size:14px;width:100%;font-weight:600;}
+    input.money:focus,input.mon:focus{outline:none;border-color:var(--accent);}
+    input[type=month]{font-family:inherit;border:1px solid var(--line);background:var(--panel-2);color:var(--text);
+      border-radius:9px;padding:8px 10px;font-size:13.5px;}
+
+    /* category editor */
+    .grp-label{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;margin:6px 0 8px;display:flex;align-items:center;gap:8px;}
+    .dot{width:9px;height:9px;border-radius:3px;display:inline-block;}
+    .cat-row{display:grid;grid-template-columns:1fr 118px;align-items:center;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);}
+    .cat-row:last-child{border-bottom:none;}
+    .cat-name{font-size:13.5px;}
+    .cat-name .n2{display:block;color:var(--muted);font-size:11px;margin-top:1px;}
+    .cat-derived{font-family:'Funnel Display',sans-serif;font-weight:700;font-size:15px;text-align:right;}
+    .auto-tag{font-size:9.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--faint);font-weight:700;display:block;margin-top:1px;}
+    .grp-total{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding-top:10px;border-top:1.5px solid var(--line);font-weight:600;font-size:13.5px;}
+    .grp-total b{font-family:'Funnel Display',sans-serif;font-size:16px;}
+    .grand{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding-top:14px;border-top:2px solid var(--text);}
+    .grand .k{font-family:'Funnel Display',sans-serif;font-weight:700;font-size:16px;}
+    .grand .v{font-family:'Funnel Display',sans-serif;font-weight:800;font-size:24px;}
+
+    /* breakdown bars */
+    .bar-row{display:grid;grid-template-columns:132px 1fr 68px;align-items:center;gap:10px;margin:9px 0;}
+    .bar-label{font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .bar-track{height:16px;background:var(--track);border-radius:5px;overflow:hidden;}
+    .bar-fill{height:100%;border-radius:5px;transition:width .2s ease;}
+    .bar-val{font-size:12.5px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;}
+    .legend{display:flex;gap:18px;margin-top:14px;font-size:12px;color:var(--muted);}
+    .legend span{display:inline-flex;align-items:center;gap:6px;}
+    @media (max-width:400px){.bar-row{grid-template-columns:96px 1fr 58px;gap:7px;}.bar-label{font-size:11.5px;}}
+
+    /* projection */
+    .proj-svg{width:100%;height:auto;display:block;margin-top:4px;}
+    .proj-inputs{display:grid;grid-template-columns:auto auto 1fr;gap:12px;align-items:end;margin-bottom:8px;}
+    .proj-inputs .fld label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600;margin-bottom:4px;}
+    .proj-inputs .fld input{width:120px;}
+    .proj-caption{font-size:13px;color:var(--muted);margin-top:12px;line-height:1.5;}
+    .proj-caption b{color:var(--text);}
+    @media (max-width:560px){.proj-inputs{grid-template-columns:1fr 1fr;} .proj-inputs .fld input{width:100%;}}
+
+    .foot{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.6;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <div>
+        <div class="eyebrow">Household budget · post-move</div>
+        <h1>Monthly budget — 160 Akley Road</h1>
+        <p class="sub">Life at the timber-frame on Broad Brook, Guilford VT. A planning calculator — adjust anything; it saves as you go.</p>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="theme-btn" title="Toggle light / dark">🌙 <span id="theme-lbl">Dark</span></button>
+        <button class="icon-btn" id="reset-btn" title="Restore baseline numbers">↺ Reset</button>
+      </div>
+    </header>
+
+    <!-- SURPLUS HERO -->
+    <section class="hero">
+      <div class="hero-label">Monthly surplus</div>
+      <div class="hero-num num" id="hero-num">$477</div>
+      <p class="hero-sentence" id="hero-sentence"></p>
+      <div class="chips">
+        <div class="chip"><div class="k">Net income</div><div class="v num" id="chip-income">$6,625</div></div>
+        <div class="chip"><div class="k">Total spend</div><div class="v num" id="chip-spend">$6,148</div></div>
+        <div class="chip"><div class="k">From Jan 2027</div><div class="v num" id="chip-jan">$1,165</div></div>
+      </div>
+    </section>
+
+    <div class="cols">
+      <!-- SCENARIOS -->
+      <div>
+        <div class="section-title">Scenarios <small>the moving parts</small></div>
+        <div class="card">
+          <!-- AFR slider -->
+          <div class="ctrl">
+            <div class="ctrl-head">
+              <div><div class="ctrl-name">Family-loan rate (AFR)</div>
+                <div class="ctrl-note">Interest-only on $525,000 · <span id="afr-sens"></span></div></div>
+              <div class="ctrl-val"><span id="afr-val">4.60%</span> · <span id="afr-int" class="num">$2,013</span></div>
+            </div>
+            <input type="range" id="afr" min="3.5" max="6.5" step="0.05" value="4.6" />
+          </div>
+          <!-- VT residency -->
+          <div class="ctrl">
+            <div class="ctrl-head">
+              <div><div class="ctrl-name">VT tax residency adjustment</div>
+                <div class="ctrl-note">Estimated added net pay after CA→VT move</div></div>
+              <div class="ctrl-val">+<span id="vt-val" class="num">$0</span>/mo</div>
+            </div>
+            <input type="range" id="vt" min="0" max="400" step="10" value="0" />
+          </div>
+          <!-- partner insurance -->
+          <div class="ctrl">
+            <div class="ctrl-head">
+              <div><div class="ctrl-name">Ex-partner off my insurance</div>
+                <div class="ctrl-note">+$688/mo net (premiums removed + tax on imputed income). Auto-applies Jan 1 2027.</div></div>
+              <label class="switch"><input type="checkbox" id="partner" /><span class="slider-sw"></span></label>
+            </div>
+          </div>
+          <!-- maintenance -->
+          <div class="ctrl">
+            <div class="ctrl-head">
+              <div><div class="ctrl-name">Maintenance funded from savings</div>
+                <div class="ctrl-note">On → $0 in budget. Off → $437/mo (1% of value). Kicks in ~mid-2029.</div></div>
+              <label class="switch"><input type="checkbox" id="maint" checked /><span class="slider-sw"></span></label>
+            </div>
+          </div>
+          <!-- carried CC -->
+          <div class="ctrl">
+            <div class="ctrl-head">
+              <div><div class="ctrl-name">Carried credit-card balance</div>
+                <div class="ctrl-note">@ 11.35% APR → interest added to budget. Paid off Jul 2026, so $0.</div></div>
+              <div class="field" style="width:130px"><span class="pre">$</span><input class="money num" id="cc" type="number" inputmode="decimal" min="0" step="100" value="0" /></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BREAKDOWN -->
+        <div class="section-title">Where it goes <small>monthly spend by category</small></div>
+        <div class="card">
+          <div id="breakdown"></div>
+          <div class="legend">
+            <span><i class="dot" style="background:var(--accent)"></i> House &amp; fixed</span>
+            <span><i class="dot" style="background:var(--gold)"></i> Living &amp; variable</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CATEGORY EDITOR -->
+      <div>
+        <div class="section-title">Categories <small>edit any line</small></div>
+        <div class="card">
+          <div class="grp-label"><i class="dot" style="background:var(--accent)"></i> House &amp; fixed</div>
+          <div id="grp-fixed"></div>
+          <div class="grp-total">House &amp; fixed subtotal <b class="num" id="sub-fixed">$3,423</b></div>
+
+          <div class="grp-label" style="margin-top:22px"><i class="dot" style="background:var(--gold)"></i> Living &amp; variable</div>
+          <div id="grp-living"></div>
+          <div class="grp-total">Living &amp; variable subtotal <b class="num" id="sub-living">$2,725</b></div>
+
+          <div class="grand"><span class="k">Total monthly spend</span><span class="v num" id="grand-total">$6,148</span></div>
+          <div class="ctrl-note" style="margin-top:10px">Principal outstanding: <b class="num">$525,000</b> — interest-only family loan, no amortization.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECTION -->
+    <div class="section-title">12-month projection <small>cumulative surplus; income steps up automatically at Jan 2027</small></div>
+    <div class="card">
+      <div class="proj-inputs">
+        <div class="fld"><label>Start month</label><input type="month" id="start" /></div>
+        <div class="fld"><label>House-project $/mo</label><div class="field"><span class="pre">$</span><input class="money num" id="proj-amt" type="number" inputmode="decimal" min="0" step="100" value="0" /></div></div>
+        <div class="fld"><label>for how many months</label><input class="mon num" id="proj-dur" type="number" inputmode="numeric" min="0" max="12" step="1" value="0" /></div>
+      </div>
+      <div id="proj-chart"></div>
+      <div class="proj-caption" id="proj-caption"></div>
+    </div>
+
+    <div class="foot">
+      Estimates only — not financial advice. Baselines from Wells Fargo statements (Mar–Jun 2026); verify the IRS long-term AFR for the month the family-loan note is signed. Values persist on this device only.
+      &nbsp;·&nbsp; <a class="backlink" href="/160akley/">← Back to 160 Akley</a>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    "use strict";
+
+    // ---- constants (source of truth) ----------------------------------
+    var PRINCIPAL      = 525000;
+    var NET_PER_MONTH  = 6624.54;   // $3,312.27 x 2 paychecks
+    var STEP_INCOME    = 688;       // ex-partner off insurance / Jan-2027 step
+    var MAINT_INBUDGET = 437;       // 1% of home value, from year 4
+    var CC_APR         = 0.1135;
+    var JAN_2027       = new Date(2027, 0, 1).getTime();
+    var STORE_KEY      = "akley-budget-v1";
+
+    var BASELINE = {
+      afr: 4.6, vt: 0, partner: false, maint: true, cc: 0,
+      propertyTax: 917, insurance: 183, electricity: 130, starlink: 120, heatingOil: 60,
+      groceries: 1350, cafes: 400, auto: 330, household: 400, subsGym: 145, healthMisc: 100,
+      projAmt: 0, projDur: 0
+    };
+
+    // category definitions (order = display order)
+    var CATS = [
+      { key:"loanInterest", label:"Loan interest",          group:"fixed",  derived:true },
+      { key:"propertyTax",  label:"Property tax",            group:"fixed" },
+      { key:"insurance",    label:"Homeowners insurance",    group:"fixed" },
+      { key:"electricity",  label:"Electricity",             group:"fixed",  note:"Green Mountain Power, incl. well pump" },
+      { key:"starlink",     label:"Internet (Starlink)",     group:"fixed" },
+      { key:"heatingOil",   label:"Heating oil",             group:"fixed",  note:"hot water only — heat is wood" },
+      { key:"maintenance",  label:"Home maintenance",        group:"fixed",  derived:true },
+      { key:"groceries",    label:"Groceries",               group:"living" },
+      { key:"cafes",        label:"Cafes & restaurants",     group:"living" },
+      { key:"auto",         label:"Auto",                    group:"living" },
+      { key:"household",    label:"Household & shopping",     group:"living" },
+      { key:"subsGym",      label:"Subscriptions & gym",     group:"living" },
+      { key:"healthMisc",   label:"Health & misc",           group:"living" },
+      { key:"ccInterest",   label:"Credit-card interest",    group:"living", derived:true }
+    ];
+
+    // ---- state --------------------------------------------------------
+    function monthISO(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0"); }
+    function load(){
+      var s = Object.assign({}, BASELINE);
+      try { var raw = localStorage.getItem(STORE_KEY); if(raw) Object.assign(s, JSON.parse(raw)); } catch(e){}
+      if(!s.start) s.start = monthISO(new Date());
+      if(!s.theme) s.theme = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light";
+      return s;
+    }
+    function save(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(STATE)); } catch(e){} }
+    var STATE = load();
+
+    // ---- helpers ------------------------------------------------------
+    var $ = function(id){ return document.getElementById(id); };
+    function money(n){ return "$" + Math.round(n).toLocaleString("en-US"); }
+    function moneySigned(n){ var r = Math.round(n); return (r<0?"-$":"$") + Math.abs(r).toLocaleString("en-US"); }
+
+    // ---- compute ------------------------------------------------------
+    function resolved(){
+      // returns a map key -> monthly dollar value, honoring derived rules
+      var m = {};
+      CATS.forEach(function(c){ if(!c.derived) m[c.key] = Number(STATE[c.key]) || 0; });
+      m.loanInterest = PRINCIPAL * (Number(STATE.afr)/100) / 12;
+      m.maintenance  = STATE.maint ? 0 : MAINT_INBUDGET;
+      m.ccInterest   = (Number(STATE.cc) || 0) * CC_APR / 12;
+      return m;
+    }
+    function compute(){
+      var m = resolved();
+      var fixed = 0, living = 0;
+      CATS.forEach(function(c){ if(c.group==="fixed") fixed += m[c.key]; else living += m[c.key]; });
+      var totalSpend = fixed + living;
+      var netIncome  = NET_PER_MONTH + (STATE.partner ? STEP_INCOME : 0) + (Number(STATE.vt)||0);
+      var surplus    = netIncome - totalSpend;
+      var janSurplus = surplus + (STATE.partner ? 0 : STEP_INCOME);
+      return { m:m, fixed:fixed, living:living, totalSpend:totalSpend, netIncome:netIncome, surplus:surplus, janSurplus:janSurplus };
+    }
+
+    // ---- render: hero + totals ----------------------------------------
+    function paintNumbers(c){
+      var h = $("hero-num");
+      h.textContent = moneySigned(c.surplus);
+      h.classList.toggle("neg", c.surplus < 0);
+      var pct = c.netIncome ? Math.round(c.surplus / c.netIncome * 100) : 0;
+      $("hero-sentence").textContent = c.surplus >= 0
+        ? moneySigned(c.surplus) + "/month of slack — " + pct + "% of take-home pay."
+        : moneySigned(c.surplus) + "/month — over budget by " + Math.abs(pct) + "% of take-home.";
+      $("chip-income").textContent = money(c.netIncome);
+      $("chip-spend").textContent  = money(c.totalSpend);
+      $("chip-jan").textContent    = money(c.janSurplus);
+      $("sub-fixed").textContent   = money(c.fixed);
+      $("sub-living").textContent  = money(c.living);
+      $("grand-total").textContent = money(c.totalSpend);
+      // AFR readouts
+      $("afr-val").textContent = Number(STATE.afr).toFixed(2) + "%";
+      $("afr-int").textContent = money(c.m.loanInterest);
+      $("afr-sens").textContent = "each 0.1% ≈ " + money(PRINCIPAL*0.001/12) + "/mo";
+      $("vt-val").textContent  = money(Number(STATE.vt)||0);
+      // derived category cells
+      CATS.forEach(function(cat){
+        if(cat.derived){ var el = $("cat-"+cat.key); if(el) el.firstChild.textContent = money(c.m[cat.key]); }
+      });
+    }
+
+    // ---- render: breakdown bars ---------------------------------------
+    function paintBreakdown(c){
+      var rows = CATS.map(function(cat){ return { label:cat.label, group:cat.group, val:c.m[cat.key] }; })
+                     .filter(function(r){ return r.val > 0.5; });
+      var max = Math.max.apply(null, rows.map(function(r){ return r.val; }));
+      // group order: fixed first, then living; each sorted desc
+      rows.sort(function(a,b){
+        if(a.group !== b.group) return a.group==="fixed" ? -1 : 1;
+        return b.val - a.val;
+      });
+      var html = rows.map(function(r){
+        var w = max ? (r.val/max*100) : 0;
+        var col = r.group==="fixed" ? "var(--accent)" : "var(--gold)";
+        return '<div class="bar-row"><span class="bar-label" title="'+r.label+'">'+r.label+'</span>'
+             + '<div class="bar-track"><div class="bar-fill" style="width:'+w.toFixed(1)+'%;background:'+col+'"></div></div>'
+             + '<span class="bar-val num">'+money(r.val)+'</span></div>';
+      }).join("");
+      $("breakdown").innerHTML = html;
+    }
+
+    // ---- render: 12-month projection SVG ------------------------------
+    function paintProjection(c){
+      var parts = STATE.start.split("-");
+      var y0 = parseInt(parts[0],10), m0 = parseInt(parts[1],10) - 1;
+      var amt = Number(STATE.projAmt)||0, dur = Math.max(0, Math.min(12, Math.round(Number(STATE.projDur)||0)));
+      var pts = [], cum = 0, cumNet = 0;
+      for(var i=0;i<12;i++){
+        var d = new Date(y0, m0 + i, 1);
+        var stepped = STATE.partner || d.getTime() >= JAN_2027;
+        var inc = NET_PER_MONTH + (Number(STATE.vt)||0) + (stepped ? STEP_INCOME : 0);
+        var monthSurplus = inc - c.totalSpend;
+        var proj = (amt>0 && i<dur) ? amt : 0;
+        cum += monthSurplus;
+        cumNet += (monthSurplus - proj);
+        pts.push({ d:d, cum:cum, cumNet:cumNet, first:d.getMonth()===0 || i===0 });
+      }
+      var hasDraw = amt>0 && dur>0;
+      var vals = pts.map(function(p){return p.cum;}).concat(hasDraw ? pts.map(function(p){return p.cumNet;}) : []);
+      var lo = Math.min.apply(null, vals.concat([0]));
+      var hi = Math.max.apply(null, vals.concat([0]));
+      if(hi===lo){ hi+=1; lo-=1; }
+      var pad = (hi-lo)*0.12; hi+=pad; lo-=pad;
+
+      var W=720, H=240, L=8, R=8, T=16, B=34;
+      var iw = W-L-R, ih = H-T-B;
+      function x(i){ return L + (pts.length<=1?0:(i/(pts.length-1))*iw); }
+      function y(v){ return T + (hi-v)/(hi-lo)*ih; }
+
+      function path(sel){
+        return pts.map(function(p,i){ return (i?"L":"M") + x(i).toFixed(1) + " " + y(p[sel]).toFixed(1); }).join(" ");
+      }
+      var line = path("cum");
+      var area = line + " L " + x(pts.length-1).toFixed(1) + " " + y(lo).toFixed(1) + " L " + x(0).toFixed(1) + " " + y(lo).toFixed(1) + " Z";
+
+      var svg = '<svg class="proj-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Cumulative surplus projection">';
+      // zero baseline
+      if(lo < 0 && hi > 0){
+        svg += '<line x1="'+L+'" y1="'+y(0).toFixed(1)+'" x2="'+(W-R)+'" y2="'+y(0).toFixed(1)+'" stroke="var(--line)" stroke-width="1" stroke-dasharray="2 3"/>';
+      }
+      svg += '<path d="'+area+'" fill="var(--accent-soft)" stroke="none"/>';
+      svg += '<path d="'+line+'" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+      if(hasDraw){
+        svg += '<path d="'+path("cumNet")+'" fill="none" stroke="var(--neg)" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round"/>';
+      }
+      // endpoint dot
+      svg += '<circle cx="'+x(pts.length-1).toFixed(1)+'" cy="'+y(pts[pts.length-1].cum).toFixed(1)+'" r="3.5" fill="var(--accent)"/>';
+      // x labels
+      pts.forEach(function(p,i){
+        if(i%2!==0 && i!==pts.length-1) return;
+        var lbl = p.d.toLocaleDateString("en-US",{month:"short"});
+        svg += '<text x="'+x(i).toFixed(1)+'" y="'+(H-14)+'" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="Funnel Sans">'+lbl+'</text>';
+        if(p.d.getMonth()===0){
+          svg += '<text x="'+x(i).toFixed(1)+'" y="'+(H-2)+'" text-anchor="middle" font-size="9.5" fill="var(--faint)" font-family="Funnel Sans">’'+String(p.d.getFullYear()).slice(2)+'</text>';
+        }
+      });
+      svg += '</svg>';
+      $("proj-chart").innerHTML = svg;
+
+      var endCum = pts[pts.length-1].cum;
+      var startLbl = new Date(y0,m0,1).toLocaleDateString("en-US",{month:"long", year:"numeric"});
+      var cap = "Cumulative surplus over 12 months from <b>"+startLbl+"</b>: <b class='num'>"+moneySigned(endCum)+"</b>.";
+      if(hasDraw){
+        cap += " After <b class='num'>"+money(amt)+"</b>/mo of house-project spend for <b>"+dur+"</b> month"+(dur===1?"":"s")+" (dashed), net is <b class='num'>"+moneySigned(pts[pts.length-1].cumNet)+"</b>.";
+      }
+      $("proj-caption").innerHTML = cap;
+    }
+
+    function renderAll(){
+      var c = compute();
+      paintNumbers(c);
+      paintBreakdown(c);
+      paintProjection(c);
+    }
+
+    // ---- build category editor rows -----------------------------------
+    function buildCats(){
+      ["fixed","living"].forEach(function(g){
+        var host = $(g==="fixed" ? "grp-fixed" : "grp-living");
+        CATS.filter(function(c){return c.group===g;}).forEach(function(cat){
+          var row = document.createElement("div");
+          row.className = "cat-row";
+          var name = '<div class="cat-name">'+cat.label + (cat.note?'<span class="n2">'+cat.note+'</span>':'') + '</div>';
+          if(cat.derived){
+            row.innerHTML = name + '<div class="cat-derived" id="cat-'+cat.key+'"><span class="num">$0</span><span class="auto-tag">'+(cat.key==="loanInterest"?"from AFR":cat.key==="ccInterest"?"from balance":"toggle")+'</span></div>';
+          } else {
+            row.innerHTML = name + '<div class="field"><span class="pre">$</span><input class="money num" type="number" inputmode="decimal" min="0" step="5" id="in-'+cat.key+'" value="'+(Number(STATE[cat.key])||0)+'"></div>';
+          }
+          host.appendChild(row);
+          if(!cat.derived){
+            $("in-"+cat.key).addEventListener("input", function(e){
+              STATE[cat.key] = parseFloat(e.target.value)||0; save(); renderAll();
+            });
+          }
+        });
+      });
+    }
+
+    // ---- bind controls ------------------------------------------------
+    function bindControl(id, key, parse){
+      var el = $(id);
+      el.addEventListener("input", function(e){
+        STATE[key] = parse(e.target); save(); renderAll();
+      });
+    }
+    function numVal(t){ return parseFloat(t.value)||0; }
+
+    function applyTheme(){
+      document.documentElement.setAttribute("data-theme", STATE.theme);
+      $("theme-lbl").textContent = STATE.theme==="dark" ? "Light" : "Dark";
+      $("theme-btn").firstChild.textContent = STATE.theme==="dark" ? "☀️ " : "🌙 ";
+    }
+
+    function syncInputs(){
+      $("afr").value = STATE.afr;
+      $("vt").value  = STATE.vt;
+      $("partner").checked = !!STATE.partner;
+      $("maint").checked   = !!STATE.maint;
+      $("cc").value  = STATE.cc;
+      $("start").value = STATE.start;
+      $("proj-amt").value = STATE.projAmt;
+      $("proj-dur").value = STATE.projDur;
+      CATS.forEach(function(cat){ if(!cat.derived){ var el=$("in-"+cat.key); if(el) el.value = Number(STATE[cat.key])||0; } });
+    }
+
+    // ---- init ---------------------------------------------------------
+    buildCats();
+    syncInputs();
+    applyTheme();
+
+    bindControl("afr", "afr", numVal);
+    bindControl("vt",  "vt",  numVal);
+    bindControl("cc",  "cc",  numVal);
+    bindControl("proj-amt", "projAmt", numVal);
+    bindControl("proj-dur", "projDur", numVal);
+    $("partner").addEventListener("change", function(e){ STATE.partner = e.target.checked; save(); renderAll(); });
+    $("maint").addEventListener("change", function(e){ STATE.maint = e.target.checked; save(); renderAll(); });
+    $("start").addEventListener("input", function(e){ STATE.start = e.target.value || monthISO(new Date()); save(); renderAll(); });
+
+    $("theme-btn").addEventListener("click", function(){
+      STATE.theme = STATE.theme==="dark" ? "light" : "dark"; save(); applyTheme();
+    });
+    $("reset-btn").addEventListener("click", function(){
+      var keepStart = STATE.start, keepTheme = STATE.theme;
+      STATE = Object.assign({}, BASELINE, { start: keepStart, theme: keepTheme });
+      save(); syncInputs(); renderAll();
+    });
+
+    renderAll();
+  })();
+  </script>
+</body>
+</html>
