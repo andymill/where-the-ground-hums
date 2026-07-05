@@ -201,6 +201,13 @@
     .subtabs{display:inline-flex;gap:4px;background:var(--bone-2);border:1px solid var(--line);border-radius:11px;padding:4px;margin:16px 0 6px;}
     .subtab{border:none;background:none;color:var(--muted);font-family:var(--sans);font-weight:600;font-size:13.5px;padding:8px 18px;border-radius:8px;cursor:pointer;}
     .subtab.on{background:var(--card);color:var(--forest);box-shadow:var(--shadow);}
+    /* renovation sections */
+    .renogroup{margin-bottom:22px;}
+    .renosec{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:22px 2px 8px;}
+    .renosec > span:first-child{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+    .renosub{font-family:var(--display);font-weight:700;font-size:14px;color:var(--ink-2);white-space:nowrap;}
+    .renoadd{margin-top:8px;font-size:13px;font-weight:600;color:var(--forest);cursor:pointer;display:inline-block;padding:4px 2px;}
+    .renoadd:hover{text-decoration:underline;}
     /* renovation slider rows */
     .renorow{padding:16px 22px;border-bottom:1px solid var(--line);}
     .renorow:last-child{border-bottom:none;}
@@ -327,15 +334,9 @@
               <div class="card stat" style="padding:22px;"><div class="k">Spent so far</div><div class="v num" id="rSpent">—</div></div>
               <div class="card stat" style="padding:22px;"><div class="k">Remaining</div><div class="v num" id="rRemain" style="color:var(--forest);">—</div></div>
             </div>
-            <div id="renoList" style="margin-top:14px;"></div>
-            <div class="seclabel" style="margin:26px 0 12px;">Add an item</div>
-            <div class="card addform">
-              <input class="fld" id="rnLabel" placeholder="e.g. Mini-split heat pump" style="flex:2;min-width:170px;">
-              <input class="fld" id="rnCat" list="renoPhases" placeholder="Phase" style="width:130px;">
-              <datalist id="renoPhases"></datalist>
-              <input class="fld num" id="rnEst" type="number" inputmode="numeric" placeholder="Estimate $" style="width:120px;">
-              <button class="btn" id="rnAdd">Add</button>
-            </div>
+            <p class="mono" id="renoBreak" style="font-size:12px;color:var(--muted);margin:12px 2px 0;"></p>
+            <div id="renoList" style="margin-top:18px;"></div>
+            <div style="margin-top:10px;"><button class="btn sm" id="rnAddSection">+ Add section</button></div>
           </div>
         </div>
       </section>
@@ -518,7 +519,9 @@
 
     /* ---------- renovation budget (shared, D1; slider-driven) ---------- */
     var renoItems=[];
-    var RENO_PHASES=["August 2026","Fall 2026","2027"];
+    var RENO_PHASES=["August 2026","Fall 2026","2027"], renoSections=[];
+    function moneyShort(n){ n=Math.round(n); return n>=1000?("$"+(Math.round(n/100)/10)+"k"):("$"+n); }
+    function renoSubOf(items){ var e=0,s=0; items.forEach(function(r){ if(r.enabled){ e+=(+r.estimate||0); s+=(+r.actual||0); } }); return {est:e,spent:s}; }
     function loadReno(){ return api("GET","/reno").then(function(d){ renoItems=d||[]; }); }
     function renoTotals(){ var est=0,act=0; renoItems.forEach(function(r){ if(r.enabled){ est+=(+r.estimate||0); act+=(+r.actual||0); } }); return {est:est,act:act,remain:est-act}; }
     function renoPaintTotals(){ var t=renoTotals(); $("#rEst").textContent=money(t.est); $("#rSpent").textContent=money(t.act); $("#rRemain").textContent=money(t.remain); $("#rRemain").style.color=t.remain<0?"var(--cedar)":"var(--forest)"; }
@@ -533,15 +536,27 @@
           +'<span class="renoright">'+toggle+'<button class="xbtn" data-renodel="'+r.id+'" title="Remove">✕</button></span></div>'
       +'</div>';
     }
+    function renoOrder(){
+      var order=[];
+      RENO_PHASES.forEach(function(p){ if(order.indexOf(p)<0) order.push(p); });
+      renoItems.forEach(function(r){ var c=r.category||"Unsorted"; if(order.indexOf(c)<0) order.push(c); });
+      renoSections.forEach(function(c){ if(order.indexOf(c)<0) order.push(c); });
+      return order;
+    }
     function renderReno(){
       renoPaintTotals();
-      var order=[],byC={};
-      renoItems.forEach(function(r){ var c=r.category||"Other"; if(!byC[c]){byC[c]=[];order.push(c);} byC[c].push(r); });
-      order.sort(function(a,b){ return renoPhaseOrder(a)-renoPhaseOrder(b); });
-      $("#renoList").innerHTML = order.length ? order.map(function(c){
-        return '<div class="seclabel" style="margin:22px 0 8px;">'+esc(c)+'</div><div class="card" style="padding:2px 0;">'+byC[c].map(renoRowHTML).join("")+'</div>';
-      }).join("") : '<p class="mono" style="color:var(--faint);padding:8px 0;">No items yet — add one below.</p>';
-      $("#renoPhases").innerHTML=RENO_PHASES.map(function(p){return '<option value="'+p+'">';}).join("");
+      var order=renoOrder();
+      $("#renoBreak").innerHTML = order.map(function(c){
+        var st=renoSubOf(renoItems.filter(function(r){return (r.category||"Unsorted")===c;}));
+        return st.est>0 ? (esc(c)+" "+moneyShort(st.est)) : null;
+      }).filter(Boolean).join("  ·  ");
+      $("#renoList").innerHTML = order.map(function(c){
+        var items=renoItems.filter(function(r){ return (r.category||"Unsorted")===c; });
+        var st=renoSubOf(items);
+        var head='<div class="renosec"><span>'+esc(c)+'</span><span class="renosub">'+money(st.est)+' est'+(st.spent>0?' · '+money(st.spent)+' spent':'')+'</span></div>';
+        var body=items.length?('<div class="card" style="padding:2px 0;">'+items.map(renoRowHTML).join("")+'</div>'):'<p class="mono" style="color:var(--faint);padding:0 2px 4px;">No items yet.</p>';
+        return '<div class="renogroup">'+head+body+'<div class="renoadd" data-additem="'+esc(c)+'">+ Add item</div></div>';
+      }).join("");
       bindReno(); icons();
     }
     function renoById(id){ return renoItems.find(function(x){return x.id===id;}); }
@@ -558,11 +573,17 @@
         api("PATCH","/reno/"+r.id,{actual:num}).then(loadReno).then(renderReno);
       }); });
       $$("[data-renodel]").forEach(function(el){ el.addEventListener("click",function(){ if(!window.confirm("Remove this item?"))return; api("DELETE","/reno/"+el.getAttribute("data-renodel")).then(loadReno).then(renderReno); }); });
+      $$("[data-additem]").forEach(function(el){ el.addEventListener("click",function(){
+        var sec=el.getAttribute("data-additem");
+        var label=window.prompt("New item in “"+sec+"”:"); if(label===null)return; label=label.trim(); if(!label)return;
+        var ev=window.prompt("Estimate for “"+label+"” ($):","0"); if(ev===null)return; var est=parseFloat(ev)||0;
+        api("POST","/reno",{label:label,category:sec,estimate:est,who:who}).then(loadReno).then(renderReno);
+      }); });
     }
-    $("#rnAdd").addEventListener("click",function(){
-      var label=$("#rnLabel").value.trim(); if(!label)return;
-      var est=parseFloat($("#rnEst").value)||0;
-      api("POST","/reno",{label:label,category:$("#rnCat").value.trim(),estimate:est,who:who}).then(loadReno).then(function(){ $("#rnLabel").value="";$("#rnEst").value="";$("#rnCat").value=""; renderReno(); });
+    $("#rnAddSection").addEventListener("click",function(){
+      var name=window.prompt("New section name (e.g. Spring 2027):"); if(name===null)return; name=name.trim(); if(!name)return;
+      if(renoSections.indexOf(name)<0 && RENO_PHASES.indexOf(name)<0) renoSections.push(name);
+      renderReno();
     });
 
     /* ---------- tasks ---------- */
