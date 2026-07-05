@@ -189,6 +189,31 @@
     a.calc .d{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.45;}
     a.calc .go{color:var(--forest);font-weight:700;font-size:13px;margin-top:10px;display:inline-block;}
     .addform{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:14px 16px;}
+    /* budget subtabs (Monthly / Renovation) */
+    .subtabs{display:inline-flex;gap:4px;background:var(--bone-2);border:1px solid var(--line);border-radius:11px;padding:4px;margin:16px 0 6px;}
+    .subtab{border:none;background:none;color:var(--muted);font-family:var(--sans);font-weight:600;font-size:13.5px;padding:8px 18px;border-radius:8px;cursor:pointer;}
+    .subtab.on{background:var(--card);color:var(--forest);box-shadow:var(--shadow);}
+    /* renovation slider rows */
+    .renorow{padding:16px 22px;border-bottom:1px solid var(--line);}
+    .renorow:last-child{border-bottom:none;}
+    .renorow.off{opacity:.55;}
+    .renohd{display:flex;align-items:center;justify-content:space-between;gap:14px;}
+    .renohd .rl{font-size:15px;font-weight:600;}
+    .renohd .rv{font-family:var(--display);font-weight:700;font-size:17px;color:var(--forest);white-space:nowrap;}
+    .renoslider{width:100%;-webkit-appearance:none;appearance:none;height:4px;border-radius:99px;background:var(--bone-2);margin-top:14px;cursor:pointer;}
+    .renoslider:disabled{cursor:default;opacity:.6;}
+    .renoslider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--forest);border:3px solid var(--card);box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer;}
+    .renoslider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--forest);border:3px solid var(--card);cursor:pointer;}
+    .renometa{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;font-size:12.5px;color:var(--muted);}
+    .renoact{cursor:pointer;border-bottom:1px dashed transparent;}
+    .renoact:hover{border-bottom-color:var(--forest);color:var(--ink-2);}
+    .renoright{display:flex;align-items:center;gap:12px;}
+    .rswitch{position:relative;width:40px;height:23px;flex:none;}
+    .rswitch input{opacity:0;width:0;height:0;}
+    .rslide{position:absolute;inset:0;background:var(--line);border-radius:99px;transition:.16s;cursor:pointer;}
+    .rslide::before{content:"";position:absolute;height:17px;width:17px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.16s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+    .rswitch input:checked + .rslide{background:var(--forest);}
+    .rswitch input:checked + .rslide::before{transform:translateX(17px);}
     @media (max-width:820px){
       .app{flex-direction:column;height:calc(100vh / 0.7);}
       .rail{width:100%;height:auto;flex-direction:row;border-right:none;border-bottom:1px solid var(--line);padding:8px 10px;gap:2px;align-items:center;position:sticky;top:0;z-index:20;overflow-x:auto;overflow-y:hidden;background:color-mix(in srgb,var(--bone) 90%,transparent);backdrop-filter:blur(8px);}
@@ -258,24 +283,49 @@
       <!-- BUDGET -->
       <section class="screen" data-screen="budget">
         <div class="pad">
-          <div class="kick">Money</div><h1 class="h1">Monthly budget</h1>
-          <p class="lede">Your household budget after the move. Tap any number to edit — it's shared with Zoe. Deeper what-ifs live in the calculator.</p>
-          <div class="g3" style="margin-top:24px;">
-            <div class="card stat" style="padding:22px;"><div class="k">Net income</div><div class="v num editable" id="bIncome">—</div></div>
-            <div class="card stat" style="padding:22px;"><div class="k">Total spend</div><div class="v num" id="bSpend">—</div></div>
-            <div class="card stat" style="padding:22px;"><div class="k">Surplus</div><div class="v num" id="bSurplus" style="color:var(--forest);">—</div></div>
+          <div class="kick">Money</div><h1 class="h1">Budget</h1>
+          <div class="subtabs">
+            <button class="subtab on" data-budtab="monthly">Monthly</button>
+            <button class="subtab" data-budtab="reno">Renovation</button>
           </div>
-          <p class="mono" id="bJan" style="font-size:12.5px;color:var(--muted);margin:12px 2px 0;"></p>
 
-          <div class="seclabel" style="margin:32px 0 12px;">House &amp; fixed</div>
-          <div class="card listcard" id="bFixed"></div>
-          <div class="seclabel" style="margin:28px 0 12px;">Living &amp; variable</div>
-          <div class="card listcard" id="bLiving"></div>
+          <div class="budview" data-budview="monthly">
+            <p class="lede">Your household budget after the move. Tap any number to edit — it's shared with Zoe. Deeper what-ifs live in the calculator.</p>
+            <div class="g3" style="margin-top:20px;">
+              <div class="card stat" style="padding:22px;"><div class="k">Net income</div><div class="v num editable" id="bIncome">—</div></div>
+              <div class="card stat" style="padding:22px;"><div class="k">Total spend</div><div class="v num" id="bSpend">—</div></div>
+              <div class="card stat" style="padding:22px;"><div class="k">Surplus</div><div class="v num" id="bSurplus" style="color:var(--forest);">—</div></div>
+            </div>
+            <p class="mono" id="bJan" style="font-size:12.5px;color:var(--muted);margin:12px 2px 0;"></p>
 
-          <div class="seclabel" style="margin:34px 0 16px;">Calculators</div>
-          <div class="g3 two">
-            <a class="calc" href="/160akley/budget/"><div class="t">Budget what-ifs</div><div class="d">Income scenarios, the AFR slider, a 12-month projection.</div><span class="go">Open →</span></a>
-            <a class="calc" href="/160akley/house/"><div class="t">Cost to own</div><div class="d">Payment, cash to close, true cost — plus the parcel map & gallery.</div><span class="go">Open →</span></a>
+            <div class="seclabel" style="margin:32px 0 12px;">House &amp; fixed</div>
+            <div class="card listcard" id="bFixed"></div>
+            <div class="seclabel" style="margin:28px 0 12px;">Living &amp; variable</div>
+            <div class="card listcard" id="bLiving"></div>
+
+            <div class="seclabel" style="margin:34px 0 16px;">Calculators</div>
+            <div class="g3 two">
+              <a class="calc" href="/160akley/budget/"><div class="t">Budget what-ifs</div><div class="d">Income scenarios, the AFR slider, a 12-month projection.</div><span class="go">Open →</span></a>
+              <a class="calc" href="/160akley/house/"><div class="t">Cost to own</div><div class="d">Payment, cash to close, true cost — plus the parcel map & gallery.</div><span class="go">Open →</span></a>
+            </div>
+          </div>
+
+          <div class="budview" data-budview="reno" style="display:none;">
+            <p class="lede">One-time renovation budget. Slide each item to set its estimate; tap the amount below it to log what you actually spent. Shared with Zoe. The detailed line-item estimate lives on the <a href="/renovation/">renovation page</a>.</p>
+            <div class="g3" style="margin-top:20px;">
+              <div class="card stat" style="padding:22px;"><div class="k">Estimated</div><div class="v num" id="rEst">—</div></div>
+              <div class="card stat" style="padding:22px;"><div class="k">Spent so far</div><div class="v num" id="rSpent">—</div></div>
+              <div class="card stat" style="padding:22px;"><div class="k">Remaining</div><div class="v num" id="rRemain" style="color:var(--forest);">—</div></div>
+            </div>
+            <div id="renoList" style="margin-top:14px;"></div>
+            <div class="seclabel" style="margin:26px 0 12px;">Add an item</div>
+            <div class="card addform">
+              <input class="fld" id="rnLabel" placeholder="e.g. Mini-split heat pump" style="flex:2;min-width:170px;">
+              <input class="fld" id="rnCat" list="renoPhases" placeholder="Phase" style="width:130px;">
+              <datalist id="renoPhases"></datalist>
+              <input class="fld num" id="rnEst" type="number" inputmode="numeric" placeholder="Estimate $" style="width:120px;">
+              <button class="btn" id="rnAdd">Add</button>
+            </div>
           </div>
         </div>
       </section>
@@ -448,6 +498,62 @@
         api("PATCH","/budget",{key:"net_income",num:num}).then(loadBudget).then(function(){ renderBudget(); renderHome(); });
       };
     }
+
+    /* ---------- budget sub-tabs (Monthly / Renovation) ---------- */
+    $$("[data-budtab]").forEach(function(b){ b.addEventListener("click",function(){
+      var t=b.getAttribute("data-budtab");
+      $$("[data-budtab]").forEach(function(x){ x.classList.toggle("on",x===b); });
+      $$("[data-budview]").forEach(function(v){ v.style.display = v.getAttribute("data-budview")===t ? "" : "none"; });
+    }); });
+
+    /* ---------- renovation budget (shared, D1; slider-driven) ---------- */
+    var renoItems=[];
+    var RENO_PHASES=["August 2026","Fall 2026","2027"];
+    function loadReno(){ return api("GET","/reno").then(function(d){ renoItems=d||[]; }); }
+    function renoTotals(){ var est=0,act=0; renoItems.forEach(function(r){ if(r.enabled){ est+=(+r.estimate||0); act+=(+r.actual||0); } }); return {est:est,act:act,remain:est-act}; }
+    function renoPaintTotals(){ var t=renoTotals(); $("#rEst").textContent=money(t.est); $("#rSpent").textContent=money(t.act); $("#rRemain").textContent=money(t.remain); $("#rRemain").style.color=t.remain<0?"var(--cedar)":"var(--forest)"; }
+    function renoPhaseOrder(c){ var i=RENO_PHASES.indexOf(c); return i<0?99:i; }
+    function renoRowHTML(r){
+      var toggle=r.is_toggle?'<label class="rswitch"><input type="checkbox" data-rentog="'+r.id+'"'+(r.enabled?" checked":"")+'><span class="rslide"></span></label>':'';
+      var act=(+r.actual>0)?("spent "+money(r.actual)):"log spend";
+      return '<div class="renorow'+(r.enabled?"":" off")+'">'
+        +'<div class="renohd"><span class="rl">'+esc(r.label)+'</span><span class="rv">'+money(r.estimate)+'</span></div>'
+        +'<input class="renoslider" type="range" min="'+r.emin+'" max="'+r.emax+'" step="'+r.estep+'" value="'+r.estimate+'" data-renoest="'+r.id+'"'+(r.enabled?"":" disabled")+'>'
+        +'<div class="renometa"><span class="renoact" data-renoact="'+r.id+'">'+act+'</span>'
+          +'<span class="renoright">'+toggle+'<button class="xbtn" data-renodel="'+r.id+'" title="Remove">✕</button></span></div>'
+      +'</div>';
+    }
+    function renderReno(){
+      renoPaintTotals();
+      var order=[],byC={};
+      renoItems.forEach(function(r){ var c=r.category||"Other"; if(!byC[c]){byC[c]=[];order.push(c);} byC[c].push(r); });
+      order.sort(function(a,b){ return renoPhaseOrder(a)-renoPhaseOrder(b); });
+      $("#renoList").innerHTML = order.length ? order.map(function(c){
+        return '<div class="seclabel" style="margin:22px 0 8px;">'+esc(c)+'</div><div class="card" style="padding:2px 0;">'+byC[c].map(renoRowHTML).join("")+'</div>';
+      }).join("") : '<p class="mono" style="color:var(--faint);padding:8px 0;">No items yet — add one below.</p>';
+      $("#renoPhases").innerHTML=RENO_PHASES.map(function(p){return '<option value="'+p+'">';}).join("");
+      bindReno(); icons();
+    }
+    function renoById(id){ return renoItems.find(function(x){return x.id===id;}); }
+    function bindReno(){
+      $$("[data-renoest]").forEach(function(el){
+        el.addEventListener("input",function(){ var rv=el.closest(".renorow").querySelector(".rv"); if(rv) rv.textContent=money(+el.value); var r=renoById(el.getAttribute("data-renoest")); if(r){ r.estimate=+el.value; renoPaintTotals(); } });
+        el.addEventListener("change",function(){ api("PATCH","/reno/"+el.getAttribute("data-renoest"),{estimate:+el.value}); });
+      });
+      $$("[data-rentog]").forEach(function(el){ el.addEventListener("change",function(){ api("PATCH","/reno/"+el.getAttribute("data-rentog"),{enabled:el.checked}).then(loadReno).then(renderReno); }); });
+      $$("[data-renoact]").forEach(function(el){ el.addEventListener("click",function(){
+        var r=renoById(el.getAttribute("data-renoact")); if(!r)return;
+        var v=window.prompt("Actual spent on “"+r.label+"” ($):", Math.round(r.actual||0)); if(v===null)return;
+        var num=parseFloat(v); if(isNaN(num))return;
+        api("PATCH","/reno/"+r.id,{actual:num}).then(loadReno).then(renderReno);
+      }); });
+      $$("[data-renodel]").forEach(function(el){ el.addEventListener("click",function(){ if(!window.confirm("Remove this item?"))return; api("DELETE","/reno/"+el.getAttribute("data-renodel")).then(loadReno).then(renderReno); }); });
+    }
+    $("#rnAdd").addEventListener("click",function(){
+      var label=$("#rnLabel").value.trim(); if(!label)return;
+      var est=parseFloat($("#rnEst").value)||0;
+      api("POST","/reno",{label:label,category:$("#rnCat").value.trim(),estimate:est,who:who}).then(loadReno).then(function(){ $("#rnLabel").value="";$("#rnEst").value="";$("#rnCat").value=""; renderReno(); });
+    });
 
     /* ---------- tasks ---------- */
     function loadTasks(){ return api("GET","/tasks").then(function(d){ tasks=d||[]; }); }
@@ -645,6 +751,7 @@
       loadTasks().then(renderTasks).catch(function(){ $("#taskGroups").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load tasks.</p>'; }),
       loadResources().then(function(){ renderRes(""); }).catch(function(){ $("#resList").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load resources.</p>'; }),
       loadBudget().then(renderBudget).catch(function(){}),
+      loadReno().then(renderReno).catch(function(){ $("#renoList").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load renovation budget.</p>'; }),
       loadFiles().then(renderFiles).catch(function(){ $("#fileView").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load files.</p>'; })
     ]).then(renderHome);
     show(location.hash.slice(1)||"home");
