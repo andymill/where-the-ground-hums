@@ -14,6 +14,18 @@ export async function onRequestGet({ env, params }) {
   return new Response(obj.body, { headers });
 }
 
+export async function onRequestPatch({ request, env, params }) {
+  const b = await request.json().catch(() => ({}));
+  const sets = [], vals = [];
+  if (typeof b.name === "string" && b.name.trim()) { sets.push("name=?"); vals.push(b.name.trim().slice(0, 200)); }
+  if (typeof b.summary === "string") { sets.push("summary=?"); vals.push(b.summary.trim() || null); }
+  if (typeof b.category === "string") { sets.push("category=?"); vals.push(b.category.trim() || null); }
+  if (!sets.length) return json({ error: "nothing to update" }, 400);
+  vals.push(params.id);
+  await env.DB.prepare("UPDATE files SET " + sets.join(",") + " WHERE id=?").bind(...vals).run();
+  return json({ ok: true });
+}
+
 export async function onRequestDelete({ env, params }) {
   const row = await env.DB.prepare("SELECT r2_key FROM files WHERE id=?").bind(params.id).first();
   if (row) await env.FILES.delete(row.r2_key);

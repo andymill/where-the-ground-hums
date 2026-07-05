@@ -24,9 +24,10 @@ for (const entry of fs.readdirSync(distDir)) {
   fs.renameSync(path.join(distDir, entry), path.join(humDir, entry))
 }
 
-// Write Netlify redirects: SPA fallback for /hum/*, friendly routes for the
-// /160akley home hub (the edge function at netlify/edge-functions/akley-auth.js
-// gates access with Basic Auth before these rewrites resolve).
+// Write a _redirects file (Cloudflare Pages honors the same format Netlify
+// used): SPA fallback for /hum/*, plus friendly routes for the /160akley home
+// hub. Basic-auth gating now lives in the Pages Function functions/_middleware.js
+// (ported from the old Netlify edge function), which runs before these resolve.
 fs.writeFileSync(
   path.join(distDir, '_redirects'),
   `# SPA fallback so deep links under /hum/ load the app shell.
@@ -36,7 +37,7 @@ fs.writeFileSync(
 # Clean URLs for the 160 Akley home hub. Source lives in 160akley/ at the
 # project root: the hub (index.html) plus a house cost-to-own calculator
 # (house/) and a household budget calculator (budget/); the whole tree is
-# copied to dist/160akley/ below. Gated by the basic-auth edge function.
+# copied to dist/160akley/ below. Gated by functions/_middleware.js (basic auth).
 /160akley              /160akley/index.html            200
 /160akley/house        /160akley/house/index.html      200
 /160akley/budget       /160akley/budget/index.html     200
@@ -77,8 +78,8 @@ if (fs.existsSync(faviconSrc)) {
 // Copy the 160 Akley home hub (standalone HTML, no build step) into
 // dist/160akley/. The whole tree comes along: the hub (index.html), the house
 // cost-to-own calculator (house/), the household budget calculator (budget/),
-// and the shared vendor/ folder. Gated by the basic-auth edge function
-// (netlify/edge-functions/akley-auth.js).
+// and the shared vendor/ folder. Gated by the basic-auth Pages Function
+// functions/_middleware.js.
 const akleySrc = path.resolve(__dirname, '..', '160akley')
 if (fs.existsSync(akleySrc)) {
   fs.cpSync(akleySrc, path.join(distDir, '160akley'), { recursive: true })

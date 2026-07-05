@@ -1,19 +1,19 @@
-// Generates db/seed.sql: resources (extracted from the hub page), tasks, and
-// the monthly budget (from the budget calculator spec).
+// Generates db/seed.sql: resources, tasks, and the monthly budget (from the
+// budget calculator spec). Used only to bootstrap a fresh D1 database — once
+// seeded, resources are the live source of truth in D1 (edited in-app), so
+// this file is not the canonical store.
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(__dirname, "..");
 
-// --- pull the RESOURCES array out of the hub page (single source of truth) ---
-const page = fs.readFileSync(path.join(root, "160akley", "index.html"), "utf8");
-const startTok = "var RESOURCES = ";
-const start = page.indexOf(startTok);
-const rest = page.slice(start + startTok.length);
-const end = rest.indexOf("\n    ];");
-const literal = rest.slice(0, end) + "\n    ]";
-const RESOURCES = eval(literal); // our own content
+// --- resource seed data (single source of truth for a fresh DB) -------------
+// Resources used to be grepped out of the hub page, but they moved to D1 in
+// the Cloudflare migration and the HTML literal is gone. The seed set now
+// lives in db/resources.seed.json (regenerate from a live DB export if needed).
+const RESOURCES = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "resources.seed.json"), "utf8")
+);
 
 const q = (v) => (v == null ? "NULL" : "'" + String(v).replace(/'/g, "''") + "'");
 const now = Date.now();

@@ -1,0 +1,920 @@
+[
+  {
+    "cat": "Attorneys",
+    "subt": "Real-estate & closing",
+    "items": [
+      {
+        "n": "Jane Krochmalny",
+        "p": [
+          "802-257-0745"
+        ],
+        "a": "612 Guilford Center Rd, Guilford VT",
+        "note": "in Guilford"
+      },
+      {
+        "n": "Fisher & Fisher",
+        "p": [
+          "802-254-4488"
+        ],
+        "a": "114 Main St, Brattleboro VT"
+      },
+      {
+        "n": "Sam Griffis",
+        "p": [
+          "802-258-2251"
+        ],
+        "a": "25 Lyons, W. Dummerston VT"
+      },
+      {
+        "n": "Chadwick Law",
+        "p": [
+          "802-257-7161"
+        ],
+        "a": "136 High St, Brattleboro VT"
+      },
+      {
+        "n": "Fitts, Olson & Giddings",
+        "p": [
+          "802-254-2345"
+        ],
+        "a": "16 High St, Brattleboro VT"
+      },
+      {
+        "n": "Phillips Dunn Shriver & Carroll PC",
+        "p": [
+          "802-257-7244"
+        ],
+        "a": "147 Western Ave, Brattleboro VT"
+      },
+      {
+        "n": "Costello, Valente & Gentry",
+        "p": [
+          "802-257-5533"
+        ],
+        "a": "136 Western Ave, Brattleboro VT"
+      },
+      {
+        "n": "Jodi French",
+        "p": [
+          "802-254-9000"
+        ],
+        "a": "114 Main St, Brattleboro VT",
+        "flag": "working with sellers"
+      },
+      {
+        "n": "Lane & Bentley",
+        "p": [
+          "603-352-5720"
+        ],
+        "a": "106 Washington St, Keene NH"
+      },
+      {
+        "n": "Steve Bonnette",
+        "p": [
+          "603-355-2900"
+        ],
+        "a": "73 Main St, Brattleboro & 16 Church St, Keene NH"
+      },
+      {
+        "n": "Elana Baron",
+        "p": [
+          "603-283-5149"
+        ],
+        "a": "Bragdon & Kossayda, Keene NH"
+      }
+    ]
+  },
+  {
+    "cat": "Builders",
+    "subt": null,
+    "items": [
+      {
+        "n": "David Ross",
+        "p": [
+          "802-257-1378"
+        ]
+      },
+      {
+        "n": "Dannie Robinson",
+        "p": [
+          "802-257-0394"
+        ]
+      },
+      {
+        "n": "Mathes & Hulme",
+        "p": [
+          "802-380-6772"
+        ]
+      },
+      {
+        "n": "Chris Parker",
+        "p": [
+          "802-257-4610"
+        ]
+      },
+      {
+        "n": "John Jessop",
+        "p": [
+          "802-387-4539"
+        ]
+      },
+      {
+        "n": "Homestead Builders",
+        "p": [
+          "603-545-1616"
+        ]
+      },
+      {
+        "n": "Bill Hill",
+        "p": [
+          "802-380-1724"
+        ]
+      },
+      {
+        "n": "Tony Farnum",
+        "p": [
+          "802-254-2978"
+        ]
+      },
+      {
+        "n": "Mindel & Morse",
+        "p": [
+          "802-254-6662"
+        ]
+      },
+      {
+        "n": "Brunelle & Sons",
+        "p": [
+          "802-254-9788"
+        ]
+      },
+      {
+        "n": "Severance Building & Design",
+        "p": [
+          "802-387-6024"
+        ]
+      },
+      {
+        "n": "GPI",
+        "p": [
+          "802-257-7839"
+        ]
+      },
+      {
+        "n": "M&R Carpentry",
+        "p": [
+          "802-490-6822",
+          "603-728-9454"
+        ],
+        "note": "Mike or Rick"
+      },
+      {
+        "n": "RNE Renovations",
+        "p": [
+          "802-689-9517",
+          "802-689-6505"
+        ],
+        "w": "rnerenovators.com"
+      }
+    ]
+  },
+  {
+    "cat": "Excavating contractors",
+    "subt": null,
+    "items": [
+      {
+        "n": "AS Clark",
+        "p": [
+          "802-257-1963"
+        ]
+      },
+      {
+        "n": "DMI — Dave Manning",
+        "p": [
+          "802-258-3962"
+        ]
+      },
+      {
+        "n": "Derrig Excavating",
+        "p": [
+          "802-387-5479"
+        ]
+      },
+      {
+        "n": "T. Bristol Enterprises",
+        "p": [
+          "802-251-6011"
+        ]
+      },
+      {
+        "n": "Bellco Excavation",
+        "p": [
+          "802-258-1478"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Roofers",
+    "subt": null,
+    "items": [
+      {
+        "n": "Travis Slade",
+        "p": [
+          "802-380-2456"
+        ]
+      },
+      {
+        "n": "Slade & Brow",
+        "p": [
+          "802-254-5052"
+        ]
+      },
+      {
+        "n": "Guyer & Son",
+        "p": [
+          "603-876-9915"
+        ]
+      },
+      {
+        "n": "Craig Finnell",
+        "p": [
+          "802-257-0841"
+        ]
+      },
+      {
+        "n": "2K3 — Tom Tetreault",
+        "p": [
+          "802-451-8945"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Masons",
+    "subt": null,
+    "items": [
+      {
+        "n": "Ricky Barbour",
+        "p": [
+          "802-376-0933"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Chimney specialists",
+    "subt": null,
+    "items": [
+      {
+        "n": "Brattleboro Chimney Sweep — Tucker Corry",
+        "p": [
+          "802-490-0188"
+        ]
+      },
+      {
+        "n": "Glenn Rosinski",
+        "p": [
+          "802-579-2070"
+        ]
+      },
+      {
+        "n": "Richard Hawes",
+        "p": [
+          "802-464-2174"
+        ]
+      },
+      {
+        "n": "Chimney Doctor — Ian Conway",
+        "p": [
+          "802-387-6037",
+          "802-254-0815"
+        ],
+        "note": "inspector"
+      },
+      {
+        "n": "Clark Chimney Services — Brad Clark",
+        "p": [
+          "603-762-6246"
+        ]
+      },
+      {
+        "n": "3 Fathers Services",
+        "p": [
+          "802-689-0508"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Furnace cleaners",
+    "subt": null,
+    "items": [
+      {
+        "n": "Dave Hellus",
+        "p": [
+          "802-257-9527",
+          "802-380-1706"
+        ]
+      },
+      {
+        "n": "Harrison Heating",
+        "p": [
+          "802-490-8685"
+        ]
+      },
+      {
+        "n": "Bob Colburn",
+        "p": [
+          "802-254-5371"
+        ]
+      },
+      {
+        "n": "S3 Heating LLC — Ed Sleeper",
+        "p": [
+          "802-689-9391"
+        ]
+      },
+      {
+        "n": "Jackson's Heating Service",
+        "p": [
+          "802-591-0212"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Plumbers",
+    "subt": null,
+    "items": [
+      {
+        "n": "Ian's Plumbing & Heating",
+        "p": [
+          "802-368-7850"
+        ]
+      },
+      {
+        "n": "Joe King",
+        "p": [
+          "802-579-9955"
+        ]
+      },
+      {
+        "n": "Bill Gilbert",
+        "p": [
+          "802-275-7313",
+          "802-257-4350"
+        ]
+      },
+      {
+        "n": "Al Jeffers & Sons",
+        "p": [
+          "802-365-4447"
+        ],
+        "note": "365-4447 as listed"
+      },
+      {
+        "n": "Jewett Plumbing — Joe",
+        "p": [
+          "802-254-4963"
+        ]
+      },
+      {
+        "n": "Temple Plumbing & Heating",
+        "p": [
+          "802-387-5540"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Electricians",
+    "subt": null,
+    "items": [
+      {
+        "n": "Kings Electric",
+        "p": [
+          "802-254-1211"
+        ]
+      },
+      {
+        "n": "Tim Toussaint",
+        "p": [
+          "603-355-7518"
+        ]
+      },
+      {
+        "n": "Zebediah Toussaint",
+        "p": [
+          "802-299-6574"
+        ]
+      },
+      {
+        "n": "Dompier",
+        "p": [
+          "802-254-4581"
+        ]
+      },
+      {
+        "n": "AL Tyler & Sons",
+        "p": [
+          "802-254-9309"
+        ]
+      },
+      {
+        "n": "Lawrence & Lober",
+        "p": [
+          "802-460-3479"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Painters",
+    "subt": null,
+    "items": [
+      {
+        "n": "Dandrea's Painting",
+        "p": [
+          "802-254-8426"
+        ]
+      },
+      {
+        "n": "Jason King",
+        "p": [
+          "802-451-9136"
+        ]
+      },
+      {
+        "n": "Jim Curtis",
+        "p": [
+          "802-254-4040"
+        ]
+      },
+      {
+        "n": "Bob Sprague",
+        "p": [
+          "802-254-2934"
+        ]
+      },
+      {
+        "n": "Martin Toney",
+        "p": [
+          "802-380-8941"
+        ]
+      },
+      {
+        "n": "Aaron Gragen",
+        "p": [
+          "802-380-0958"
+        ]
+      },
+      {
+        "n": "Stebbins Painting",
+        "p": [
+          "603-209-3645"
+        ]
+      },
+      {
+        "n": "Eddie Charbonneau",
+        "p": [
+          "802-579-9432"
+        ]
+      },
+      {
+        "n": "Keene Carse",
+        "p": [
+          "917-328-0007"
+        ],
+        "note": "plaster / painting"
+      }
+    ]
+  },
+  {
+    "cat": "Flooring / sanding / refinishing",
+    "subt": null,
+    "items": [
+      {
+        "n": "Keith Whitworth",
+        "p": [
+          "603-256-8163"
+        ]
+      },
+      {
+        "n": "Lawtons",
+        "p": [
+          "802-254-9303"
+        ]
+      },
+      {
+        "n": "Don Damian",
+        "p": [
+          "802-258-1180"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Window cleaning / repair",
+    "subt": null,
+    "items": [
+      {
+        "n": "Lightning Window Clean — David Townsend",
+        "p": [
+          "802-490-5958"
+        ],
+        "w": "lightningwindow.com"
+      }
+    ]
+  },
+  {
+    "cat": "Odd jobs / handyman",
+    "subt": null,
+    "items": [
+      {
+        "n": "Steven Leal",
+        "p": [
+          "802-257-0208",
+          "802-579-6514"
+        ]
+      },
+      {
+        "n": "E&J Handy Man Services — Jim Enard",
+        "p": [
+          "603-336-5528"
+        ]
+      },
+      {
+        "n": "Steve Easton",
+        "p": [
+          "802-254-2395"
+        ]
+      },
+      {
+        "n": "Declyn Tourville",
+        "p": [
+          "802-490-9333"
+        ]
+      },
+      {
+        "n": "K&R Home Repair — Kim Tine",
+        "p": [
+          "802-779-4328"
+        ]
+      },
+      {
+        "n": "Travis Mitchell",
+        "p": [
+          "802-490-0091"
+        ]
+      },
+      {
+        "n": "Steve Cutting",
+        "p": [
+          "802-221-4820"
+        ]
+      },
+      {
+        "n": "Lance Davis",
+        "p": [
+          "603-706-2029"
+        ]
+      },
+      {
+        "n": "Kraig LaPorte",
+        "p": [
+          "802-490-6707"
+        ]
+      },
+      {
+        "n": "Ron Young",
+        "p": [
+          "603-657-8850"
+        ]
+      },
+      {
+        "n": "Rob Dichard",
+        "p": [
+          "603-321-2180"
+        ]
+      },
+      {
+        "n": "Michael Bills",
+        "p": [
+          "802-464-5351"
+        ]
+      },
+      {
+        "n": "J&G Home Services",
+        "p": [
+          "802-579-3531"
+        ],
+        "e": "jeffgiarrusso@gmail.com",
+        "note": "does lots of things"
+      }
+    ]
+  },
+  {
+    "cat": "Cleaning services",
+    "subt": null,
+    "items": [
+      {
+        "n": "Dee's Green Cleaning — Dee Nichols",
+        "p": [
+          "856-238-4673"
+        ]
+      },
+      {
+        "n": "Mobile Cleans LLC — Christina Dennehey",
+        "p": [
+          "802-380-3737"
+        ]
+      },
+      {
+        "n": "CB Pristine Cleaning",
+        "p": [
+          "603-380-0861"
+        ]
+      },
+      {
+        "n": "T&H Cleaners — Tanya Tester",
+        "p": [
+          "802-376-4776"
+        ]
+      },
+      {
+        "n": "Dawn Steinberg",
+        "p": [
+          "802-490-0065"
+        ]
+      },
+      {
+        "n": "LSI Cleaning",
+        "p": [
+          "802-257-9190"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Cleanouts",
+    "subt": null,
+    "items": [
+      {
+        "n": "Connor's Cleanouts LLC",
+        "p": [
+          "603-336-7113",
+          "802-579-6095"
+        ]
+      },
+      {
+        "n": "Kim Tine",
+        "p": [
+          "802-779-7328",
+          "802-368-2528"
+        ],
+        "note": "also plows, yard maintenance, moving"
+      },
+      {
+        "n": "Declyn Tourville",
+        "p": [
+          "802-490-9333"
+        ]
+      },
+      {
+        "n": "Lisa Long",
+        "p": [
+          "802-451-8434"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Septic & soil testing",
+    "subt": "Testing, design & soil",
+    "items": [
+      {
+        "n": "StevePro",
+        "p": [
+          "802-254-5400",
+          "603-357-1300"
+        ]
+      },
+      {
+        "n": "Best Septic",
+        "p": [
+          "802-463-9444"
+        ]
+      },
+      {
+        "n": "Quality System Design — Pete Bissell",
+        "p": [
+          "603-352-8079"
+        ]
+      },
+      {
+        "n": "Alan McBean",
+        "p": [
+          "802-258-0971"
+        ]
+      },
+      {
+        "n": "AS Clark",
+        "p": [
+          "802-257-1963"
+        ]
+      },
+      {
+        "n": "Marquise & Morano",
+        "p": [
+          "802-463-3934"
+        ]
+      },
+      {
+        "n": "Brian Tyler",
+        "p": [
+          "802-380-1306",
+          "802-275-4558"
+        ]
+      },
+      {
+        "n": "Pete Noble",
+        "p": [
+          "802-579-5428"
+        ]
+      },
+      {
+        "n": "Merrill Mundell",
+        "p": [
+          "802-464-2042"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Radon",
+    "subt": null,
+    "items": [
+      {
+        "n": "Sean Ferrell",
+        "e": "nbhelectric@gmail.com"
+      },
+      {
+        "n": "Rick Galarneau — MassRADON",
+        "p": [
+          "413-737-0272"
+        ]
+      },
+      {
+        "n": "ASD of VT — Michael Vergen",
+        "p": [
+          "802-342-7500"
+        ]
+      },
+      {
+        "n": "Radon Reduction Services — Tony Kiburis",
+        "p": [
+          "603-924-2949"
+        ]
+      },
+      {
+        "n": "Radon Bgone",
+        "p": [
+          "603-558-5761"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Environmental",
+    "subt": null,
+    "items": [
+      {
+        "n": "Catamount Environmental — Don Yanke",
+        "p": [
+          "802-464-2754"
+        ]
+      },
+      {
+        "n": "Peniel Environmental",
+        "p": [
+          "855-317-8236"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Engineer / HVAC",
+    "subt": null,
+    "items": [
+      {
+        "n": "Phillip Savoy",
+        "p": [
+          "802-722-9789"
+        ],
+        "e": "savoyeng@hotmail.com"
+      }
+    ]
+  },
+  {
+    "cat": "Surveyors",
+    "subt": null,
+    "items": [
+      {
+        "n": "Dale Meritt",
+        "p": [
+          "802-254-2730"
+        ]
+      },
+      {
+        "n": "SVE",
+        "p": [
+          "802-257-0561"
+        ]
+      },
+      {
+        "n": "Thomas Wagener",
+        "p": [
+          "802-257-4881"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Pests",
+    "subt": null,
+    "items": [
+      {
+        "n": "Pauls Pest",
+        "p": [
+          "802-463-4064"
+        ]
+      },
+      {
+        "n": "Southern VT Pest Control — Brian Miller",
+        "p": [
+          "802-579-2415",
+          "802-257-0015"
+        ]
+      },
+      {
+        "n": "Abatem",
+        "p": [
+          "802-254-8413"
+        ]
+      }
+    ]
+  },
+  {
+    "cat": "Tree service",
+    "subt": null,
+    "items": [
+      {
+        "n": "D&E Tree — Anson Baldwin",
+        "p": [
+          "802-257-5669"
+        ]
+      },
+      {
+        "n": "Arborgates — Silas Filgate",
+        "p": [
+          "802-257-7469"
+        ],
+        "note": "listed as 802-25-7469 — verify"
+      }
+    ]
+  },
+  {
+    "cat": "Photography",
+    "subt": null,
+    "items": [
+      {
+        "n": "Jim Lamorder",
+        "p": [
+          "603-499-3777"
+        ],
+        "e": "seamusflynnphotography@gmail.com"
+      },
+      {
+        "n": "Kristopher Radder",
+        "p": [
+          "607-425-5298"
+        ],
+        "e": "radder86@gmail.com"
+      }
+    ]
+  },
+  {
+    "cat": "Dog sitting / care",
+    "subt": null,
+    "items": [
+      {
+        "n": "Divine Doggy Daycare — Dionna McLean",
+        "p": [
+          "727-389-4172"
+        ],
+        "e": "dionna.mclean@gmail.com"
+      }
+    ]
+  }
+]

@@ -147,6 +147,18 @@
     @media (max-width:560px){.proj-inputs{grid-template-columns:1fr 1fr;} .proj-inputs .fld input{width:100%;}}
 
     .foot{color:var(--muted);font-size:11.5px;margin-top:34px;line-height:1.6;}
+
+    /* savings-from-the-move table */
+    .savings{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+    .savings th{font-size:10.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:700;text-align:left;padding:0 0 10px;border-bottom:1px solid var(--line);}
+    .savings th:not(:first-child){text-align:right;}
+    .savings td{padding:12px 0;border-bottom:1px dashed var(--line);font-size:14px;vertical-align:top;}
+    .savings td:not(:first-child){text-align:right;font-family:'Funnel Display',sans-serif;font-weight:700;white-space:nowrap;padding-left:14px;}
+    .savings .sub{display:block;color:var(--muted);font-size:11.5px;font-weight:400;font-family:'Funnel Sans',sans-serif;margin-top:3px;line-height:1.4;}
+    .savings tfoot td{padding-top:14px;border-bottom:none;font-family:'Funnel Display',sans-serif;font-weight:800;font-size:15px;}
+    .savings tfoot td:not(:first-child){color:var(--pos);font-size:19px;}
+    .save-note{font-size:12px;color:var(--muted);margin:16px 0 0;line-height:1.55;}
+    .save-note b{color:var(--text);}
   </style>
 </head>
 <body>
@@ -159,6 +171,7 @@
       </div>
       <div class="top-actions">
         <button class="icon-btn" id="theme-btn" title="Toggle light / dark">🌙 <span id="theme-lbl">Dark</span></button>
+        <button class="icon-btn" id="load-btn" title="Pull the current shared budget from the 160 Akley hub">⤓ Our budget</button>
         <button class="icon-btn" id="reset-btn" title="Restore baseline numbers">↺ Reset</button>
       </div>
     </header>
@@ -174,6 +187,22 @@
         <div class="chip"><div class="k">From Jan 2027</div><div class="v num" id="chip-jan">$1,165</div></div>
       </div>
     </section>
+
+    <!-- SAVINGS FROM THE MOVE -->
+    <div class="section-title">What the move saves you <small>estimated monthly, once settled in VT</small></div>
+    <div class="card">
+      <table class="savings">
+        <thead><tr><th>Change</th><th>Per month</th><th>Per year</th></tr></thead>
+        <tbody>
+          <tr><td>Tess off your health insurance<span class="sub">Premium removed + tax on imputed income · from Jan 2027</span></td><td class="num">$688</td><td class="num">$8,256</td></tr>
+          <tr><td>Drop car insurance<span class="sub">$130/mo, out of the Auto line</span></td><td class="num">$130</td><td class="num">$1,560</td></tr>
+          <tr><td>CA → VT lower state income tax<span class="sub">~$10.5K in CA vs ~$7.3K in VT</span></td><td class="num">$265</td><td class="num">$3,180</td></tr>
+          <tr><td>Itemizing: mortgage interest + property tax<span class="sub">~$26.7K of new deductions × 24% federal</span></td><td class="num">$534</td><td class="num">$6,408</td></tr>
+        </tbody>
+        <tfoot><tr><td>Total saved</td><td class="num">$1,617</td><td class="num">$19,404</td></tr></tfoot>
+      </table>
+      <p class="save-note">Estimates for a <b>single</b> filer at ~$155K income (24% federal bracket) with a <b>recorded</b> mortgage on 160 Akley — securing the loan is what makes the interest deductible. Property + state tax sit under the ~$40K SALT cap. Planning figures, not tax advice; confirm with a CPA before closing.</p>
+    </div>
 
     <div class="cols">
       <!-- SCENARIOS -->
@@ -201,7 +230,7 @@
           <!-- partner insurance -->
           <div class="ctrl">
             <div class="ctrl-head">
-              <div><div class="ctrl-name">Ex-partner off my insurance</div>
+              <div><div class="ctrl-name">Tess off my insurance</div>
                 <div class="ctrl-note">+$688/mo net (premiums removed + tax on imputed income). Auto-applies Jan 1 2027.</div></div>
               <label class="switch"><input type="checkbox" id="partner" /><span class="slider-sw"></span></label>
             </div>
@@ -266,7 +295,7 @@
     </div>
 
     <div class="foot">
-      Estimates only — not financial advice. Baselines from Wells Fargo statements (Mar–Jun 2026); verify the IRS long-term AFR for the month the family-loan note is signed. Values persist on this device only.
+      Estimates only — not financial advice. Baselines from Wells Fargo statements (Mar–Jun 2026); verify the IRS long-term AFR for the month the family-loan note is signed. What-ifs persist on this device only — tap “⤓ Our budget” to pull the current shared numbers from the hub.
       &nbsp;·&nbsp; <a class="backlink" href="/160akley/">← Back to 160 Akley</a>
     </div>
   </div>
@@ -538,6 +567,35 @@
       var keepStart = STATE.start, keepTheme = STATE.theme;
       STATE = Object.assign({}, BASELINE, { start: keepStart, theme: keepTheme });
       save(); syncInputs(); renderAll();
+    });
+
+    // Pull the current shared budget (the hub's D1 numbers) into the calculator's
+    // editable category lines, so what-ifs start from what Andy & Zoe actually
+    // agreed. Loan interest stays AFR-derived; scenarios remain device-local.
+    var SHARED_LABEL_TO_KEY = {
+      "Property tax":"propertyTax", "Homeowners insurance":"insurance",
+      "Electricity":"electricity", "Internet (Starlink)":"starlink",
+      "Heating oil":"heatingOil", "Groceries":"groceries",
+      "Cafes & restaurants":"cafes", "Auto":"auto",
+      "Household & shopping":"household", "Subscriptions & gym":"subsGym",
+      "Health & misc":"healthMisc"
+    };
+    $("load-btn").addEventListener("click", function(){
+      var btn = $("load-btn"), orig = btn.textContent;
+      btn.disabled = true; btn.textContent = "Loading…";
+      fetch("/160akley/api/budget", { headers:{ "accept":"application/json" } })
+        .then(function(r){ if(!r.ok) throw new Error("HTTP "+r.status); return r.json(); })
+        .then(function(d){
+          var n = 0;
+          (d.lines||[]).forEach(function(l){ var k = SHARED_LABEL_TO_KEY[l.label]; if(k){ STATE[k] = Number(l.amount)||0; n++; } });
+          save(); syncInputs(); renderAll();
+          btn.textContent = n ? ("✓ Loaded "+n) : "— nothing to load";
+          setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, 1600);
+        })
+        .catch(function(){
+          btn.textContent = "✕ Couldn’t load";
+          setTimeout(function(){ btn.textContent = orig; btn.disabled = false; }, 1800);
+        });
     });
 
     renderAll();
