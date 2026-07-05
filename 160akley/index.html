@@ -189,6 +189,14 @@
     a.calc .d{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.45;}
     a.calc .go{color:var(--forest);font-weight:700;font-size:13px;margin-top:10px;display:inline-block;}
     .addform{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:14px 16px;}
+    /* home conditions strip (weather / moon / aurora / sun / stream) */
+    .condstrip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px;}
+    .condtile{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:15px 16px;box-shadow:var(--shadow);min-width:0;}
+    .condtile .ct{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);}
+    .condtile .cv{font-family:var(--display);font-weight:700;font-size:21px;margin-top:9px;line-height:1.05;display:flex;align-items:baseline;gap:6px;}
+    .condtile .cv .em{font-size:20px;}
+    .condtile .cs{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.45;}
+    @media (max-width:900px){ .condstrip{grid-template-columns:repeat(2,1fr);} }
     /* budget subtabs (Monthly / Renovation) */
     .subtabs{display:inline-flex;gap:4px;background:var(--bone-2);border:1px solid var(--line);border-radius:11px;padding:4px;margin:16px 0 6px;}
     .subtab{border:none;background:none;color:var(--muted);font-family:var(--sans);font-weight:600;font-size:13.5px;padding:8px 18px;border-radius:8px;cursor:pointer;}
@@ -265,6 +273,8 @@
           <div class="copy"><div class="met" id="heroMet"></div><div class="head" id="heroHead">The house is quiet.</div></div>
         </div>
         <div class="pad">
+          <div class="seclabel" style="margin-bottom:14px;">Conditions</div>
+          <div class="condstrip" id="condStrip"></div>
           <div class="seclabel" style="margin-bottom:14px;">At a glance</div>
           <div class="g3 two">
             <div class="card stat" style="padding:22px;"><div class="k">Monthly surplus</div><div class="v num" id="homeSurplus" style="color:var(--forest);">—</div><div style="font-size:13px;color:var(--muted);margin-top:6px;" id="homeSurplusCap"></div></div>
@@ -743,6 +753,51 @@
       else { lmap.removeLayer(baseStreet); baseSat.addTo(lmap); this.textContent="Show street map"; }
     });
 
+    /* ---------- home conditions strip (live, keyless APIs) ---------- */
+    function moonPhase(date){
+      var lunar=29.53058867, ref=Date.UTC(2000,0,6,18,14,0);
+      var age=(((date.getTime()-ref)/86400000)%lunar+lunar)%lunar, frac=age/lunar;
+      var names=["New moon","Waxing crescent","First quarter","Waxing gibbous","Full moon","Waning gibbous","Last quarter","Waning crescent"];
+      var emojis=["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"];
+      return {name:names[Math.floor(frac*8+0.5)%8],emoji:emojis[Math.floor(frac*8+0.5)%8],illum:Math.round((1-Math.cos(2*Math.PI*frac))/2*100)};
+    }
+    function wxText(c,day){
+      if(c===0)return [day?"Clear":"Clear night", day?"☀️":"🌙"];
+      if(c<=3)return ["Partly cloudy","⛅"];
+      if(c<=48)return ["Fog","🌫️"];
+      if(c<=57)return ["Drizzle","🌦️"];
+      if(c<=67)return ["Rain","🌧️"];
+      if(c<=77)return ["Snow","🌨️"];
+      if(c<=82)return ["Showers","🌦️"];
+      if(c<=86)return ["Snow showers","🌨️"];
+      return ["Thunderstorm","⛈️"];
+    }
+    function kpLabel(kp){ return kp<3?"Quiet":kp<4?"Unsettled":kp<5?"Active":kp<6?"Minor storm":kp<7?"Storm":"Strong storm"; }
+    function fmtClock(iso){ if(!iso)return "—"; var d=new Date(iso),h=d.getHours(),m=d.getMinutes(),ap=h>=12?"p":"a"; h=h%12||12; return h+":"+(m<10?"0":"")+m+ap; }
+    function untilStr(ms){ var min=Math.round(ms/60000); if(min<=0)return "soon"; var h=Math.floor(min/60),mm=min%60; return (h?h+"h ":"")+mm+"m"; }
+    function condTile(label,emoji,value,sub){ return '<div class="condtile"><div class="ct">'+label+'</div><div class="cv"><span class="em">'+emoji+'</span>'+value+'</div><div class="cs">'+(sub||"")+'</div></div>'; }
+    function loadConditions(){
+      var host=$("#condStrip"); if(!host)return;
+      host.innerHTML='<div class="condtile"><div class="cs">Loading conditions…</div></div>';
+      return fetch(API+"/conditions").then(function(r){return r.ok?r.json():null;}).then(function(d){
+        if(!d){ host.innerHTML='<div class="condtile"><div class="cs">Conditions unavailable.</div></div>'; return; }
+        var tiles=[];
+        if(d.weather){ var wx=wxText(d.weather.code,d.weather.is_day); tiles.push(condTile("Weather",wx[1],d.weather.temp+"°",esc(wx[0])+" · wind "+d.weather.wind+" mph · "+d.weather.humidity+"% RH")); }
+        var mp=moonPhase(new Date()); tiles.push(condTile("Moon",mp.emoji,mp.illum+"%",mp.name+" lit"));
+        if(d.aurora){ var kp=Math.round(d.aurora.kp*10)/10; tiles.push(condTile("Aurora · Kp","🧲",kp,kpLabel(d.aurora.kp)+(d.aurora.kp>=6?" · aurora possible!":""))); }
+        if(d.sun){
+          var now=new Date(), rise=new Date(d.sun.sunrise), set=new Date(d.sun.sunset);
+          var times="↑ "+fmtClock(d.sun.sunrise)+" · ↓ "+fmtClock(d.sun.sunset), val, note;
+          if(now<rise){ val=untilStr(rise-now); note="until sunrise · "+times; }
+          else if(now<set){ val=untilStr(set-now); note="of daylight left · "+times; }
+          else { val="Set"; note="sun is down · "+times; }
+          tiles.push(condTile("Daylight","🌅",val,note));
+        }
+        if(d.stream){ var h=d.stream.height!=null?(d.stream.height+" ft"):"—"; tiles.push(condTile("Stream","💧",h,(d.stream.flow!=null?(d.stream.flow+" cfs · "):"")+"Green R., Colrain — Broad Brook is ungauged")); }
+        host.innerHTML=tiles.join("");
+      }).catch(function(){ host.innerHTML='<div class="condtile"><div class="cs">Conditions unavailable.</div></div>'; });
+    }
+
     /* ---------- boot ---------- */
     $("#taskGroups").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
     $("#resList").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
@@ -755,6 +810,7 @@
       loadFiles().then(renderFiles).catch(function(){ $("#fileView").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load files.</p>'; })
     ]).then(renderHome);
     show(location.hash.slice(1)||"home");
+    loadConditions();
     icons(); setTimeout(icons,500);
   })();
   </script>
