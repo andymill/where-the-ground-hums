@@ -675,6 +675,24 @@
     function visibleFiles(){ return fileCat==="all"?files:files.filter(function(f){ return (f.category||"Uncategorized")===fileCat; }); }
     function groupByCat(list){ var order=[],by={}; list.forEach(function(f){ var c=f.category||"Uncategorized"; if(!by[c]){by[c]=[];order.push(c);} by[c].push(f); }); order.sort(); return order.map(function(c){return {cat:c,items:by[c]};}); }
 
+    /* thumbnails: page-1 render for PDFs (pdf.js, lazy from CDN), downscale for images */
+    var _pdfjs=null, _thumbTried={};
+    function loadPdfjs(){ if(!_pdfjs){ _pdfjs=import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.min.mjs").then(function(m){ m.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.worker.min.mjs"; return m; }); } return _pdfjs; }
+    function downscale(src,w,h){ var max=320,s=Math.min(1,max/Math.max(w,h)); var c=document.createElement("canvas"); c.width=Math.max(1,Math.round(w*s)); c.height=Math.max(1,Math.round(h*s)); c.getContext("2d").drawImage(src,0,0,c.width,c.height); return c.toDataURL("image/jpeg",0.72); }
+    function imgThumb(blob){ return new Promise(function(res){ var img=new Image(),u=URL.createObjectURL(blob); img.onload=function(){ var out=null; try{ out=downscale(img,img.naturalWidth,img.naturalHeight); }catch(e){} URL.revokeObjectURL(u); res(out); }; img.onerror=function(){ URL.revokeObjectURL(u); res(null); }; img.src=u; }); }
+    function pdfThumb(buf){ return loadPdfjs().then(function(pdfjs){ return pdfjs.getDocument({data:buf}).promise.then(function(doc){ return doc.getPage(1).then(function(page){ var v1=page.getViewport({scale:1}),sc=Math.min(2,640/v1.width),vp=page.getViewport({scale:sc}); var c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height; return page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise.then(function(){ return downscale(c,c.width,c.height); }); }); }); }).catch(function(){ return null; }); }
+    function genThumb(blob){ var ct=blob.type||""; if(ct.indexOf("image/")===0) return imgThumb(blob); if(ct==="application/pdf") return blob.arrayBuffer().then(pdfThumb); return Promise.resolve(null); }
+    function backfillThumbs(){
+      var todo=files.filter(function(f){ return !f.thumb && !_thumbTried[f.id] && ((f.content_type||"").indexOf("image/")===0 || f.content_type==="application/pdf"); });
+      if(!todo.length) return; var i=0;
+      function worker(){ if(i>=todo.length) return; var f=todo[i++]; _thumbTried[f.id]=1;
+        fetch(fileUrl(f)).then(function(r){return r.blob();}).then(function(b){ return genThumb(b.type?b:new Blob([b],{type:f.content_type||""})); })
+          .then(function(thumb){ if(thumb){ f.thumb=thumb; return api("PATCH","/files/"+f.id,{thumb:thumb}).then(function(){ renderFiles(); }); } })
+          .catch(function(){}).then(worker);
+      }
+      worker(); worker();
+    }
+
     function renderChips(){
       var counts=fileCatCounts(), cats=Object.keys(counts).sort();
       var html='<button class="chip'+(fileCat==="all"?" on":"")+'" data-chip="all">All <span class="n">'+files.length+'</span></button>';
@@ -685,7 +703,8 @@
     function fileActionsHTML(id){ return '<div class="frow-acts"><button data-frename="'+id+'" title="Rename"><i data-lucide="pencil"></i></button><button data-fsum="'+id+'" title="Add summary"><i data-lucide="text-cursor-input"></i></button><button data-fdel="'+id+'" title="Delete"><i data-lucide="trash-2"></i></button></div>'; }
     function fileCardHTML(f){
       var url=fileUrl(f);
-      var head='<a href="'+url+'" target="_blank" rel="noreferrer">'+(isImg(f)?'<div class="fthumb" style="background-image:url('+url+')"></div>':'<div class="fthumb"><i data-lucide="file-text"></i></div>')+'</a>';
+      var thumbSrc=f.thumb||(isImg(f)?url:null);
+      var head='<a href="'+url+'" target="_blank" rel="noreferrer">'+(thumbSrc?'<div class="fthumb" style="background-image:url(\''+thumbSrc+'\')"></div>':'<div class="fthumb"><i data-lucide="file-text"></i></div>')+'</a>';
       var sum=f.summary?('<div class="fsum">'+esc(f.summary)+'</div>'):'<div class="fsum empty">Add a summary…</div>';
       return '<div class="card fcard">'+head+'<div style="padding:13px 15px;flex:1;display:flex;flex-direction:column;">'
         +'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'
@@ -734,8 +753,13 @@
         var arr=Array.from(list||[]); if(!arr.length)return;
         var cat=(fileCat!=="all")?fileCat:"";
         $("#fileView").innerHTML='<p class="mono" style="color:var(--muted);padding:6px 0;">Uploading…</p>';
-        Promise.all(arr.map(function(f){ var fd=new FormData(); fd.append("file",f); fd.append("who",who); if(cat) fd.append("category",cat); return fetch(API+"/files",{method:"POST",body:fd}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); }))
-          .then(loadFiles).then(renderFiles);
+        Promise.all(arr.map(function(f){
+          return genThumb(f).then(function(thumb){
+            var fd=new FormData(); fd.append("file",f); fd.append("who",who); if(cat) fd.append("category",cat); if(thumb) fd.append("thumb",thumb);
+            return fetch(API+"/files",{method:"POST",body:fd}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
+          });
+        }))
+          .then(loadFiles).then(function(){ renderFiles(); backfillThumbs(); });
       }
       dz.addEventListener("click",function(){ fi.click(); });
       fi.addEventListener("change",function(){ handle(fi.files); fi.value=""; });
@@ -828,7 +852,7 @@
       loadResources().then(function(){ renderRes(""); }).catch(function(){ $("#resList").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load resources.</p>'; }),
       loadBudget().then(renderBudget).catch(function(){}),
       loadReno().then(renderReno).catch(function(){ $("#renoList").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load renovation budget.</p>'; }),
-      loadFiles().then(renderFiles).catch(function(){ $("#fileView").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load files.</p>'; })
+      loadFiles().then(function(){ renderFiles(); backfillThumbs(); }).catch(function(){ $("#fileView").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load files.</p>'; })
     ]).then(renderHome);
     show(location.hash.slice(1)||"home");
     loadConditions();

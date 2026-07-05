@@ -4,7 +4,7 @@ const uid = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 1e6)
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare(
-    "SELECT id,name,summary,content_type,size,category,uploaded_by,created_at FROM files ORDER BY category ASC, created_at DESC"
+    "SELECT id,name,summary,thumb,content_type,size,category,uploaded_by,created_at FROM files ORDER BY category ASC, created_at DESC"
   ).all();
   return json(results);
 }
@@ -28,8 +28,8 @@ export async function onRequestPost({ request, env }) {
   await env.FILES.put(key, buf, { httpMetadata: { contentType: file.type || "application/octet-stream" } });
   try {
     await env.DB.prepare(
-      "INSERT INTO files (id,name,summary,r2_key,content_type,size,category,uploaded_by,created_at) VALUES (?,?,?,?,?,?,?,?,?)"
-    ).bind(id, file.name, form.get("summary") || null, key, file.type || null, buf.byteLength, form.get("category") || null, form.get("who") || "", Date.now()).run();
+      "INSERT INTO files (id,name,summary,thumb,r2_key,content_type,size,category,uploaded_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)"
+    ).bind(id, file.name, form.get("summary") || null, form.get("thumb") || null, key, file.type || null, buf.byteLength, form.get("category") || null, form.get("who") || "", Date.now()).run();
   } catch (e) {
     // Don't orphan the R2 object if the metadata write fails.
     await env.FILES.delete(key).catch(() => {});

@@ -20,6 +20,7 @@ export async function onRequestPatch({ request, env, params }) {
   if (typeof b.name === "string" && b.name.trim()) { sets.push("name=?"); vals.push(b.name.trim().slice(0, 200)); }
   if (typeof b.summary === "string") { sets.push("summary=?"); vals.push(b.summary.trim() || null); }
   if (typeof b.category === "string") { sets.push("category=?"); vals.push(b.category.trim() || null); }
+  if (typeof b.thumb === "string") { sets.push("thumb=?"); vals.push(b.thumb || null); }
   if (!sets.length) return json({ error: "nothing to update" }, 400);
   vals.push(params.id);
   await env.DB.prepare("UPDATE files SET " + sets.join(",") + " WHERE id=?").bind(...vals).run();
