@@ -4,7 +4,7 @@ const uid = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 1e6)
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare(
-    "SELECT id,text,area,due,grp,done,created_by,created_at FROM tasks ORDER BY done ASC, sort ASC, created_at ASC"
+    "SELECT id,text,area,due,grp,done,assignee,created_by,created_at FROM tasks ORDER BY done ASC, sort ASC, created_at ASC"
   ).all();
   return json(results.map((r) => ({ ...r, done: !!r.done })));
 }
@@ -15,8 +15,9 @@ export async function onRequestPost({ request, env }) {
   if (!text) return json({ error: "text required" }, 400);
   const id = uid("t");
   const now = Date.now();
+  const assignee = (b.assignee === "Andy" || b.assignee === "Zoe") ? b.assignee : "";
   await env.DB.prepare(
-    "INSERT INTO tasks (id,text,area,due,grp,done,created_by,created_at,sort) VALUES (?,?,?,?,?,0,?,?,?)"
-  ).bind(id, text, b.area || "", b.due || "", b.grp === "soon" ? "soon" : "week", b.who || "", now, now).run();
+    "INSERT INTO tasks (id,text,area,due,grp,done,assignee,created_by,created_at,sort) VALUES (?,?,?,?,?,0,?,?,?,?)"
+  ).bind(id, text, b.area || "", b.due || "", b.grp === "soon" ? "soon" : "week", assignee, b.who || "", now, now).run();
   return json({ id });
 }

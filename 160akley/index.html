@@ -116,6 +116,10 @@
     .task.done .tlabel{text-decoration:line-through;}
     .tlabel{flex:1;font-size:15.5px;}
     .tby{font-family:var(--mono);font-size:10.5px;color:var(--faint);}
+    .who-pill{border:none;border-radius:999px;font-family:var(--sans);font-size:10.5px;font-weight:700;padding:3px 10px;cursor:pointer;white-space:nowrap;flex:none;}
+    .who-andy{background:var(--forest-soft);color:var(--forest);}
+    .who-zoe{background:var(--cedar-soft);color:var(--cedar);}
+    .who-any{background:var(--bone-2);color:var(--faint);}
     .tarea{font-family:var(--mono);font-size:12px;color:var(--muted);}
     .tdue{font-size:13px;color:var(--muted);width:56px;text-align:right;}
     .xbtn{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px 6px;}
@@ -348,13 +352,15 @@
       <section class="screen" data-screen="tasks">
         <div class="pad" style="max-width:900px;">
           <div class="kick">To do</div><h1 class="h1">Tasks</h1>
-          <p class="lede">Tap a task to mark it done. Shared with Zoe in real time (refresh to sync).</p>
-          <div class="card addform" style="margin:20px 0 26px;">
-            <input class="fld" id="tkText" placeholder="Add a task, e.g. Schedule septic inspection" style="flex:2;min-width:180px;">
-            <input class="fld" id="tkArea" placeholder="Tag" style="width:100px;">
+          <p class="lede">Tap a task to mark it done; tap the name pill to reassign. Shared with Zoe in real time (refresh to sync).</p>
+          <div class="card addform" style="margin:20px 0 16px;">
+            <input class="fld" id="tkText" placeholder="Add a task, e.g. Schedule septic inspection" style="flex:2;min-width:170px;">
+            <input class="fld" id="tkArea" placeholder="Tag" style="width:84px;">
+            <select class="fld" id="tkWho"><option value="">Anyone</option><option value="Andy">For Andy</option><option value="Zoe">For Zoe</option></select>
             <select class="fld" id="tkGroup"><option value="week">This week</option><option value="soon">Soon</option></select>
             <button class="btn" id="tkAdd">Add</button>
           </div>
+          <div class="chips" id="taskWhoChips" style="margin:0 0 20px;"></div>
           <div id="taskGroups"></div>
         </div>
       </section>
@@ -592,22 +598,36 @@
 
     /* ---------- tasks ---------- */
     function loadTasks(){ return api("GET","/tasks").then(function(d){ tasks=d||[]; }); }
+    var taskWho="";
+    function whoPill(t){
+      var a=t.assignee||"", cls=a==="Andy"?"who-andy":a==="Zoe"?"who-zoe":"who-any", lbl=a||"Anyone";
+      return '<button class="who-pill '+cls+'" data-tassign="'+t.id+'" title="Reassign">'+esc(lbl)+'</button>';
+    }
     function taskRow(t){
       var by=(t.created_by&&t.created_by!=="seed")?' <span class="tby">· '+esc(t.created_by)+'</span>':'';
       return '<div class="task '+(t.done?"done":"")+'" data-id="'+t.id+'">'
         +'<div class="main" data-toggle="'+t.id+'"><span class="box">'+(t.done?'<i data-lucide="check"></i>':'')+'</span>'
         +'<span class="tlabel">'+esc(t.text)+by+'</span></div>'
+        +whoPill(t)
         +(t.area?'<span class="tarea">'+esc(t.area)+'</span>':'')
         +'<span class="tdue">'+esc(t.due||"")+'</span>'
         +'<button class="xbtn" data-del="'+t.id+'">✕</button></div>';
     }
+    function renderTaskChips(){
+      var c={Andy:0,Zoe:0}; tasks.forEach(function(t){ if(!t.done){ if(t.assignee==="Andy")c.Andy++; else if(t.assignee==="Zoe")c.Zoe++; } });
+      var mk=function(v,lbl,n){ return '<button class="chip'+(taskWho===v?" on":"")+'" data-twho="'+v+'">'+lbl+(n!=null?' <span class="n">'+n+'</span>':'')+'</button>'; };
+      $("#taskWhoChips").innerHTML=mk("","All")+mk("Andy","Andy",c.Andy)+mk("Zoe","Zoe",c.Zoe);
+      $$("[data-twho]").forEach(function(el){ el.addEventListener("click",function(){ taskWho=el.getAttribute("data-twho"); renderTasks(); }); });
+    }
     function renderTasks(){
+      renderTaskChips();
+      var match=function(t){ return !taskWho || t.assignee===taskWho; };
       var groups=[["week","This week"],["soon","Soon"]], html="";
       groups.forEach(function(g){
-        var items=tasks.filter(function(t){return t.grp===g[0] && !t.done;});
+        var items=tasks.filter(function(t){return t.grp===g[0] && !t.done && match(t);});
         html+='<div class="seclabel" style="margin:0 0 12px;">'+g[1]+'</div><div class="card listcard" style="margin-bottom:26px;">'+(items.map(taskRow).join("")||'<div style="padding:13px 0;color:var(--faint);">Nothing here.</div>')+'</div>';
       });
-      var done=tasks.filter(function(t){return t.done;});
+      var done=tasks.filter(function(t){return t.done && match(t);});
       html+='<div class="seclabel" style="margin:0 0 12px;">Done</div><div class="card listcard">'+(done.map(taskRow).join("")||'<div style="padding:13px 0;color:var(--faint);">Nothing done yet.</div>')+'</div>';
       $("#taskGroups").innerHTML=html;
       $$("[data-toggle]").forEach(function(el){ el.addEventListener("click",function(){
@@ -617,11 +637,16 @@
       $$("[data-del]").forEach(function(el){ el.addEventListener("click",function(){
         api("DELETE","/tasks/"+el.getAttribute("data-del")).then(loadTasks).then(function(){ renderTasks(); renderHome(); });
       }); });
+      $$("[data-tassign]").forEach(function(el){ el.addEventListener("click",function(e){ e.stopPropagation();
+        var t=tasks.find(function(x){return x.id===el.getAttribute("data-tassign");}); if(!t)return;
+        var cur=t.assignee||"", next=cur===""?"Andy":cur==="Andy"?"Zoe":"";
+        api("PATCH","/tasks/"+t.id,{assignee:next}).then(loadTasks).then(function(){ renderTasks(); renderHome(); });
+      }); });
       icons();
     }
     $("#tkAdd").addEventListener("click",function(){
       var text=$("#tkText").value.trim(); if(!text)return;
-      api("POST","/tasks",{text:text,area:$("#tkArea").value.trim(),grp:$("#tkGroup").value,who:who})
+      api("POST","/tasks",{text:text,area:$("#tkArea").value.trim(),grp:$("#tkGroup").value,assignee:$("#tkWho").value,who:who})
         .then(loadTasks).then(function(){ $("#tkText").value="";$("#tkArea").value=""; renderTasks(); renderHome(); });
     });
 

@@ -9,6 +9,7 @@ export async function onRequestPatch({ request, env, params }) {
   if (typeof b.area === "string") { sets.push("area=?"); vals.push(b.area); }
   if (typeof b.due === "string") { sets.push("due=?"); vals.push(b.due); }
   if (b.grp === "week" || b.grp === "soon") { sets.push("grp=?"); vals.push(b.grp); }
+  if (b.assignee === "Andy" || b.assignee === "Zoe" || b.assignee === "") { sets.push("assignee=?"); vals.push(b.assignee); }
   if (!sets.length) return json({ error: "nothing to update" }, 400);
   vals.push(params.id);
   await env.DB.prepare("UPDATE tasks SET " + sets.join(",") + " WHERE id=?").bind(...vals).run();
