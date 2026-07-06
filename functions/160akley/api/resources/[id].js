@@ -16,6 +16,7 @@ export async function onRequestPatch({ request, env, params }) {
   if (typeof b.web === "string") { sets.push("web=?"); vals.push(b.web); }
   if (typeof b.address === "string") { sets.push("address=?"); vals.push(b.address); }
   if (typeof b.note === "string") { sets.push("note=?"); vals.push(b.note); }
+  if (typeof b.favorite === "boolean") { sets.push("favorite=?"); vals.push(b.favorite ? 1 : 0); }
   if (!sets.length) return json({ error: "nothing to update" }, 400);
   vals.push(params.id);
   await env.DB.prepare("UPDATE resources SET " + sets.join(",") + " WHERE id=?").bind(...vals).run();

@@ -176,6 +176,9 @@
     .act{display:inline-flex;align-items:center;gap:5px;text-decoration:none;font-size:12.5px;font-weight:600;padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:var(--bone-2);color:var(--ink);white-space:nowrap;}
     .act svg{width:13px;height:13px;}
     .act.call{background:var(--forest-soft);border-color:transparent;color:var(--forest);}
+    .rstar{border:none;background:none;cursor:pointer;font-size:17px;line-height:1;color:var(--faint);padding:2px 4px;align-self:center;}
+    .rstar:hover{color:#e0a92b;}
+    .rstar.on{color:#e0a92b;}
     .plot{flex:1;height:560px;position:relative;overflow:hidden;background:var(--bone-2);background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:32px 32px;}
     .node{position:absolute;display:flex;align-items:center;gap:8px;}
     .node .d{width:11px;height:11px;border-radius:999px;background:var(--ink);border:2px solid var(--card);flex:none;}
@@ -384,6 +387,7 @@
           <div class="kick">On file</div><h1 class="h1">Resources</h1>
           <p class="lede">Local attorneys, trades and services. Tap a phone to call. Add your own or remove ones you won't use — shared with Zoe.</p>
           <input class="search" id="resSearch" type="search" placeholder="Search providers, categories, phone…" autocomplete="off" style="margin:18px 0 10px;">
+          <div class="chips" style="margin:0 0 10px;"><button class="chip" id="resFavChip">☆ Favorites</button></div>
           <div class="card addform" id="resAddForm" style="margin-bottom:10px;">
             <input class="fld" id="raName" placeholder="Name" style="flex:2;min-width:150px;">
             <input class="fld" id="raPhone" placeholder="Phone" style="width:130px;">
@@ -626,7 +630,7 @@
     function digits(s){return (s||"").replace(/[^0-9]/g,"");}
     function tel(p){var d=digits(p); if(d.length===10)d="1"+d; return d.length===11?("tel:+"+d):null;}
     function acts(it){
-      var o="";
+      var o='<button class="rstar'+(it.fav?" on":"")+'" data-rfav="'+esc(it.id)+'" title="'+(it.fav?"Unfavorite":"Favorite")+'">'+(it.fav?"★":"☆")+'</button>';
       (it.p||[]).forEach(function(p){var t=tel(p); o+= t?'<a class="act call" href="'+t+'"><i data-lucide="phone"></i>'+esc(p)+'</a>':'<span class="act"><i data-lucide="phone"></i>'+esc(p)+'</span>';});
       if(it.e) o+='<a class="act" href="mailto:'+esc(it.e)+'"><i data-lucide="mail"></i>email</a>';
       if(it.w) o+='<a class="act" href="https://'+esc(it.w)+'" target="_blank" rel="noreferrer"><i data-lucide="external-link"></i>site</a>';
@@ -635,25 +639,36 @@
     }
     function pmeta(it){ var b=[]; if(it.a)b.push(esc(it.a)); if(it.note)b.push(esc(it.note)); var s=b.join(" · "); var f=it.flag?'<span class="flag">⚑ '+esc(it.flag)+'</span>':''; return s&&f?s+" · "+f:(s||f); }
     function totalProv(){ return resGroups.reduce(function(a,g){return a+g.items.length;},0); }
+    function totalFav(){ return resGroups.reduce(function(a,g){return a+g.items.filter(function(i){return i.fav;}).length;},0); }
+    var resFav=false;
+    function resById(id){ var r=null; resGroups.forEach(function(g){ g.items.forEach(function(x){ if(x.id===id) r=x; }); }); return r; }
     function renderRes(q){
       q=(q||"").trim().toLowerCase(); var html="",shown=0;
       resGroups.forEach(function(g){
         var cm=g.cat.toLowerCase().indexOf(q)>=0;
         var items=q?g.items.filter(function(it){ if(cm)return true; var h=(it.n+" "+(it.a||"")+" "+(it.note||"")+" "+(it.p||[]).join(" ")).toLowerCase(); return h.indexOf(q)>=0; }):g.items;
+        if(resFav) items=items.filter(function(it){return it.fav;});
         if(!items.length)return; shown+=items.length;
+        var open=!!q||resFav;
         var rows=items.map(function(it){ return '<div class="prov"><div><div class="pn">'+esc(it.n)+'</div>'+(pmeta(it)?'<div class="pmeta">'+pmeta(it)+'</div>':'')+'</div><div class="acts">'+acts(it)+'</div></div>'; }).join("");
-        html+='<details class="res"'+(q?" open":"")+'><summary><span class="rescat">'+esc(g.cat)+(g.subt?'<span class="subt">'+esc(g.subt)+'</span>':'')+'</span><span class="rescount">'+items.length+' <span class="chev">▸</span></span></summary><div class="resbody">'+rows+'</div></details>';
+        html+='<details class="res"'+(open?" open":"")+'><summary><span class="rescat">'+esc(g.cat)+(g.subt?'<span class="subt">'+esc(g.subt)+'</span>':'')+'</span><span class="rescount">'+items.length+' <span class="chev">▸</span></span></summary><div class="resbody">'+rows+'</div></details>';
       });
-      $("#resList").innerHTML=html||'<p class="mono" style="color:var(--muted);">No matches.</p>';
-      $("#resMeta").textContent=q?(shown+" match"+(shown===1?"":"es")):(totalProv()+" providers across "+resGroups.length+" categories");
+      $("#resList").innerHTML=html||'<p class="mono" style="color:var(--muted);">'+(resFav?"No favorites yet — tap ☆ on any provider.":"No matches.")+'</p>';
+      $("#resMeta").textContent=q?(shown+" match"+(shown===1?"":"es")):(resFav?(shown+" favorite"+(shown===1?"":"s")):(totalProv()+" providers across "+resGroups.length+" categories"));
+      var fc=$("#resFavChip"); if(fc){ fc.classList.toggle("on",resFav); fc.innerHTML=(resFav?"★":"☆")+' Favorites <span class="n">'+totalFav()+'</span>'; }
       $("#resCats").innerHTML=resGroups.map(function(g){return '<option value="'+esc(g.cat)+'">';}).join("");
       $$("[data-rdel]").forEach(function(el){ el.addEventListener("click",function(){
         if(!window.confirm("Remove this provider?"))return;
         api("DELETE","/resources/"+el.getAttribute("data-rdel")).then(loadResources).then(function(){ renderRes($("#resSearch").value); });
       }); });
+      $$("[data-rfav]").forEach(function(el){ el.addEventListener("click",function(){
+        var it=resById(el.getAttribute("data-rfav")); if(!it)return;
+        api("PATCH","/resources/"+it.id,{favorite:!it.fav}).then(loadResources).then(function(){ renderRes($("#resSearch").value); });
+      }); });
       icons();
     }
     $("#resSearch").addEventListener("input",function(e){ renderRes(e.target.value); });
+    $("#resFavChip").addEventListener("click",function(){ resFav=!resFav; renderRes($("#resSearch").value); });
     $("#raAdd").addEventListener("click",function(){
       var name=$("#raName").value.trim(), cat=$("#raCat").value.trim(), phone=$("#raPhone").value.trim();
       if(!name||!cat){ alert("Name and category are required."); return; }

@@ -4,7 +4,7 @@ const uid = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 1e6)
 
 export async function onRequestGet({ env }) {
   const { results } = await env.DB.prepare(
-    "SELECT id,category,cat_subt,name,phones,email,web,address,note,flag FROM resources ORDER BY category ASC, sort ASC, name ASC"
+    "SELECT id,category,cat_subt,name,phones,email,web,address,note,flag,favorite FROM resources ORDER BY category ASC, sort ASC, name ASC"
   ).all();
   // group by category, preserving first-seen order
   const order = [], byCat = {};
@@ -12,7 +12,7 @@ export async function onRequestGet({ env }) {
     if (!byCat[r.category]) { byCat[r.category] = { cat: r.category, subt: r.cat_subt || null, items: [] }; order.push(r.category); }
     let phones = [];
     try { phones = JSON.parse(r.phones || "[]"); } catch (e) {}
-    byCat[r.category].items.push({ id: r.id, n: r.name, p: phones, e: r.email || undefined, w: r.web || undefined, a: r.address || undefined, note: r.note || undefined, flag: r.flag || undefined });
+    byCat[r.category].items.push({ id: r.id, n: r.name, p: phones, e: r.email || undefined, w: r.web || undefined, a: r.address || undefined, note: r.note || undefined, flag: r.flag || undefined, fav: !!r.favorite });
   }
   return json(order.map((c) => byCat[c]));
 }
