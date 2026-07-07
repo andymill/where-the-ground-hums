@@ -35,10 +35,17 @@ async function extractReceipt(env, bytes) {
     const r = await env.AI.run("@cf/meta/llama-3.2-11b-vision-instruct", {
       prompt, image: [...bytes], max_tokens: 512,
     });
-    const text = (r && (r.response || r.description || r.result)) || "";
-    const m = text.match(/\{[\s\S]*\}/);
-    if (!m) return {};
-    const o = JSON.parse(m[0]);
+    // The model returns `response` as either an already-parsed JSON object or a
+    // string that contains the JSON. Handle both.
+    const resp = r && (r.response !== undefined ? r.response : (r.result && r.result.response));
+    let o = {};
+    if (resp && typeof resp === "object") {
+      o = resp;
+    } else if (typeof resp === "string") {
+      const m = resp.match(/\{[\s\S]*\}/);
+      if (m) { try { o = JSON.parse(m[0]); } catch (e) {} }
+    }
+    if (!o || typeof o !== "object") return {};
     let amount = o.amount;
     if (typeof amount !== "number" || !isFinite(amount)) {
       amount = parseFloat(String(amount == null ? "" : amount).replace(/[^0-9.]/g, ""));
