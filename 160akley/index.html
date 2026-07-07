@@ -120,6 +120,41 @@
     .who-andy{background:var(--forest-soft);color:var(--forest);}
     .who-zoe{background:var(--cedar-soft);color:var(--cedar);}
     .who-any{background:var(--bone-2);color:var(--faint);}
+    /* invoices */
+    .invdash{display:flex;gap:14px;margin-top:20px;flex-wrap:wrap;}
+    .invdash > .card:first-child{min-width:190px;}
+    .invbp{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:13px;}
+    .invbp .bar{flex:1;height:8px;}
+    .invbp .nm{width:118px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none;}
+    .invbp .amt{font-family:var(--display);font-weight:700;width:74px;text-align:right;white-space:nowrap;flex:none;}
+    .invrow{display:flex;align-items:center;gap:14px;padding:12px 22px;border-bottom:1px solid var(--line);cursor:pointer;}
+    .invrow:last-child{border-bottom:none;}
+    .invrow:hover{background:var(--bone-2);}
+    .invmini{width:44px;height:44px;border-radius:8px;background:var(--bone-2) center/cover no-repeat;border:1px solid var(--line);flex:none;}
+    .invmain{flex:1;min-width:0;}
+    .invvendor{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .invsub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
+    .invamt{font-family:var(--display);font-weight:700;font-size:17px;white-space:nowrap;}
+    .chip.sm{padding:4px 9px;font-size:11px;flex:none;}
+    /* modal */
+    .modal[hidden]{display:none;}
+    .modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;zoom:1;}
+    .modal-back{position:absolute;inset:0;background:rgba(20,15,10,.5);}
+    .modal-card{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow-lg);width:100%;max-width:540px;max-height:90vh;overflow:auto;}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line);}
+    .modal-title{font-family:var(--display);font-weight:700;font-size:18px;}
+    .modal-body{padding:20px;}
+    .modal-foot{display:flex;align-items:center;gap:10px;padding:16px 20px;border-top:1px solid var(--line);}
+    .invedit{display:flex;gap:16px;}
+    .invthumb{width:120px;height:150px;border-radius:10px;background:var(--bone-2) center/cover no-repeat;border:1px solid var(--line);flex:none;}
+    .invfields{flex:1;min-width:0;display:flex;flex-direction:column;gap:12px;}
+    .invfields label{display:block;font-size:12px;color:var(--muted);font-weight:600;}
+    .invfields label .fld,.invfields label .field{margin-top:5px;width:100%;}
+    .invfields .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .invfields .field{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;padding:0 10px;background:var(--bone);}
+    .invfields .field .pre{color:var(--muted);}
+    .invfields .field .fld{border:none;padding:11px 0;background:none;}
+    @media (max-width:560px){ .invedit{flex-direction:column;} .invthumb{width:100%;height:180px;} }
     .tarea{font-family:var(--mono);font-size:12px;color:var(--muted);}
     .tdue{font-size:13px;color:var(--muted);width:56px;text-align:right;}
     .xbtn{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px 6px;}
@@ -271,6 +306,7 @@
       <button class="navbtn" data-nav="budget"><i data-lucide="wallet"></i><span>Budget</span></button>
       <button class="navbtn" data-nav="tasks"><i data-lucide="list-checks"></i><span>Tasks</span></button>
       <button class="navbtn" data-nav="files"><i data-lucide="receipt"></i><span>Files</span></button>
+      <button class="navbtn" data-nav="invoices"><i data-lucide="banknote"></i><span>Invoices</span></button>
       <button class="navbtn" data-nav="resources"><i data-lucide="book-open"></i><span>Resources</span></button>
       <button class="navbtn" data-nav="map"><i data-lucide="map"></i><span>Map</span></button>
       <div class="rail-foot">13.8 ac<br>Guilford</div>
@@ -387,6 +423,41 @@
         </div>
       </section>
 
+      <!-- INVOICES -->
+      <section class="screen" data-screen="invoices">
+        <div class="pad">
+          <div class="kick">Spending</div><h1 class="h1">Invoices</h1>
+          <p class="lede">Drop a receipt — it reads the vendor, amount, and date for you; you just pick the project and confirm. Sorted by month, searchable, shared with Zoe.</p>
+          <div class="invdash">
+            <div class="card stat" style="padding:20px 22px;">
+              <div class="k">Total · <span id="invPeriodLbl">all time</span><span id="invProjLbl"></span></div>
+              <div class="v num" id="invTotal" style="color:var(--forest);">—</div>
+              <div class="s" id="invCount"></div>
+            </div>
+            <div class="card" style="padding:18px 20px;flex:1;min-width:0;">
+              <div class="k" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);">By project</div>
+              <div id="invByProject" style="margin-top:12px;"></div>
+            </div>
+          </div>
+          <div class="filebar" style="margin-top:20px;">
+            <select class="fld" id="invPeriod" style="width:auto;">
+              <option value="all">All time</option>
+              <option value="month">This month</option>
+              <option value="year">This year</option>
+            </select>
+            <input class="search" id="invSearch" type="search" placeholder="Search vendor, description, amount…" autocomplete="off" style="flex:1;min-width:180px;margin:0;">
+          </div>
+          <div class="chips" id="invProjChips" style="margin:14px 0 6px;"></div>
+          <div class="dropzone" id="invDrop" style="margin:16px 0 22px;">
+            <div class="dz-ic"><i data-lucide="scan-line"></i></div>
+            <div style="font-size:15.5px;font-weight:600;">Drop a receipt or invoice</div>
+            <div style="font-size:13.5px;color:var(--muted);margin-top:4px;">photo or PDF · we'll read the vendor, amount &amp; date</div>
+            <input id="invFile" type="file" multiple accept="image/*,application/pdf" style="display:none;">
+          </div>
+          <div id="invList"></div>
+        </div>
+      </section>
+
       <!-- RESOURCES -->
       <section class="screen" data-screen="resources">
         <div class="pad">
@@ -431,6 +502,40 @@
     </main>
   </div>
 
+  <!-- INVOICE REVIEW / EDIT MODAL -->
+  <div class="modal" id="invModal" hidden>
+    <div class="modal-back" data-invclose></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <div class="modal-title">Review invoice</div>
+        <button class="xbtn" data-invclose>✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="invedit">
+          <a id="invThumbLink" href="#" target="_blank" rel="noreferrer"><div class="invthumb" id="invModalThumb"></div></a>
+          <div class="invfields">
+            <label>Vendor<input class="fld" id="ivVendor" placeholder="e.g. Home Depot"></label>
+            <div class="row2">
+              <label>Amount<div class="field"><span class="pre">$</span><input class="fld num" id="ivAmount" type="number" inputmode="decimal" step="0.01" placeholder="0.00"></div></label>
+              <label>Date<input class="fld" id="ivDate" type="date"></label>
+            </div>
+            <label>Description<input class="fld" id="ivDesc" placeholder="what was purchased"></label>
+            <div style="font-size:12px;color:var(--muted);font-weight:600;">Project<div class="chips" id="ivProjChips" style="margin-top:6px;"></div></div>
+            <div class="row2">
+              <label>Paid by<select class="fld" id="ivPaid"><option value="">—</option><option>Andy</option><option>Zoe</option></select></label>
+              <label>Note<input class="fld" id="ivNote" placeholder="optional"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="xbtn" id="ivDelete" style="color:var(--cedar);margin-right:auto;">Delete</button>
+        <button class="railctl" data-invclose style="width:auto;padding:9px 16px;margin-top:0;">Cancel</button>
+        <button class="btn" id="ivSave">Save invoice</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/160akley/vendor/leaflet.js"></script>
   <script src="/160akley/parcel.js"></script>
   <script>
@@ -462,7 +567,7 @@
     var tasks=[], resGroups=[], budget={lines:[],meta:{}};
 
     /* ---------- nav ---------- */
-    var SCREENS=["home","budget","tasks","files","resources","map"];
+    var SCREENS=["home","budget","tasks","files","invoices","resources","map"];
     function show(name){
       if(SCREENS.indexOf(name)<0) name="home";
       $$(".screen").forEach(function(s){ s.classList.toggle("on",s.getAttribute("data-screen")===name); });
@@ -718,10 +823,10 @@
     /* thumbnails: page-1 render for PDFs (pdf.js, lazy from CDN), downscale for images */
     var _pdfjs=null, _thumbTried={};
     function loadPdfjs(){ if(!_pdfjs){ _pdfjs=import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.min.mjs").then(function(m){ m.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.7.76/pdf.worker.min.mjs"; return m; }); } return _pdfjs; }
-    function downscale(src,w,h){ var max=320,s=Math.min(1,max/Math.max(w,h)); var c=document.createElement("canvas"); c.width=Math.max(1,Math.round(w*s)); c.height=Math.max(1,Math.round(h*s)); c.getContext("2d").drawImage(src,0,0,c.width,c.height); return c.toDataURL("image/jpeg",0.72); }
-    function imgThumb(blob){ return new Promise(function(res){ var img=new Image(),u=URL.createObjectURL(blob); img.onload=function(){ var out=null; try{ out=downscale(img,img.naturalWidth,img.naturalHeight); }catch(e){} URL.revokeObjectURL(u); res(out); }; img.onerror=function(){ URL.revokeObjectURL(u); res(null); }; img.src=u; }); }
-    function pdfThumb(buf){ return loadPdfjs().then(function(pdfjs){ return pdfjs.getDocument({data:buf}).promise.then(function(doc){ return doc.getPage(1).then(function(page){ var v1=page.getViewport({scale:1}),sc=Math.min(2,640/v1.width),vp=page.getViewport({scale:sc}); var c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height; return page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise.then(function(){ return downscale(c,c.width,c.height); }); }); }); }).catch(function(){ return null; }); }
-    function genThumb(blob){ var ct=blob.type||""; if(ct.indexOf("image/")===0) return imgThumb(blob); if(ct==="application/pdf") return blob.arrayBuffer().then(pdfThumb); return Promise.resolve(null); }
+    function downscale(src,w,h,max){ max=max||320; var s=Math.min(1,max/Math.max(w,h)); var c=document.createElement("canvas"); c.width=Math.max(1,Math.round(w*s)); c.height=Math.max(1,Math.round(h*s)); c.getContext("2d").drawImage(src,0,0,c.width,c.height); return c.toDataURL("image/jpeg",max>320?0.82:0.72); }
+    function imgThumb(blob,max){ return new Promise(function(res){ var img=new Image(),u=URL.createObjectURL(blob); img.onload=function(){ var out=null; try{ out=downscale(img,img.naturalWidth,img.naturalHeight,max); }catch(e){} URL.revokeObjectURL(u); res(out); }; img.onerror=function(){ URL.revokeObjectURL(u); res(null); }; img.src=u; }); }
+    function pdfThumb(buf,max){ return loadPdfjs().then(function(pdfjs){ return pdfjs.getDocument({data:buf}).promise.then(function(doc){ return doc.getPage(1).then(function(page){ var v1=page.getViewport({scale:1}),sc=Math.min(2.5,((max||320)*2)/v1.width),vp=page.getViewport({scale:sc}); var c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height; return page.render({canvasContext:c.getContext("2d"),viewport:vp}).promise.then(function(){ return downscale(c,c.width,c.height,max); }); }); }); }).catch(function(){ return null; }); }
+    function genThumb(blob,max){ var ct=blob.type||""; if(ct.indexOf("image/")===0) return imgThumb(blob,max); if(ct==="application/pdf") return blob.arrayBuffer().then(function(b){return pdfThumb(b,max);}); return Promise.resolve(null); }
     function backfillThumbs(){
       var todo=files.filter(function(f){ return !f.thumb && !_thumbTried[f.id] && ((f.content_type||"").indexOf("image/")===0 || f.content_type==="application/pdf"); });
       if(!todo.length) return; var i=0;
@@ -883,6 +988,133 @@
       }).catch(function(){ host.innerHTML='<div class="condtile"><div class="cs">Conditions unavailable.</div></div>'; });
     }
 
+    /* ---------- invoices (shared, R2 + Workers AI extraction) ---------- */
+    var invoices=[], invProject="all", invPeriod="all", invQ="", invEditId=null;
+    var INV_PROJECTS=["Home purchase","Roof","Kitchen","Mechanicals","Appliances","Solar","General"];
+    function loadInvoices(){ return api("GET","/invoices").then(function(d){ invoices=d||[]; }); }
+    function invById(id){ return invoices.find(function(v){return v.id===id;}); }
+    function money2(n){ return "$"+Math.round(+n||0).toLocaleString("en-US"); }
+    function invProjectsAll(){ var s=INV_PROJECTS.slice(); invoices.forEach(function(v){ if(v.project && s.indexOf(v.project)<0) s.push(v.project); }); return s; }
+    function monthLabel(d){ if(!d) return "No date"; var p=(d||"").split("-"); var mo=["January","February","March","April","May","June","July","August","September","October","November","December"][(+p[1]||1)-1]||""; return mo+" "+p[0]; }
+    function invPeriodMatch(v){
+      if(invPeriod==="all") return true;
+      var d=v.invoice_date||""; if(!d) return false;
+      var now=new Date();
+      if(invPeriod==="year") return d.slice(0,4)===String(now.getFullYear());
+      if(invPeriod==="month") return d.slice(0,7)===(now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0"));
+      return true;
+    }
+    function invSearchMatch(v){ if(!invQ) return true; var h=((v.vendor||"")+" "+(v.description||"")+" "+(v.project||"")+" "+(v.amount==null?"":v.amount)+" "+(v.invoice_date||"")+" "+monthLabel(v.invoice_date)).toLowerCase(); return h.indexOf(invQ)>=0; }
+    function invFilter(v){ return (invProject==="all"||(v.project||"Uncategorized")===invProject) && invPeriodMatch(v) && invSearchMatch(v); }
+    function renderInvDash(list){
+      var total=list.reduce(function(a,v){return a+(+v.amount||0);},0);
+      $("#invTotal").textContent=money2(total);
+      $("#invCount").textContent=list.length+" invoice"+(list.length===1?"":"s");
+      $("#invPeriodLbl").textContent=invPeriod==="month"?"this month":invPeriod==="year"?"this year":"all time";
+      $("#invProjLbl").textContent=invProject!=="all"?(" · "+invProject):"";
+      var base=invoices.filter(function(v){ return invPeriodMatch(v) && invSearchMatch(v); });
+      var by={}; base.forEach(function(v){ var p=v.project||"Uncategorized"; by[p]=(by[p]||0)+(+v.amount||0); });
+      var entries=Object.keys(by).map(function(p){return [p,by[p]];}).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];});
+      var max=entries.length?entries[0][1]:0;
+      $("#invByProject").innerHTML=entries.length?entries.map(function(e){
+        var w=max?Math.round(e[1]/max*100):0;
+        return '<div class="invbp"><span class="nm">'+esc(e[0])+'</span><span class="bar"><i style="width:'+w+'%"></i></span><span class="amt">'+money2(e[1])+'</span></div>';
+      }).join(""):'<p class="mono" style="color:var(--faint);font-size:12px;">No spend recorded yet.</p>';
+    }
+    function renderInvChips(){
+      var counts={}; invoices.forEach(function(v){ var p=v.project||"Uncategorized"; counts[p]=(counts[p]||0)+1; });
+      var projs=invProjectsAll(); if(invoices.some(function(v){return !v.project;})) projs.push("Uncategorized");
+      projs=projs.filter(function(p,i){return projs.indexOf(p)===i;});
+      var html='<button class="chip'+(invProject==="all"?" on":"")+'" data-invchip="all">All <span class="n">'+invoices.length+'</span></button>';
+      html+=projs.map(function(p){ return '<button class="chip'+(invProject===p?" on":"")+'" data-invchip="'+esc(p)+'">'+esc(p)+(counts[p]?' <span class="n">'+counts[p]+'</span>':'')+'</button>'; }).join("");
+      $("#invProjChips").innerHTML=html;
+      $$("[data-invchip]").forEach(function(el){ el.addEventListener("click",function(){ invProject=el.getAttribute("data-invchip"); renderInvoices(); }); });
+    }
+    function invRowHTML(v){
+      var thumb=v.thumb?(' style="background-image:url(\''+v.thumb+'\')"'):'';
+      var proj=v.project?('<span class="chip sm">'+esc(v.project)+'</span>'):'<span class="chip sm" style="color:var(--faint);">+ project</span>';
+      var sub=[v.description||"", v.invoice_date||""].filter(Boolean).join(" · ");
+      return '<div class="invrow" data-invedit="'+v.id+'"><div class="invmini"'+thumb+'></div>'
+        +'<div class="invmain"><div class="invvendor">'+esc(v.vendor||"Untitled receipt")+'</div><div class="invsub">'+esc(sub||"tap to add details")+'</div></div>'
+        +proj+'<div class="invamt num">'+(v.amount!=null?money2(v.amount):"—")+'</div>'
+        +'<button class="xbtn" data-invdel="'+v.id+'">✕</button></div>';
+    }
+    function renderInvoices(){
+      renderInvChips();
+      var list=invoices.filter(invFilter);
+      renderInvDash(list);
+      var order=[],by={};
+      list.forEach(function(v){ var k=monthLabel(v.invoice_date); if(!by[k]){by[k]=[];order.push(k);} by[k].push(v); });
+      $("#invList").innerHTML=list.length?order.map(function(k){
+        var sum=by[k].reduce(function(a,v){return a+(+v.amount||0);},0);
+        return '<div class="seclabel" style="margin:22px 2px 8px;display:flex;justify-content:space-between;"><span>'+esc(k)+'</span><span style="color:var(--ink-2);">'+money2(sum)+'</span></div><div class="card" style="padding:2px 0;">'+by[k].map(invRowHTML).join("")+'</div>';
+      }).join(""):'<p class="mono" style="color:var(--faint);padding:12px 0;">'+(invoices.length?"No matches for this filter.":"No invoices yet — drop a receipt above.")+'</p>';
+      $$("[data-invedit]").forEach(function(el){ el.addEventListener("click",function(){ openInvModal(el.getAttribute("data-invedit")); }); });
+      $$("[data-invdel]").forEach(function(el){ el.addEventListener("click",function(e){ e.stopPropagation(); if(!window.confirm("Delete this invoice?"))return; api("DELETE","/invoices/"+el.getAttribute("data-invdel")).then(loadInvoices).then(renderInvoices); }); });
+      icons();
+    }
+    function openInvModal(id){
+      var v=invById(id); if(!v)return; invEditId=id;
+      $("#ivVendor").value=v.vendor||""; $("#ivAmount").value=v.amount!=null?v.amount:""; $("#ivDate").value=v.invoice_date||"";
+      $("#ivDesc").value=v.description||""; $("#ivPaid").value=v.paid_by||""; $("#ivNote").value=v.note||"";
+      $("#invModalThumb").style.backgroundImage=v.thumb?("url('"+v.thumb+"')"):"none";
+      $("#invThumbLink").href=API+"/invoices/"+v.id;
+      var chosen=v.project||"";
+      $("#ivProjChips").setAttribute("data-chosen",chosen);
+      $("#ivProjChips").innerHTML=invProjectsAll().map(function(p){ return '<button type="button" class="chip'+(chosen===p?" on":"")+'" data-ivproj="'+esc(p)+'">'+esc(p)+'</button>'; }).join("")+'<button type="button" class="chip" data-ivproj="__new">+ New</button>';
+      $$("[data-ivproj]").forEach(function(el){ el.addEventListener("click",function(){
+        var p=el.getAttribute("data-ivproj");
+        if(p==="__new"){ var nn=window.prompt("New project name:"); if(!nn)return; p=nn.trim(); if(!p)return; if(INV_PROJECTS.indexOf(p)<0) INV_PROJECTS.push(p);
+          openInvModalRerender(p); return; }
+        $("#ivProjChips").setAttribute("data-chosen",p);
+        $$("[data-ivproj]").forEach(function(x){ x.classList.toggle("on", x.getAttribute("data-ivproj")===p); });
+      }); });
+      $("#invModal").hidden=false; icons();
+    }
+    function openInvModalRerender(sel){
+      $("#ivProjChips").setAttribute("data-chosen",sel);
+      $("#ivProjChips").innerHTML=invProjectsAll().map(function(p){ return '<button type="button" class="chip'+(sel===p?" on":"")+'" data-ivproj="'+esc(p)+'">'+esc(p)+'</button>'; }).join("")+'<button type="button" class="chip" data-ivproj="__new">+ New</button>';
+      $$("[data-ivproj]").forEach(function(el){ el.addEventListener("click",function(){
+        var p=el.getAttribute("data-ivproj");
+        if(p==="__new"){ var nn=window.prompt("New project name:"); if(!nn)return; p=nn.trim(); if(!p)return; if(INV_PROJECTS.indexOf(p)<0) INV_PROJECTS.push(p); openInvModalRerender(p); return; }
+        $("#ivProjChips").setAttribute("data-chosen",p);
+        $$("[data-ivproj]").forEach(function(x){ x.classList.toggle("on", x.getAttribute("data-ivproj")===p); });
+      }); });
+    }
+    function closeInvModal(){ $("#invModal").hidden=true; invEditId=null; }
+    $$("[data-invclose]").forEach(function(el){ el.addEventListener("click",closeInvModal); });
+    $("#ivSave").addEventListener("click",function(){
+      if(!invEditId)return;
+      var amt=parseFloat($("#ivAmount").value);
+      var body={ vendor:$("#ivVendor").value.trim(), description:$("#ivDesc").value.trim(),
+        invoice_date:$("#ivDate").value||"", project:$("#ivProjChips").getAttribute("data-chosen")||"",
+        paid_by:$("#ivPaid").value, note:$("#ivNote").value.trim(), amount:isNaN(amt)?null:amt };
+      api("PATCH","/invoices/"+invEditId,body).then(loadInvoices).then(function(){ closeInvModal(); renderInvoices(); });
+    });
+    $("#ivDelete").addEventListener("click",function(){ if(!invEditId)return; if(!window.confirm("Delete this invoice?"))return; api("DELETE","/invoices/"+invEditId).then(loadInvoices).then(function(){ closeInvModal(); renderInvoices(); }); });
+    $("#invPeriod").addEventListener("change",function(){ invPeriod=this.value; renderInvoices(); });
+    $("#invSearch").addEventListener("input",function(e){ invQ=e.target.value.trim().toLowerCase(); renderInvoices(); });
+    (function(){ var dz=$("#invDrop"),fi=$("#invFile");
+      function handle(list){
+        var arr=Array.from(list||[]); if(!arr.length)return;
+        var msg=document.createElement("p"); msg.className="mono"; msg.style.cssText="color:var(--muted);padding:8px 2px;"; msg.textContent="Reading "+(arr.length>1?arr.length+" receipts…":"your receipt…");
+        $("#invList").prepend(msg);
+        var lastId=null;
+        arr.reduce(function(chain,f){ return chain.then(function(){
+          return Promise.all([genThumb(f,320),genThumb(f,1000)]).then(function(imgs){
+            var fd=new FormData(); fd.append("file",f); fd.append("who",who);
+            if(imgs[0]) fd.append("thumb",imgs[0]); if(imgs[1]) fd.append("aiimg",imgs[1]);
+            return fetch(API+"/invoices",{method:"POST",body:fd}).then(function(r){return r.ok?r.json():null;}).then(function(row){ if(row) lastId=row.id; }).catch(function(){});
+          });
+        }); }, Promise.resolve()).then(loadInvoices).then(function(){ renderInvoices(); if(arr.length===1 && lastId) openInvModal(lastId); });
+      }
+      dz.addEventListener("click",function(){ fi.click(); });
+      fi.addEventListener("change",function(){ handle(fi.files); fi.value=""; });
+      dz.addEventListener("dragover",function(e){ e.preventDefault(); dz.classList.add("over"); });
+      dz.addEventListener("dragleave",function(){ dz.classList.remove("over"); });
+      dz.addEventListener("drop",function(e){ e.preventDefault(); dz.classList.remove("over"); handle(e.dataTransfer.files); });
+    })();
+
     /* ---------- boot ---------- */
     $("#taskGroups").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
     $("#resList").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
@@ -892,6 +1124,7 @@
       loadResources().then(function(){ renderRes(""); }).catch(function(){ $("#resList").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load resources.</p>'; }),
       loadBudget().then(renderBudget).catch(function(){}),
       loadReno().then(renderReno).catch(function(){ $("#renoList").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load renovation budget.</p>'; }),
+      loadInvoices().then(renderInvoices).catch(function(){ $("#invList").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load invoices.</p>'; }),
       loadFiles().then(function(){ renderFiles(); backfillThumbs(); }).catch(function(){ $("#fileView").innerHTML='<p class="mono" style="color:var(--cedar);">Could not load files.</p>'; })
     ]).then(renderHome);
     show(location.hash.slice(1)||"home");

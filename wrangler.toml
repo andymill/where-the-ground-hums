@@ -16,3 +16,10 @@ database_id = "909b2655-ed68-4096-ab0b-faaa5146dc41"
 [[r2_buckets]]
 binding = "FILES"
 bucket_name = "andy-miller-files"
+
+# Workers AI — reads uploaded receipts on the Invoices screen (vision model
+# extracts vendor / amount / date). Also applied to the Pages project via API
+# (deployment_configs.production.ai_bindings), since Pages bindings don't
+# auto-apply from this file on deploy.
+[ai]
+binding = "AI"
