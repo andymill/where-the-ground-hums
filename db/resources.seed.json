@@ -515,12 +515,18 @@
       {
         "n": "Bob's Hardwood Floors",
         "w": "https://www.yelp.com/biz/bobs-hardwood-floors-bennington",
-        "a": "Bennington, VT"
+        "a": "Bennington, VT",
+        "p": [
+          "802-287-4013"
+        ]
       },
       {
         "n": "Fissette Floor Sanding",
         "w": "https://www.yelp.com/biz/fissette-floor-sanding-westmoreland-3",
-        "a": "Westmoreland, NH"
+        "a": "5 Torrey Hill Rd, Westmoreland, NH",
+        "p": [
+          "603-399-4332"
+        ]
       }
     ]
   },
