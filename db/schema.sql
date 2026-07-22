@@ -30,6 +30,22 @@ CREATE TABLE IF NOT EXISTS resources (
 );
 CREATE INDEX IF NOT EXISTS idx_resources_cat ON resources (category, sort);
 
+-- Furniture annotations drawn on the floor-plan pages. Rects are fractions
+-- (0..1) of the plan image; `floor` is the page (1=1st, 2=2nd, 3=3rd, 4=overview).
+CREATE TABLE IF NOT EXISTS floorplan_annotations (
+  id          TEXT PRIMARY KEY,
+  floor       INTEGER NOT NULL,
+  x           REAL NOT NULL,
+  y           REAL NOT NULL,
+  w           REAL NOT NULL,
+  h           REAL NOT NULL,
+  label       TEXT,
+  color       TEXT,
+  created_by  TEXT,
+  created_at  INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fp_floor ON floorplan_annotations (floor);
+
 -- Monthly household budget (from the budget calculator).
 CREATE TABLE IF NOT EXISTS budget_lines (
   id      TEXT PRIMARY KEY,

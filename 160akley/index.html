@@ -296,6 +296,22 @@
       .map-legend{width:auto !important;}
     }
     @media (max-width:420px){ .g4.two,.g3.two{grid-template-columns:1fr;} }
+    /* floor plan */
+    .fp-toolbar{display:flex;align-items:center;gap:10px;margin:22px 0 4px;flex-wrap:wrap;}
+    .fp-floors{display:inline-flex;gap:4px;background:var(--bone-2);border:1px solid var(--line);border-radius:11px;padding:4px;}
+    .fp-fl{border:none;background:none;color:var(--muted);font-family:var(--sans);font-weight:600;font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;}
+    .fp-fl.on{background:var(--card);color:var(--forest);box-shadow:var(--shadow);}
+    .fp-hint{font-size:12.5px;color:var(--muted);margin:9px 0 0;min-height:16px;}
+    .fp-card{padding:0;overflow:hidden;margin-top:12px;}
+    .fp-stage{position:relative;width:100%;background:#fff;user-select:none;-webkit-user-select:none;}
+    .fp-stage img{display:block;width:100%;height:auto;pointer-events:none;}
+    .fp-overlay{position:absolute;inset:0;}
+    .fp-overlay.draw{cursor:crosshair;}
+    .fp-box{position:absolute;border:2px solid var(--forest);background:rgba(51,96,76,0.16);border-radius:3px;box-sizing:border-box;cursor:pointer;}
+    .fp-box .fp-lab{position:absolute;left:-2px;top:-2px;transform:translateY(-100%);background:var(--forest);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;white-space:nowrap;font-family:var(--sans);max-width:200px;overflow:hidden;text-overflow:ellipsis;}
+    .fp-box .fp-del{position:absolute;right:-9px;top:-9px;width:19px;height:19px;border-radius:50%;background:var(--cedar);color:#fff;border:2px solid var(--card);font-size:11px;line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;}
+    .fp-box:hover .fp-del{display:flex;}
+    .fp-ghost{position:absolute;border:2px dashed var(--forest);background:rgba(51,96,76,0.12);border-radius:3px;box-sizing:border-box;pointer-events:none;}
   </style>
 </head>
 <body>
@@ -309,6 +325,7 @@
       <button class="navbtn" data-nav="invoices"><i data-lucide="banknote"></i><span>Invoices</span></button>
       <button class="navbtn" data-nav="resources"><i data-lucide="book-open"></i><span>Resources</span></button>
       <button class="navbtn" data-nav="map"><i data-lucide="map"></i><span>Map</span></button>
+      <button class="navbtn" data-nav="floorplan"><i data-lucide="sofa"></i><span>Floor plan</span></button>
       <div class="rail-foot">13.8 ac<br>Guilford</div>
       <button class="railctl" id="whoBtn" title="Who's using this?">👤 —</button>
       <button class="railctl" id="themeBtn" title="Light / dark">🌙</button>
@@ -499,6 +516,28 @@
           </div>
         </div>
       </section>
+
+      <!-- FLOOR PLAN -->
+      <section class="screen" data-screen="floorplan">
+        <div class="pad">
+          <div class="kick">The house</div><h1 class="h1">Floor plan</h1>
+          <p class="lede">Sketch furniture right onto the plan — pick a floor, tap <strong>Add furniture</strong>, then drag a box over a room and name it. It saves automatically. <a href="/160akley/floorplan/160-akley-floor-plan.pdf" download>Download the original PDF ↓</a></p>
+
+          <div class="fp-toolbar">
+            <div class="fp-floors" id="fpFloors"></div>
+            <div style="flex:1;"></div>
+            <button class="btn sm" id="fpDrawBtn"><i data-lucide="square-plus"></i> Add furniture</button>
+          </div>
+          <p class="fp-hint" id="fpHint">Tip: tap a box to rename it, or hover and click ✕ to remove.</p>
+
+          <div class="card fp-card">
+            <div class="fp-stage" id="fpStage">
+              <img id="fpImg" alt="Floor plan" draggable="false" />
+              <div class="fp-overlay" id="fpOverlay"></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -565,9 +604,10 @@
 
     /* ---------- remote state ---------- */
     var tasks=[], resGroups=[], budget={lines:[],meta:{}};
+    var fpAnnos=[], fpFloor=1, fpDrawMode=false, fpReady=false;
 
     /* ---------- nav ---------- */
-    var SCREENS=["home","budget","tasks","files","invoices","resources","map"];
+    var SCREENS=["home","budget","tasks","files","invoices","resources","map","floorplan"];
     function show(name){
       if(SCREENS.indexOf(name)<0) name="home";
       $$(".screen").forEach(function(s){ s.classList.toggle("on",s.getAttribute("data-screen")===name); });
@@ -575,6 +615,7 @@
       var sc=$(".screen.on"); if(sc) sc.scrollTop=0;
       if(("#"+name)!==location.hash) history.replaceState(null,"","#"+name);
       if(name==="map"){ initMap(); if(lmap) setTimeout(function(){ lmap.invalidateSize(); },30); }
+      if(name==="floorplan"){ initFloorplan(); }
       icons();
     }
     $$(".navbtn").forEach(function(b){ b.addEventListener("click",function(){ show(b.getAttribute("data-nav")); }); });
@@ -1114,6 +1155,65 @@
       dz.addEventListener("dragleave",function(){ dz.classList.remove("over"); });
       dz.addEventListener("drop",function(e){ e.preventDefault(); dz.classList.remove("over"); handle(e.dataTransfer.files); });
     })();
+
+    /* ---------- floor plan ---------- */
+    var FP_FLOORS=[{n:1,label:"1st floor"},{n:2,label:"2nd floor"},{n:3,label:"3rd floor"},{n:4,label:"Overview"}];
+    function fpImgSrc(n){ return "/160akley/floorplan/floor-"+n+".png"; }
+    function initFloorplan(){
+      if(fpReady) return; fpReady=true;
+      $("#fpFloors").innerHTML = FP_FLOORS.map(function(f){ return '<button class="fp-fl'+(f.n===fpFloor?" on":"")+'" data-fpfl="'+f.n+'">'+esc(f.label)+'</button>'; }).join("");
+      $$("[data-fpfl]").forEach(function(b){ b.addEventListener("click",function(){ fpSetFloor(+b.getAttribute("data-fpfl")); }); });
+      $("#fpDrawBtn").addEventListener("click",fpToggleDraw);
+      fpBindDraw();
+      $("#fpImg").src=fpImgSrc(fpFloor);
+      loadFloorplan().then(fpRender);
+      icons();
+    }
+    function loadFloorplan(){ return api("GET","/floorplan").then(function(d){ fpAnnos=d||[]; }).catch(function(){ fpAnnos=[]; }); }
+    function fpSetFloor(n){
+      fpFloor=n; $("#fpImg").src=fpImgSrc(n);
+      $$("[data-fpfl]").forEach(function(b){ b.classList.toggle("on",+b.getAttribute("data-fpfl")===n); });
+      fpRender();
+    }
+    function fpToggleDraw(){
+      fpDrawMode=!fpDrawMode;
+      $("#fpOverlay").classList.toggle("draw",fpDrawMode);
+      $("#fpDrawBtn").innerHTML = fpDrawMode ? '<i data-lucide="check"></i> Done' : '<i data-lucide="square-plus"></i> Add furniture';
+      $("#fpHint").textContent = fpDrawMode ? "Drag a box over a room, then name the furniture." : "Tip: tap a box to rename it, or hover and click ✕ to remove.";
+      icons();
+    }
+    function fpRender(){
+      var ov=$("#fpOverlay"); if(!ov) return;
+      var mine=fpAnnos.filter(function(a){ return +a.floor===fpFloor; });
+      ov.innerHTML = mine.map(function(a){
+        return '<div class="fp-box" data-fpid="'+a.id+'" style="left:'+(a.x*100)+'%;top:'+(a.y*100)+'%;width:'+(a.w*100)+'%;height:'+(a.h*100)+'%;">'
+          +'<span class="fp-lab">'+esc(a.label||"—")+'</span>'
+          +'<span class="fp-del" data-fpdel="'+a.id+'" title="Remove">✕</span></div>';
+      }).join("");
+      $$(".fp-del",ov).forEach(function(el){ el.addEventListener("click",function(e){ e.stopPropagation();
+        var id=el.getAttribute("data-fpdel"); fpAnnos=fpAnnos.filter(function(a){ return a.id!==id; }); fpRender(); api("DELETE","/floorplan/"+id).catch(function(){}); }); });
+      $$(".fp-box",ov).forEach(function(el){ el.addEventListener("click",function(){ if(fpDrawMode) return;
+        var id=el.getAttribute("data-fpid"), a=fpAnnos.filter(function(x){ return x.id===id; })[0]; if(!a) return;
+        var nv=window.prompt("Furniture name",a.label||""); if(nv===null) return; a.label=nv.trim(); fpRender(); api("PATCH","/floorplan/"+id,{label:a.label}).catch(function(){}); }); });
+    }
+    function fpBindDraw(){
+      var ov=$("#fpOverlay"), start=null, ghost=null;
+      function pt(e){ var r=ov.getBoundingClientRect(), t=e.touches&&e.touches[0], cx=t?t.clientX:e.clientX, cy=t?t.clientY:e.clientY;
+        return { x:Math.max(0,Math.min(1,(cx-r.left)/r.width)), y:Math.max(0,Math.min(1,(cy-r.top)/r.height)) }; }
+      function down(e){ if(!fpDrawMode) return; if(e.target&&e.target.classList&&e.target.classList.contains("fp-del")) return;
+        e.preventDefault(); start=pt(e); ghost=document.createElement("div"); ghost.className="fp-ghost"; ov.appendChild(ghost); move(e); }
+      function move(e){ if(!start||!ghost) return; var p=pt(e), x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);
+        ghost.style.left=(x*100)+"%"; ghost.style.top=(y*100)+"%"; ghost.style.width=(w*100)+"%"; ghost.style.height=(h*100)+"%"; }
+      function up(e){ if(!start) return; var p=pt(e), x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);
+        if(ghost){ ghost.remove(); ghost=null; } start=null;
+        if(w<0.012||h<0.012) return;
+        var label=window.prompt("What goes here? (e.g. Sofa, Bed, Dining table)",""); if(label===null) return;
+        var a={ id:"tmp"+Date.now(), floor:fpFloor, x:x, y:y, w:w, h:h, label:label.trim() }; fpAnnos.push(a); fpRender();
+        api("POST","/floorplan",{ floor:fpFloor, x:x, y:y, w:w, h:h, label:a.label, who:who }).then(function(r){ if(r&&r.id) a.id=r.id; }).catch(function(){});
+      }
+      ov.addEventListener("mousedown",down); window.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
+      ov.addEventListener("touchstart",down,{passive:false}); ov.addEventListener("touchmove",move,{passive:false}); ov.addEventListener("touchend",up);
+    }
 
     /* ---------- boot ---------- */
     $("#taskGroups").innerHTML='<p class="mono" style="color:var(--muted);">Loading…</p>';
