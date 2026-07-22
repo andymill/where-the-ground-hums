@@ -316,7 +316,6 @@
     .fp-box .fp-dims{position:absolute;left:-2px;bottom:-2px;transform:translateY(100%);background:var(--card);color:var(--ink-2);border:1px solid var(--line);font-family:var(--mono);font-size:9.5px;padding:1px 5px;border-radius:5px;white-space:nowrap;}
     .fp-handle{position:absolute;right:-7px;bottom:-7px;width:15px;height:15px;border-radius:4px;background:var(--forest);border:2px solid var(--card);cursor:nwse-resize;display:none;}
     .fp-box:hover .fp-handle{display:block;}
-    .fp-cal{position:absolute;height:0;border-top:2px dashed var(--cedar);transform-origin:0 0;pointer-events:none;}
     /* dimension inputs */
     .fp-diml{font-size:12.5px;color:var(--muted);font-weight:600;}
     .fp-x{color:var(--muted);}
@@ -540,13 +539,12 @@
       <section class="screen" data-screen="floorplan">
         <div class="pad">
           <div class="kick">The house</div><h1 class="h1">Floor plan</h1>
-          <p class="lede">Sketch furniture right onto the plan — pick a floor, tap <strong>Add furniture</strong>, then drag a box over a room and name it. It saves automatically. <a href="/160akley/floorplan/160-akley-floor-plan.pdf" download>Download the original PDF ↓</a></p>
+          <p class="lede">Everything's <strong>to scale</strong>, read from the plan's own room dimensions. Add furniture by real size in feet, or draw it freehand — then drag to move, drag a corner to resize. Saves automatically. <a href="/160akley/floorplan/160-akley-floor-plan.pdf" download>Download the original PDF ↓</a></p>
 
           <div class="fp-toolbar">
             <div class="fp-floors" id="fpFloors"></div>
             <div style="flex:1;"></div>
-            <button class="btn sm" id="fpScaleBtn"><i data-lucide="ruler"></i> Set scale</button>
-            <button class="btn sm" id="fpDrawBtn"><i data-lucide="pencil"></i> Draw</button>
+            <button class="btn sm" id="fpDrawBtn"><i data-lucide="pencil"></i> Draw freehand</button>
           </div>
           <div class="fp-toolbar">
             <span class="fp-diml">Add furniture by size:</span>
@@ -638,7 +636,7 @@
 
     /* ---------- remote state ---------- */
     var tasks=[], resGroups=[], budget={lines:[],meta:{}};
-    var fpAnnos=[], fpScale={}, fpFloor=1, fpMode="", fpReady=false;
+    var fpAnnos=[], fpFloor=1, fpMode="", fpReady=false;
 
     /* ---------- nav ---------- */
     var SCREENS=["home","budget","tasks","files","invoices","resources","map","floorplan"];
@@ -1192,10 +1190,15 @@
 
     /* ---------- floor plan ---------- */
     var FP_FLOORS=[{n:1,label:"1st floor"},{n:2,label:"2nd floor"},{n:3,label:"3rd floor"},{n:4,label:"Overview"}];
+    // Scale derived from the plan's own room dimensions (feet per pixel, on the
+    // 1600px-wide renders). Floor 1 from Living+Dining width (27'11"/780px) and
+    // Dining+Kitchen height; floors 2 & 3 share the main footprint (scaled by
+    // exterior-wall pixel ratio). The overview sheet (4) mixes scales → no ruler.
+    var FP_SCALE={ 1:0.0358, 2:0.0281, 3:0.0280 };
     function fpImgSrc(n){ return "/160akley/floorplan/floor-"+n+".png"; }
     function fpNatW(){ var i=$("#fpImg"); return (i&&i.naturalWidth)||1600; }
     function fpNatH(){ var i=$("#fpImg"); return (i&&i.naturalHeight)||1200; }
-    function fpFpp(){ return fpScale[fpFloor]||0; }
+    function fpFpp(){ return FP_SCALE[fpFloor]||0; }
     function fpTotFeetX(){ return fpFpp()*fpNatW(); }
     function fpTotFeetY(){ return fpFpp()*fpNatH(); }
     function ftLabel(ft){ var f=Math.round(ft*10)/10; return (Math.abs(f-Math.round(f))<0.05?Math.round(f):f)+"'"; }
@@ -1205,16 +1208,14 @@
       $("#fpFloors").innerHTML = FP_FLOORS.map(function(f){ return '<button class="fp-fl'+(f.n===fpFloor?" on":"")+'" data-fpfl="'+f.n+'">'+esc(f.label)+'</button>'; }).join("");
       $$("[data-fpfl]").forEach(function(b){ b.addEventListener("click",function(){ fpSetFloor(+b.getAttribute("data-fpfl")); }); });
       $("#fpDrawBtn").addEventListener("click",function(){ fpSetMode(fpMode==="draw"?"":"draw"); });
-      $("#fpScaleBtn").addEventListener("click",function(){ fpSetMode(fpMode==="cal"?"":"cal"); });
       $("#fpAddDim").addEventListener("click",fpAddByDim);
       $("#fpImg").addEventListener("load",function(){ fpRenderAxes(); fpRender(); });
       fpBindPointer();
       $("#fpImg").src=fpImgSrc(fpFloor);
-      Promise.all([loadFloorplan(),loadFpScale()]).then(function(){ fpRenderAxes(); fpRender(); fpUpdateScaleInfo(); });
+      loadFloorplan().then(function(){ fpRenderAxes(); fpRender(); fpUpdateScaleInfo(); });
       icons();
     }
     function loadFloorplan(){ return api("GET","/floorplan").then(function(d){ fpAnnos=d||[]; }).catch(function(){ fpAnnos=[]; }); }
-    function loadFpScale(){ return api("GET","/floorplan-scale").then(function(d){ fpScale={}; (d||[]).forEach(function(r){ fpScale[r.floor]=r.feet_per_px; }); }).catch(function(){ fpScale={}; }); }
 
     function fpSetFloor(n){
       fpFloor=n; $("#fpImg").src=fpImgSrc(n);
@@ -1223,18 +1224,16 @@
     }
     function fpSetMode(m){
       fpMode=m;
-      $("#fpOverlay").classList.toggle("draw",m==="draw"||m==="cal");
-      $("#fpDrawBtn").innerHTML = m==="draw" ? '<i data-lucide="check"></i> Done' : '<i data-lucide="pencil"></i> Draw';
-      $("#fpScaleBtn").innerHTML = m==="cal" ? '<i data-lucide="check"></i> Done' : '<i data-lucide="ruler"></i> Set scale';
+      $("#fpOverlay").classList.toggle("draw",m==="draw");
+      $("#fpDrawBtn").innerHTML = m==="draw" ? '<i data-lucide="check"></i> Done' : '<i data-lucide="pencil"></i> Draw freehand';
       $("#fpHint").textContent = m==="draw" ? "Drag a box over a room, then name the furniture."
-        : m==="cal" ? "Draw a line along something you know the length of (a wall or room side), then type its length in feet."
         : "Drag a box to move it, drag its corner to resize, tap to rename, ✕ to remove.";
       icons();
     }
     function fpUpdateScaleInfo(){
       var el=$("#fpScaleInfo"); if(!el) return;
-      el.textContent = fpFpp() ? ("Scale set — plan spans ~"+Math.round(fpTotFeetX())+"' × "+Math.round(fpTotFeetY())+"'") : "Set the scale first to add by size.";
-      $("#fpAddDim").disabled = !fpFpp();
+      el.textContent = fpFpp() ? ("To scale — this floor spans ~"+Math.round(fpTotFeetX())+"' × "+Math.round(fpTotFeetY())+"'") : "The overview sheet isn't to a single scale — use a specific floor to add by size.";
+      $("#fpAddDim").disabled = $("#fpW").disabled = $("#fpH").disabled = !fpFpp();
     }
     function fpRenderAxes(){
       var rx=$("#fpRulerX"), ry=$("#fpRulerY"); if(!rx||!ry) return;
@@ -1268,7 +1267,7 @@
     function fpRename(id){ var a=fpAnn(id); if(!a) return; var nv=window.prompt("Furniture name",a.label||""); if(nv===null) return; a.label=nv.trim(); fpRender(); api("PATCH","/floorplan/"+id,{label:a.label}).catch(function(){}); }
 
     function fpAddByDim(){
-      if(!fpFpp()){ window.alert("Set the scale first (the ruler button), then add by size."); return; }
+      if(!fpFpp()){ window.alert("This sheet isn't to a single scale — switch to a specific floor to add by size."); return; }
       var W=parseFloat($("#fpW").value), H=parseFloat($("#fpH").value);
       if(!(W>0)||!(H>0)){ window.alert("Enter a width and height in feet."); return; }
       var wf=Math.min(1,W/(fpNatW()*fpFpp())), hf=Math.min(1,H/(fpNatH()*fpFpp()));
@@ -1280,23 +1279,19 @@
     }
 
     function fpBindPointer(){
-      var ov=$("#fpOverlay"), drag=null, ghost=null, cal=null;
+      var ov=$("#fpOverlay"), drag=null, ghost=null;
       function pt(e){ var r=ov.getBoundingClientRect(), t=e.touches&&e.touches[0], cx=t?t.clientX:e.clientX, cy=t?t.clientY:e.clientY;
         return { x:Math.max(0,Math.min(1,(cx-r.left)/r.width)), y:Math.max(0,Math.min(1,(cy-r.top)/r.height)) }; }
       function down(e){
         var tgt=e.target;
         if(tgt&&tgt.classList&&tgt.classList.contains("fp-del")) return;
-        if(fpMode==="cal"){ e.preventDefault(); drag={kind:"cal",start:pt(e),len:0}; cal=document.createElement("div"); cal.className="fp-cal"; ov.appendChild(cal); return; }
         if(fpMode==="draw"){ e.preventDefault(); drag={kind:"draw",start:pt(e)}; ghost=document.createElement("div"); ghost.className="fp-ghost"; ov.appendChild(ghost); return; }
         var hb=tgt&&tgt.closest&&tgt.closest(".fp-handle"), box=tgt&&tgt.closest&&tgt.closest(".fp-box");
         if(hb){ var a=fpAnn(hb.getAttribute("data-fphandle")); if(!a) return; e.preventDefault(); drag={kind:"resize",id:a.id,a:a,start:pt(e),o:{w:a.w,h:a.h}}; return; }
         if(box){ var a2=fpAnn(box.getAttribute("data-fpid")); if(!a2) return; e.preventDefault(); drag={kind:"move",id:a2.id,a:a2,start:pt(e),o:{x:a2.x,y:a2.y},moved:false}; return; }
       }
       function move(e){
-        if(!drag) return; var p=pt(e), r=ov.getBoundingClientRect();
-        if(drag.kind==="cal"){ var s=drag.start; drag.len=Math.sqrt(Math.pow((p.x-s.x)*fpNatW(),2)+Math.pow((p.y-s.y)*fpNatH(),2));
-          var ang=Math.atan2((p.y-s.y),(p.x-s.x))*180/Math.PI, px=Math.sqrt(Math.pow((p.x-s.x)*r.width,2)+Math.pow((p.y-s.y)*r.height,2));
-          cal.style.left=(s.x*100)+"%"; cal.style.top=(s.y*100)+"%"; cal.style.width=px+"px"; cal.style.transform="rotate("+ang+"deg)"; return; }
+        if(!drag) return; var p=pt(e);
         if(drag.kind==="draw"){ var s2=drag.start, x=Math.min(s2.x,p.x),y=Math.min(s2.y,p.y),w=Math.abs(p.x-s2.x),h=Math.abs(p.y-s2.y);
           ghost.style.left=(x*100)+"%"; ghost.style.top=(y*100)+"%"; ghost.style.width=(w*100)+"%"; ghost.style.height=(h*100)+"%"; return; }
         if(drag.kind==="move"){ drag.a.x=Math.max(0,Math.min(1-drag.a.w,drag.o.x+(p.x-drag.start.x))); drag.a.y=Math.max(0,Math.min(1-drag.a.h,drag.o.y+(p.y-drag.start.y)));
@@ -1306,10 +1301,6 @@
       }
       function up(e){
         if(!drag) return; var d=drag; drag=null;
-        if(d.kind==="cal"){ if(cal){ cal.remove(); cal=null; } if((d.len||0)<8) return;
-          var ans=window.prompt("How long is that line, in feet?",""); if(ans===null) return; var feet=parseFloat(ans); if(!(feet>0)) return;
-          fpScale[fpFloor]=feet/d.len; fpSetMode(""); fpRenderAxes(); fpRender(); fpUpdateScaleInfo();
-          api("POST","/floorplan-scale",{floor:fpFloor,feetPerPx:feet/d.len}).catch(function(){}); return; }
         if(d.kind==="draw"){ if(ghost){ ghost.remove(); ghost=null; } var p=pt(e), s=d.start, x=Math.min(s.x,p.x),y=Math.min(s.y,p.y),w=Math.abs(p.x-s.x),h=Math.abs(p.y-s.y);
           if(w<0.012||h<0.012) return; var label=window.prompt("What goes here? (e.g. Sofa, Bed, Dining table)",""); if(label===null) return;
           var a={ id:"tmp"+Date.now(),floor:fpFloor,x:x,y:y,w:w,h:h,label:label.trim() }; fpAnnos.push(a); fpRender();
