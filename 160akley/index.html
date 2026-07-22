@@ -328,7 +328,12 @@
     .fp-dim{width:62px;font-family:var(--sans);font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
     .fp-scaleinfo{font-size:11.5px;color:var(--muted);margin-left:4px;}
     /* rulers frame */
-    .fp-frame{display:grid;grid-template-columns:36px 1fr;grid-template-rows:22px 1fr;margin-top:12px;}
+    .fp-viewport{overflow:auto;max-height:82vh;margin-top:12px;border-radius:14px;overscroll-behavior:contain;}
+    .fp-frame{display:grid;grid-template-columns:36px 1fr;grid-template-rows:22px 1fr;width:100%;}
+    .fp-zoom{display:inline-flex;align-items:center;gap:2px;background:var(--bone-2);border:1px solid var(--line);border-radius:10px;padding:3px;}
+    .fp-zoom button{border:none;background:none;color:var(--ink-2);font-family:var(--sans);font-weight:700;font-size:15px;min-width:30px;padding:5px 7px;border-radius:7px;cursor:pointer;line-height:1;}
+    .fp-zoom button:hover{background:var(--card);color:var(--forest);}
+    .fp-zoom #fpZoomLbl{font-size:12px;font-weight:600;min-width:42px;text-align:center;font-variant-numeric:tabular-nums;}
     .fp-corner{grid-column:1;grid-row:1;}
     .fp-frame .fp-card{grid-column:2;grid-row:2;margin-top:0;}
     .fp-ruler{position:relative;overflow:hidden;color:var(--muted);font-family:var(--mono);font-size:9px;}
@@ -550,6 +555,11 @@
           <div class="fp-toolbar">
             <div class="fp-floors" id="fpFloors"></div>
             <div style="flex:1;"></div>
+            <div class="fp-zoom">
+              <button id="fpZoomOut" title="Zoom out">−</button>
+              <button id="fpZoomFit" title="Fit to width"><span id="fpZoomLbl">100%</span></button>
+              <button id="fpZoomIn" title="Zoom in">+</button>
+            </div>
             <button class="btn sm" id="fpDrawBtn"><i data-lucide="pencil"></i> Draw a box</button>
           </div>
           <div class="fp-toolbar">
@@ -563,14 +573,16 @@
           </div>
           <p class="fp-hint" id="fpHint">Editing — drag to move, corner to resize, top knob to rotate, tap to rename, ✕ to remove.</p>
 
-          <div class="fp-frame">
-            <div class="fp-corner"></div>
-            <div class="fp-ruler fp-ruler-x" id="fpRulerX"></div>
-            <div class="fp-ruler fp-ruler-y" id="fpRulerY"></div>
-            <div class="card fp-card">
-              <div class="fp-stage" id="fpStage">
-                <img id="fpImg" alt="Floor plan" draggable="false" />
-                <div class="fp-overlay" id="fpOverlay"></div>
+          <div class="fp-viewport" id="fpViewport">
+            <div class="fp-frame" id="fpFrame">
+              <div class="fp-corner"></div>
+              <div class="fp-ruler fp-ruler-x" id="fpRulerX"></div>
+              <div class="fp-ruler fp-ruler-y" id="fpRulerY"></div>
+              <div class="card fp-card">
+                <div class="fp-stage" id="fpStage">
+                  <img id="fpImg" alt="Floor plan" draggable="false" />
+                  <div class="fp-overlay" id="fpOverlay"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -642,7 +654,7 @@
 
     /* ---------- remote state ---------- */
     var tasks=[], resGroups=[], budget={lines:[],meta:{}};
-    var fpAnnos=[], fpFloor=1, fpMode="", fpReady=false;
+    var fpAnnos=[], fpFloor=1, fpMode="", fpReady=false, fpZoom=1;
 
     /* ---------- nav ---------- */
     var SCREENS=["home","budget","tasks","files","invoices","resources","map","floorplan"];
@@ -1215,6 +1227,10 @@
       $$("[data-fpfl]").forEach(function(b){ b.addEventListener("click",function(){ fpSetFloor(+b.getAttribute("data-fpfl")); }); });
       $("#fpDrawBtn").addEventListener("click",function(){ fpSetMode(fpMode==="draw"?"":"draw"); });
       $("#fpAddDim").addEventListener("click",fpAddByDim);
+      $("#fpZoomIn").addEventListener("click",function(){ fpSetZoom(fpZoom*1.25); });
+      $("#fpZoomOut").addEventListener("click",function(){ fpSetZoom(fpZoom/1.25); });
+      $("#fpZoomFit").addEventListener("click",function(){ fpSetZoom(1); });
+      $("#fpViewport").addEventListener("wheel",function(e){ if(e.ctrlKey||e.metaKey){ e.preventDefault(); fpSetZoom(fpZoom*(e.deltaY<0?1.12:0.9)); } },{passive:false});
       $("#fpImg").addEventListener("load",function(){ fpRenderAxes(); fpRender(); });
       fpBindPointer();
       $("#fpImg").src=fpImgSrc(fpFloor);
@@ -1228,6 +1244,7 @@
       $$("[data-fpfl]").forEach(function(b){ b.classList.toggle("on",+b.getAttribute("data-fpfl")===n); });
       fpRenderAxes(); fpRender(); fpUpdateScaleInfo();
     }
+    function fpSetZoom(z){ fpZoom=Math.max(0.5,Math.min(4,z)); var fr=$("#fpFrame"); if(fr) fr.style.zoom=fpZoom; var l=$("#fpZoomLbl"); if(l) l.textContent=Math.round(fpZoom*100)+"%"; }
     function fpSetMode(m){
       fpMode=m;
       $("#fpOverlay").classList.toggle("draw",m==="draw");
