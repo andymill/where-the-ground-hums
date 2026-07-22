@@ -6,6 +6,7 @@ export async function onRequestPatch({ request, env, params }) {
   const b = await request.json().catch(() => ({}));
   const sets = [], vals = [];
   ["x", "y", "w", "h"].forEach((k) => { if (typeof b[k] === "number") { sets.push(k + "=?"); vals.push(frac(b[k])); } });
+  if (typeof b.rot === "number") { sets.push("rot=?"); vals.push(((b.rot % 360) + 360) % 360); }
   if (typeof b.label === "string") { sets.push("label=?"); vals.push(b.label.trim().slice(0, 80) || null); }
   if (typeof b.color === "string") { sets.push("color=?"); vals.push(b.color || null); }
   if (!sets.length) return json({ error: "nothing to update" }, 400);

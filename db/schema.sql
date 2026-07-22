@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS floorplan_annotations (
   y           REAL NOT NULL,
   w           REAL NOT NULL,
   h           REAL NOT NULL,
+  rot         REAL DEFAULT 0,   -- degrees, clockwise, about the box center
   label       TEXT,
   color       TEXT,
   created_by  TEXT,

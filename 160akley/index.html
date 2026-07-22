@@ -312,10 +312,13 @@
     .fp-box .fp-del{position:absolute;right:-9px;top:-9px;width:19px;height:19px;border-radius:50%;background:var(--cedar);color:#fff;border:2px solid var(--card);font-size:11px;line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;}
     .fp-box:hover .fp-del{display:flex;}
     .fp-ghost{position:absolute;border:2px dashed var(--forest);background:rgba(51,96,76,0.12);border-radius:3px;box-sizing:border-box;pointer-events:none;}
-    .fp-box{cursor:move;}
+    .fp-box{cursor:move;transform-origin:center center;}
     .fp-box .fp-dims{position:absolute;left:-2px;bottom:-2px;transform:translateY(100%);background:var(--card);color:var(--ink-2);border:1px solid var(--line);font-family:var(--mono);font-size:9.5px;padding:1px 5px;border-radius:5px;white-space:nowrap;}
     .fp-handle{position:absolute;right:-7px;bottom:-7px;width:15px;height:15px;border-radius:4px;background:var(--forest);border:2px solid var(--card);cursor:nwse-resize;display:none;}
     .fp-box:hover .fp-handle{display:block;}
+    .fp-rot{position:absolute;left:50%;top:-24px;width:15px;height:15px;margin-left:-7.5px;border-radius:50%;background:var(--card);border:2px solid var(--forest);cursor:grab;display:none;}
+    .fp-rot::after{content:"";position:absolute;left:50%;top:13px;width:2px;height:11px;background:var(--forest);transform:translateX(-50%);}
+    .fp-box:hover .fp-rot{display:block;}
     /* dimension inputs */
     .fp-diml{font-size:12.5px;color:var(--muted);font-weight:600;}
     .fp-x{color:var(--muted);}
@@ -1227,7 +1230,7 @@
       $("#fpOverlay").classList.toggle("draw",m==="draw");
       $("#fpDrawBtn").innerHTML = m==="draw" ? '<i data-lucide="check"></i> Done' : '<i data-lucide="pencil"></i> Draw freehand';
       $("#fpHint").textContent = m==="draw" ? "Drag a box over a room, then name the furniture."
-        : "Drag a box to move it, drag its corner to resize, tap to rename, ✕ to remove.";
+        : "Drag to move, corner to resize, top knob to rotate (hold Shift to snap 15°), tap to rename, ✕ to remove.";
       icons();
     }
     function fpUpdateScaleInfo(){
@@ -1253,16 +1256,17 @@
       var mine=fpAnnos.filter(function(a){ return +a.floor===fpFloor; });
       ov.innerHTML = mine.map(function(a){
         var dims = fpp ? '<span class="fp-dims">'+ftLabel(a.w*nw*fpp)+" × "+ftLabel(a.h*nh*fpp)+'</span>' : '';
-        return '<div class="fp-box" data-fpid="'+a.id+'" style="left:'+(a.x*100)+'%;top:'+(a.y*100)+'%;width:'+(a.w*100)+'%;height:'+(a.h*100)+'%;">'
+        return '<div class="fp-box" data-fpid="'+a.id+'" style="left:'+(a.x*100)+'%;top:'+(a.y*100)+'%;width:'+(a.w*100)+'%;height:'+(a.h*100)+'%;transform:rotate('+(a.rot||0)+'deg);">'
           +'<span class="fp-lab">'+esc(a.label||"—")+'</span>'+dims
           +'<span class="fp-del" data-fpdel="'+a.id+'" title="Remove">✕</span>'
+          +'<span class="fp-rot" data-fprot="'+a.id+'" title="Rotate"></span>'
           +'<span class="fp-handle" data-fphandle="'+a.id+'"></span></div>';
       }).join("");
       $$(".fp-del",ov).forEach(function(el){ el.addEventListener("click",function(e){ e.stopPropagation();
         var id=el.getAttribute("data-fpdel"); fpAnnos=fpAnnos.filter(function(a){ return a.id!==id; }); fpRender(); api("DELETE","/floorplan/"+id).catch(function(){}); }); });
     }
     function fpPaintBox(id){ var a=fpAnn(id), el=$('.fp-box[data-fpid="'+id+'"]'); if(!a||!el) return;
-      el.style.left=(a.x*100)+"%"; el.style.top=(a.y*100)+"%"; el.style.width=(a.w*100)+"%"; el.style.height=(a.h*100)+"%";
+      el.style.left=(a.x*100)+"%"; el.style.top=(a.y*100)+"%"; el.style.width=(a.w*100)+"%"; el.style.height=(a.h*100)+"%"; el.style.transform="rotate("+(a.rot||0)+"deg)";
       var fpp=fpFpp(), dl=el.querySelector(".fp-dims"); if(fpp&&dl) dl.textContent=ftLabel(a.w*fpNatW()*fpp)+" × "+ftLabel(a.h*fpNatH()*fpp); }
     function fpRename(id){ var a=fpAnn(id); if(!a) return; var nv=window.prompt("Furniture name",a.label||""); if(nv===null) return; a.label=nv.trim(); fpRender(); api("PATCH","/floorplan/"+id,{label:a.label}).catch(function(){}); }
 
@@ -1286,8 +1290,9 @@
         var tgt=e.target;
         if(tgt&&tgt.classList&&tgt.classList.contains("fp-del")) return;
         if(fpMode==="draw"){ e.preventDefault(); drag={kind:"draw",start:pt(e)}; ghost=document.createElement("div"); ghost.className="fp-ghost"; ov.appendChild(ghost); return; }
-        var hb=tgt&&tgt.closest&&tgt.closest(".fp-handle"), box=tgt&&tgt.closest&&tgt.closest(".fp-box");
-        if(hb){ var a=fpAnn(hb.getAttribute("data-fphandle")); if(!a) return; e.preventDefault(); drag={kind:"resize",id:a.id,a:a,start:pt(e),o:{w:a.w,h:a.h}}; return; }
+        var rh=tgt&&tgt.closest&&tgt.closest(".fp-rot"), hb=tgt&&tgt.closest&&tgt.closest(".fp-handle"), box=tgt&&tgt.closest&&tgt.closest(".fp-box");
+        if(rh){ var ar=fpAnn(rh.getAttribute("data-fprot")); if(!ar) return; e.preventDefault(); drag={kind:"rotate",id:ar.id,a:ar,moved:false}; return; }
+        if(hb){ var a=fpAnn(hb.getAttribute("data-fphandle")); if(!a) return; e.preventDefault(); drag={kind:"resize",id:a.id,a:a,cxf:a.x+a.w/2,cyf:a.y+a.h/2,moved:false}; return; }
         if(box){ var a2=fpAnn(box.getAttribute("data-fpid")); if(!a2) return; e.preventDefault(); drag={kind:"move",id:a2.id,a:a2,start:pt(e),o:{x:a2.x,y:a2.y},moved:false}; return; }
       }
       function move(e){
@@ -1296,8 +1301,16 @@
           ghost.style.left=(x*100)+"%"; ghost.style.top=(y*100)+"%"; ghost.style.width=(w*100)+"%"; ghost.style.height=(h*100)+"%"; return; }
         if(drag.kind==="move"){ drag.a.x=Math.max(0,Math.min(1-drag.a.w,drag.o.x+(p.x-drag.start.x))); drag.a.y=Math.max(0,Math.min(1-drag.a.h,drag.o.y+(p.y-drag.start.y)));
           if(Math.abs(p.x-drag.start.x)>0.005||Math.abs(p.y-drag.start.y)>0.005) drag.moved=true; fpPaintBox(drag.id); return; }
-        if(drag.kind==="resize"){ drag.a.w=Math.max(0.01,Math.min(1-drag.a.x,drag.o.w+(p.x-drag.start.x))); drag.a.h=Math.max(0.01,Math.min(1-drag.a.y,drag.o.h+(p.y-drag.start.y)));
-          drag.moved=true; fpPaintBox(drag.id); return; }
+        if(drag.kind==="rotate"){ var rr=ov.getBoundingClientRect(), a=drag.a,
+            cx=(a.x+a.w/2)*rr.width, cy=(a.y+a.h/2)*rr.height,
+            ang=Math.atan2(p.y*rr.height-cy, p.x*rr.width-cx)*180/Math.PI + 90;
+          ang = e.shiftKey ? Math.round(ang/15)*15 : Math.round(ang);
+          a.rot=((ang%360)+360)%360; drag.moved=true; fpPaintBox(drag.id); return; }
+        if(drag.kind==="resize"){ var r2=ov.getBoundingClientRect(), W=r2.width, Hh=r2.height, ar=drag.a,
+            vx=p.x*W-drag.cxf*W, vy=p.y*Hh-drag.cyf*Hh, th=(ar.rot||0)*Math.PI/180, c=Math.cos(th), s=Math.sin(th),
+            halfW=Math.max(6,Math.abs(vx*c+vy*s)), halfH=Math.max(6,Math.abs(-vx*s+vy*c)),
+            w=Math.min(1,2*halfW/W), h=Math.min(1,2*halfH/Hh);
+          ar.w=w; ar.h=h; ar.x=drag.cxf-w/2; ar.y=drag.cyf-h/2; drag.moved=true; fpPaintBox(drag.id); return; }
       }
       function up(e){
         if(!drag) return; var d=drag; drag=null;
@@ -1306,7 +1319,8 @@
           var a={ id:"tmp"+Date.now(),floor:fpFloor,x:x,y:y,w:w,h:h,label:label.trim() }; fpAnnos.push(a); fpRender();
           api("POST","/floorplan",{floor:fpFloor,x:x,y:y,w:w,h:h,label:a.label,who:who}).then(function(r){ if(r&&r.id) a.id=r.id; }).catch(function(){}); return; }
         if(d.kind==="move"){ if(!d.moved){ fpRename(d.id); return; } fpRender(); api("PATCH","/floorplan/"+d.id,{x:d.a.x,y:d.a.y}).catch(function(){}); return; }
-        if(d.kind==="resize"){ fpRender(); api("PATCH","/floorplan/"+d.id,{w:d.a.w,h:d.a.h}).catch(function(){}); return; }
+        if(d.kind==="rotate"){ fpRender(); api("PATCH","/floorplan/"+d.id,{rot:d.a.rot}).catch(function(){}); return; }
+        if(d.kind==="resize"){ fpRender(); api("PATCH","/floorplan/"+d.id,{x:d.a.x,y:d.a.y,w:d.a.w,h:d.a.h}).catch(function(){}); return; }
       }
       ov.addEventListener("mousedown",down); window.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
       ov.addEventListener("touchstart",down,{passive:false}); ov.addEventListener("touchmove",move,{passive:false}); ov.addEventListener("touchend",up);
