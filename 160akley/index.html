@@ -1294,8 +1294,21 @@
           +'<span class="fp-rot" data-fprot="'+a.id+'" title="Rotate"></span>'
           +'<span class="fp-handle" data-fphandle="'+a.id+'"></span></div>';
       }).join("");
-      $$(".fp-del",ov).forEach(function(el){ el.addEventListener("click",function(e){ e.stopPropagation();
-        var id=el.getAttribute("data-fpdel"); fpAnnos=fpAnnos.filter(function(a){ return a.id!==id; }); fpRender(); api("DELETE","/floorplan/"+id).catch(function(){}); }); });
+    }
+    // Geometric hit test — which box/handle is under a point (overlay px), topmost first.
+    // Robust to CSS stacking/pseudo quirks; the overlay reliably gets the pointer event.
+    function fpHit(hx,hy){
+      var r=$("#fpOverlay").getBoundingClientRect(), W=r.width, H=r.height;
+      var mine=fpAnnos.filter(function(a){ return +a.floor===fpFloor; });
+      for(var i=mine.length-1;i>=0;i--){ var a=mine[i];
+        var cx=(a.x+a.w/2)*W, cy=(a.y+a.h/2)*H, hw=a.w*W/2, hh=a.h*H/2, th=(a.rot||0)*Math.PI/180;
+        var dx=hx-cx, dy=hy-cy, lx=dx*Math.cos(th)+dy*Math.sin(th), ly=-dx*Math.sin(th)+dy*Math.cos(th);
+        if(Math.hypot(lx, ly+hh+17)<=18) return {kind:"rotate",a:a};
+        if(Math.hypot(lx-hw, ly-hh)<=16) return {kind:"resize",a:a};
+        if(Math.hypot(lx-hw, ly+hh)<=16) return {kind:"delete",a:a};
+        if(Math.abs(lx)<=hw && Math.abs(ly)<=hh) return {kind:"move",a:a};
+      }
+      return null;
     }
     function fpPaintBox(id){ var a=fpAnn(id), el=$('.fp-box[data-fpid="'+id+'"]'); if(!a||!el) return;
       el.style.left=(a.x*100)+"%"; el.style.top=(a.y*100)+"%"; el.style.width=(a.w*100)+"%"; el.style.height=(a.h*100)+"%"; el.style.transform="rotate("+(a.rot||0)+"deg)";
@@ -1319,13 +1332,13 @@
       function pt(e){ var r=ov.getBoundingClientRect(), t=e.touches&&e.touches[0], cx=t?t.clientX:e.clientX, cy=t?t.clientY:e.clientY;
         return { x:Math.max(0,Math.min(1,(cx-r.left)/r.width)), y:Math.max(0,Math.min(1,(cy-r.top)/r.height)) }; }
       function down(e){
-        var tgt=e.target;
-        if(tgt&&tgt.classList&&tgt.classList.contains("fp-del")) return;
         if(fpMode==="draw"){ e.preventDefault(); drag={kind:"draw",start:pt(e)}; ghost=document.createElement("div"); ghost.className="fp-ghost"; ov.appendChild(ghost); return; }
-        var rh=tgt&&tgt.closest&&tgt.closest(".fp-rot"), hb=tgt&&tgt.closest&&tgt.closest(".fp-handle"), box=tgt&&tgt.closest&&tgt.closest(".fp-box");
-        if(rh){ var ar=fpAnn(rh.getAttribute("data-fprot")); if(!ar) return; e.preventDefault(); drag={kind:"rotate",id:ar.id,a:ar,moved:false}; return; }
-        if(hb){ var a=fpAnn(hb.getAttribute("data-fphandle")); if(!a) return; e.preventDefault(); drag={kind:"resize",id:a.id,a:a,cxf:a.x+a.w/2,cyf:a.y+a.h/2,moved:false}; return; }
-        if(box){ var a2=fpAnn(box.getAttribute("data-fpid")); if(!a2) return; e.preventDefault(); drag={kind:"move",id:a2.id,a:a2,start:pt(e),o:{x:a2.x,y:a2.y},moved:false}; return; }
+        var p0=pt(e), r0=ov.getBoundingClientRect(), hit=fpHit(p0.x*r0.width, p0.y*r0.height);
+        if(!hit) return; e.preventDefault(); var a=hit.a;
+        if(hit.kind==="rotate"){ drag={kind:"rotate",id:a.id,a:a,moved:false}; }
+        else if(hit.kind==="resize"){ drag={kind:"resize",id:a.id,a:a,cxf:a.x+a.w/2,cyf:a.y+a.h/2,moved:false}; }
+        else if(hit.kind==="delete"){ fpAnnos=fpAnnos.filter(function(x){ return x.id!==a.id; }); fpRender(); api("DELETE","/floorplan/"+a.id).catch(function(){}); }
+        else { drag={kind:"move",id:a.id,a:a,start:p0,o:{x:a.x,y:a.y},moved:false}; }
       }
       function move(e){
         if(!drag) return; var p=pt(e);
