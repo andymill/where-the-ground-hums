@@ -312,6 +312,25 @@
     .fp-box .fp-del{position:absolute;right:-9px;top:-9px;width:19px;height:19px;border-radius:50%;background:var(--cedar);color:#fff;border:2px solid var(--card);font-size:11px;line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;}
     .fp-box:hover .fp-del{display:flex;}
     .fp-ghost{position:absolute;border:2px dashed var(--forest);background:rgba(51,96,76,0.12);border-radius:3px;box-sizing:border-box;pointer-events:none;}
+    .fp-box{cursor:move;}
+    .fp-box .fp-dims{position:absolute;left:-2px;bottom:-2px;transform:translateY(100%);background:var(--card);color:var(--ink-2);border:1px solid var(--line);font-family:var(--mono);font-size:9.5px;padding:1px 5px;border-radius:5px;white-space:nowrap;}
+    .fp-handle{position:absolute;right:-7px;bottom:-7px;width:15px;height:15px;border-radius:4px;background:var(--forest);border:2px solid var(--card);cursor:nwse-resize;display:none;}
+    .fp-box:hover .fp-handle{display:block;}
+    .fp-cal{position:absolute;height:0;border-top:2px dashed var(--cedar);transform-origin:0 0;pointer-events:none;}
+    /* dimension inputs */
+    .fp-diml{font-size:12.5px;color:var(--muted);font-weight:600;}
+    .fp-x{color:var(--muted);}
+    .fp-dim{width:62px;font-family:var(--sans);font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
+    .fp-scaleinfo{font-size:11.5px;color:var(--muted);margin-left:4px;}
+    /* rulers frame */
+    .fp-frame{display:grid;grid-template-columns:36px 1fr;grid-template-rows:22px 1fr;margin-top:12px;}
+    .fp-corner{grid-column:1;grid-row:1;}
+    .fp-frame .fp-card{grid-column:2;grid-row:2;margin-top:0;}
+    .fp-ruler{position:relative;overflow:hidden;color:var(--muted);font-family:var(--mono);font-size:9px;}
+    .fp-ruler-x{grid-column:2;grid-row:1;height:22px;}
+    .fp-ruler-y{grid-column:1;grid-row:2;}
+    .fp-tx{position:absolute;top:0;bottom:3px;border-left:1px solid var(--line);padding-left:3px;display:flex;align-items:flex-end;}
+    .fp-ty{position:absolute;left:3px;right:4px;border-top:1px solid var(--line);text-align:right;padding-top:1px;line-height:1;}
   </style>
 </head>
 <body>
@@ -526,14 +545,29 @@
           <div class="fp-toolbar">
             <div class="fp-floors" id="fpFloors"></div>
             <div style="flex:1;"></div>
-            <button class="btn sm" id="fpDrawBtn"><i data-lucide="square-plus"></i> Add furniture</button>
+            <button class="btn sm" id="fpScaleBtn"><i data-lucide="ruler"></i> Set scale</button>
+            <button class="btn sm" id="fpDrawBtn"><i data-lucide="pencil"></i> Draw</button>
           </div>
-          <p class="fp-hint" id="fpHint">Tip: tap a box to rename it, or hover and click ✕ to remove.</p>
+          <div class="fp-toolbar">
+            <span class="fp-diml">Add furniture by size:</span>
+            <input class="fp-dim" id="fpW" type="number" min="0" step="0.5" inputmode="decimal" placeholder="W" />
+            <span class="fp-x">×</span>
+            <input class="fp-dim" id="fpH" type="number" min="0" step="0.5" inputmode="decimal" placeholder="H" />
+            <span class="fp-diml">ft</span>
+            <button class="btn sm" id="fpAddDim">Add box</button>
+            <span class="fp-scaleinfo" id="fpScaleInfo"></span>
+          </div>
+          <p class="fp-hint" id="fpHint">Drag a box to move it, drag its corner to resize, tap to rename, ✕ to remove.</p>
 
-          <div class="card fp-card">
-            <div class="fp-stage" id="fpStage">
-              <img id="fpImg" alt="Floor plan" draggable="false" />
-              <div class="fp-overlay" id="fpOverlay"></div>
+          <div class="fp-frame">
+            <div class="fp-corner"></div>
+            <div class="fp-ruler fp-ruler-x" id="fpRulerX"></div>
+            <div class="fp-ruler fp-ruler-y" id="fpRulerY"></div>
+            <div class="card fp-card">
+              <div class="fp-stage" id="fpStage">
+                <img id="fpImg" alt="Floor plan" draggable="false" />
+                <div class="fp-overlay" id="fpOverlay"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -604,7 +638,7 @@
 
     /* ---------- remote state ---------- */
     var tasks=[], resGroups=[], budget={lines:[],meta:{}};
-    var fpAnnos=[], fpFloor=1, fpDrawMode=false, fpReady=false;
+    var fpAnnos=[], fpScale={}, fpFloor=1, fpMode="", fpReady=false;
 
     /* ---------- nav ---------- */
     var SCREENS=["home","budget","tasks","files","invoices","resources","map","floorplan"];
@@ -1159,57 +1193,129 @@
     /* ---------- floor plan ---------- */
     var FP_FLOORS=[{n:1,label:"1st floor"},{n:2,label:"2nd floor"},{n:3,label:"3rd floor"},{n:4,label:"Overview"}];
     function fpImgSrc(n){ return "/160akley/floorplan/floor-"+n+".png"; }
+    function fpNatW(){ var i=$("#fpImg"); return (i&&i.naturalWidth)||1600; }
+    function fpNatH(){ var i=$("#fpImg"); return (i&&i.naturalHeight)||1200; }
+    function fpFpp(){ return fpScale[fpFloor]||0; }
+    function fpTotFeetX(){ return fpFpp()*fpNatW(); }
+    function fpTotFeetY(){ return fpFpp()*fpNatH(); }
+    function ftLabel(ft){ var f=Math.round(ft*10)/10; return (Math.abs(f-Math.round(f))<0.05?Math.round(f):f)+"'"; }
+
     function initFloorplan(){
       if(fpReady) return; fpReady=true;
       $("#fpFloors").innerHTML = FP_FLOORS.map(function(f){ return '<button class="fp-fl'+(f.n===fpFloor?" on":"")+'" data-fpfl="'+f.n+'">'+esc(f.label)+'</button>'; }).join("");
       $$("[data-fpfl]").forEach(function(b){ b.addEventListener("click",function(){ fpSetFloor(+b.getAttribute("data-fpfl")); }); });
-      $("#fpDrawBtn").addEventListener("click",fpToggleDraw);
-      fpBindDraw();
+      $("#fpDrawBtn").addEventListener("click",function(){ fpSetMode(fpMode==="draw"?"":"draw"); });
+      $("#fpScaleBtn").addEventListener("click",function(){ fpSetMode(fpMode==="cal"?"":"cal"); });
+      $("#fpAddDim").addEventListener("click",fpAddByDim);
+      $("#fpImg").addEventListener("load",function(){ fpRenderAxes(); fpRender(); });
+      fpBindPointer();
       $("#fpImg").src=fpImgSrc(fpFloor);
-      loadFloorplan().then(fpRender);
+      Promise.all([loadFloorplan(),loadFpScale()]).then(function(){ fpRenderAxes(); fpRender(); fpUpdateScaleInfo(); });
       icons();
     }
     function loadFloorplan(){ return api("GET","/floorplan").then(function(d){ fpAnnos=d||[]; }).catch(function(){ fpAnnos=[]; }); }
+    function loadFpScale(){ return api("GET","/floorplan-scale").then(function(d){ fpScale={}; (d||[]).forEach(function(r){ fpScale[r.floor]=r.feet_per_px; }); }).catch(function(){ fpScale={}; }); }
+
     function fpSetFloor(n){
       fpFloor=n; $("#fpImg").src=fpImgSrc(n);
       $$("[data-fpfl]").forEach(function(b){ b.classList.toggle("on",+b.getAttribute("data-fpfl")===n); });
-      fpRender();
+      fpRenderAxes(); fpRender(); fpUpdateScaleInfo();
     }
-    function fpToggleDraw(){
-      fpDrawMode=!fpDrawMode;
-      $("#fpOverlay").classList.toggle("draw",fpDrawMode);
-      $("#fpDrawBtn").innerHTML = fpDrawMode ? '<i data-lucide="check"></i> Done' : '<i data-lucide="square-plus"></i> Add furniture';
-      $("#fpHint").textContent = fpDrawMode ? "Drag a box over a room, then name the furniture." : "Tip: tap a box to rename it, or hover and click ✕ to remove.";
+    function fpSetMode(m){
+      fpMode=m;
+      $("#fpOverlay").classList.toggle("draw",m==="draw"||m==="cal");
+      $("#fpDrawBtn").innerHTML = m==="draw" ? '<i data-lucide="check"></i> Done' : '<i data-lucide="pencil"></i> Draw';
+      $("#fpScaleBtn").innerHTML = m==="cal" ? '<i data-lucide="check"></i> Done' : '<i data-lucide="ruler"></i> Set scale';
+      $("#fpHint").textContent = m==="draw" ? "Drag a box over a room, then name the furniture."
+        : m==="cal" ? "Draw a line along something you know the length of (a wall or room side), then type its length in feet."
+        : "Drag a box to move it, drag its corner to resize, tap to rename, ✕ to remove.";
       icons();
     }
+    function fpUpdateScaleInfo(){
+      var el=$("#fpScaleInfo"); if(!el) return;
+      el.textContent = fpFpp() ? ("Scale set — plan spans ~"+Math.round(fpTotFeetX())+"' × "+Math.round(fpTotFeetY())+"'") : "Set the scale first to add by size.";
+      $("#fpAddDim").disabled = !fpFpp();
+    }
+    function fpRenderAxes(){
+      var rx=$("#fpRulerX"), ry=$("#fpRulerY"); if(!rx||!ry) return;
+      if(!fpFpp()){ rx.innerHTML=""; ry.innerHTML=""; return; }
+      var tfx=fpTotFeetX(), tfy=fpTotFeetY();
+      var sx = tfx>90?20:(tfx>45?10:5), hx="";
+      for(var f=0; f<=tfx+0.001; f+=sx){ hx+='<span class="fp-tx" style="left:'+(f/tfx*100)+'%">'+Math.round(f)+"'</span>"; }
+      rx.innerHTML=hx;
+      var sy = tfy>90?20:(tfy>45?10:5), hy="";
+      for(var g=0; g<=tfy+0.001; g+=sy){ hy+='<span class="fp-ty" style="top:'+(g/tfy*100)+'%">'+Math.round(g)+"'</span>"; }
+      ry.innerHTML=hy;
+    }
+    function fpAnn(id){ return fpAnnos.filter(function(a){ return a.id===id; })[0]; }
     function fpRender(){
       var ov=$("#fpOverlay"); if(!ov) return;
+      var fpp=fpFpp(), nw=fpNatW(), nh=fpNatH();
       var mine=fpAnnos.filter(function(a){ return +a.floor===fpFloor; });
       ov.innerHTML = mine.map(function(a){
+        var dims = fpp ? '<span class="fp-dims">'+ftLabel(a.w*nw*fpp)+" × "+ftLabel(a.h*nh*fpp)+'</span>' : '';
         return '<div class="fp-box" data-fpid="'+a.id+'" style="left:'+(a.x*100)+'%;top:'+(a.y*100)+'%;width:'+(a.w*100)+'%;height:'+(a.h*100)+'%;">'
-          +'<span class="fp-lab">'+esc(a.label||"—")+'</span>'
-          +'<span class="fp-del" data-fpdel="'+a.id+'" title="Remove">✕</span></div>';
+          +'<span class="fp-lab">'+esc(a.label||"—")+'</span>'+dims
+          +'<span class="fp-del" data-fpdel="'+a.id+'" title="Remove">✕</span>'
+          +'<span class="fp-handle" data-fphandle="'+a.id+'"></span></div>';
       }).join("");
       $$(".fp-del",ov).forEach(function(el){ el.addEventListener("click",function(e){ e.stopPropagation();
         var id=el.getAttribute("data-fpdel"); fpAnnos=fpAnnos.filter(function(a){ return a.id!==id; }); fpRender(); api("DELETE","/floorplan/"+id).catch(function(){}); }); });
-      $$(".fp-box",ov).forEach(function(el){ el.addEventListener("click",function(){ if(fpDrawMode) return;
-        var id=el.getAttribute("data-fpid"), a=fpAnnos.filter(function(x){ return x.id===id; })[0]; if(!a) return;
-        var nv=window.prompt("Furniture name",a.label||""); if(nv===null) return; a.label=nv.trim(); fpRender(); api("PATCH","/floorplan/"+id,{label:a.label}).catch(function(){}); }); });
     }
-    function fpBindDraw(){
-      var ov=$("#fpOverlay"), start=null, ghost=null;
+    function fpPaintBox(id){ var a=fpAnn(id), el=$('.fp-box[data-fpid="'+id+'"]'); if(!a||!el) return;
+      el.style.left=(a.x*100)+"%"; el.style.top=(a.y*100)+"%"; el.style.width=(a.w*100)+"%"; el.style.height=(a.h*100)+"%";
+      var fpp=fpFpp(), dl=el.querySelector(".fp-dims"); if(fpp&&dl) dl.textContent=ftLabel(a.w*fpNatW()*fpp)+" × "+ftLabel(a.h*fpNatH()*fpp); }
+    function fpRename(id){ var a=fpAnn(id); if(!a) return; var nv=window.prompt("Furniture name",a.label||""); if(nv===null) return; a.label=nv.trim(); fpRender(); api("PATCH","/floorplan/"+id,{label:a.label}).catch(function(){}); }
+
+    function fpAddByDim(){
+      if(!fpFpp()){ window.alert("Set the scale first (the ruler button), then add by size."); return; }
+      var W=parseFloat($("#fpW").value), H=parseFloat($("#fpH").value);
+      if(!(W>0)||!(H>0)){ window.alert("Enter a width and height in feet."); return; }
+      var wf=Math.min(1,W/(fpNatW()*fpFpp())), hf=Math.min(1,H/(fpNatH()*fpFpp()));
+      var x=Math.max(0,Math.min(1-wf,0.5-wf/2)), y=Math.max(0,Math.min(1-hf,0.5-hf/2));
+      var label=(window.prompt("What is it? (e.g. Sofa, Bed)","")||"").trim();
+      var a={ id:"tmp"+Date.now(), floor:fpFloor, x:x, y:y, w:wf, h:hf, label:label }; fpAnnos.push(a); fpRender();
+      api("POST","/floorplan",{ floor:fpFloor,x:x,y:y,w:wf,h:hf,label:label,who:who }).then(function(r){ if(r&&r.id) a.id=r.id; }).catch(function(){});
+      $("#fpW").value=""; $("#fpH").value="";
+    }
+
+    function fpBindPointer(){
+      var ov=$("#fpOverlay"), drag=null, ghost=null, cal=null;
       function pt(e){ var r=ov.getBoundingClientRect(), t=e.touches&&e.touches[0], cx=t?t.clientX:e.clientX, cy=t?t.clientY:e.clientY;
         return { x:Math.max(0,Math.min(1,(cx-r.left)/r.width)), y:Math.max(0,Math.min(1,(cy-r.top)/r.height)) }; }
-      function down(e){ if(!fpDrawMode) return; if(e.target&&e.target.classList&&e.target.classList.contains("fp-del")) return;
-        e.preventDefault(); start=pt(e); ghost=document.createElement("div"); ghost.className="fp-ghost"; ov.appendChild(ghost); move(e); }
-      function move(e){ if(!start||!ghost) return; var p=pt(e), x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);
-        ghost.style.left=(x*100)+"%"; ghost.style.top=(y*100)+"%"; ghost.style.width=(w*100)+"%"; ghost.style.height=(h*100)+"%"; }
-      function up(e){ if(!start) return; var p=pt(e), x=Math.min(start.x,p.x),y=Math.min(start.y,p.y),w=Math.abs(p.x-start.x),h=Math.abs(p.y-start.y);
-        if(ghost){ ghost.remove(); ghost=null; } start=null;
-        if(w<0.012||h<0.012) return;
-        var label=window.prompt("What goes here? (e.g. Sofa, Bed, Dining table)",""); if(label===null) return;
-        var a={ id:"tmp"+Date.now(), floor:fpFloor, x:x, y:y, w:w, h:h, label:label.trim() }; fpAnnos.push(a); fpRender();
-        api("POST","/floorplan",{ floor:fpFloor, x:x, y:y, w:w, h:h, label:a.label, who:who }).then(function(r){ if(r&&r.id) a.id=r.id; }).catch(function(){});
+      function down(e){
+        var tgt=e.target;
+        if(tgt&&tgt.classList&&tgt.classList.contains("fp-del")) return;
+        if(fpMode==="cal"){ e.preventDefault(); drag={kind:"cal",start:pt(e),len:0}; cal=document.createElement("div"); cal.className="fp-cal"; ov.appendChild(cal); return; }
+        if(fpMode==="draw"){ e.preventDefault(); drag={kind:"draw",start:pt(e)}; ghost=document.createElement("div"); ghost.className="fp-ghost"; ov.appendChild(ghost); return; }
+        var hb=tgt&&tgt.closest&&tgt.closest(".fp-handle"), box=tgt&&tgt.closest&&tgt.closest(".fp-box");
+        if(hb){ var a=fpAnn(hb.getAttribute("data-fphandle")); if(!a) return; e.preventDefault(); drag={kind:"resize",id:a.id,a:a,start:pt(e),o:{w:a.w,h:a.h}}; return; }
+        if(box){ var a2=fpAnn(box.getAttribute("data-fpid")); if(!a2) return; e.preventDefault(); drag={kind:"move",id:a2.id,a:a2,start:pt(e),o:{x:a2.x,y:a2.y},moved:false}; return; }
+      }
+      function move(e){
+        if(!drag) return; var p=pt(e), r=ov.getBoundingClientRect();
+        if(drag.kind==="cal"){ var s=drag.start; drag.len=Math.sqrt(Math.pow((p.x-s.x)*fpNatW(),2)+Math.pow((p.y-s.y)*fpNatH(),2));
+          var ang=Math.atan2((p.y-s.y),(p.x-s.x))*180/Math.PI, px=Math.sqrt(Math.pow((p.x-s.x)*r.width,2)+Math.pow((p.y-s.y)*r.height,2));
+          cal.style.left=(s.x*100)+"%"; cal.style.top=(s.y*100)+"%"; cal.style.width=px+"px"; cal.style.transform="rotate("+ang+"deg)"; return; }
+        if(drag.kind==="draw"){ var s2=drag.start, x=Math.min(s2.x,p.x),y=Math.min(s2.y,p.y),w=Math.abs(p.x-s2.x),h=Math.abs(p.y-s2.y);
+          ghost.style.left=(x*100)+"%"; ghost.style.top=(y*100)+"%"; ghost.style.width=(w*100)+"%"; ghost.style.height=(h*100)+"%"; return; }
+        if(drag.kind==="move"){ drag.a.x=Math.max(0,Math.min(1-drag.a.w,drag.o.x+(p.x-drag.start.x))); drag.a.y=Math.max(0,Math.min(1-drag.a.h,drag.o.y+(p.y-drag.start.y)));
+          if(Math.abs(p.x-drag.start.x)>0.005||Math.abs(p.y-drag.start.y)>0.005) drag.moved=true; fpPaintBox(drag.id); return; }
+        if(drag.kind==="resize"){ drag.a.w=Math.max(0.01,Math.min(1-drag.a.x,drag.o.w+(p.x-drag.start.x))); drag.a.h=Math.max(0.01,Math.min(1-drag.a.y,drag.o.h+(p.y-drag.start.y)));
+          drag.moved=true; fpPaintBox(drag.id); return; }
+      }
+      function up(e){
+        if(!drag) return; var d=drag; drag=null;
+        if(d.kind==="cal"){ if(cal){ cal.remove(); cal=null; } if((d.len||0)<8) return;
+          var ans=window.prompt("How long is that line, in feet?",""); if(ans===null) return; var feet=parseFloat(ans); if(!(feet>0)) return;
+          fpScale[fpFloor]=feet/d.len; fpSetMode(""); fpRenderAxes(); fpRender(); fpUpdateScaleInfo();
+          api("POST","/floorplan-scale",{floor:fpFloor,feetPerPx:feet/d.len}).catch(function(){}); return; }
+        if(d.kind==="draw"){ if(ghost){ ghost.remove(); ghost=null; } var p=pt(e), s=d.start, x=Math.min(s.x,p.x),y=Math.min(s.y,p.y),w=Math.abs(p.x-s.x),h=Math.abs(p.y-s.y);
+          if(w<0.012||h<0.012) return; var label=window.prompt("What goes here? (e.g. Sofa, Bed, Dining table)",""); if(label===null) return;
+          var a={ id:"tmp"+Date.now(),floor:fpFloor,x:x,y:y,w:w,h:h,label:label.trim() }; fpAnnos.push(a); fpRender();
+          api("POST","/floorplan",{floor:fpFloor,x:x,y:y,w:w,h:h,label:a.label,who:who}).then(function(r){ if(r&&r.id) a.id=r.id; }).catch(function(){}); return; }
+        if(d.kind==="move"){ if(!d.moved){ fpRename(d.id); return; } fpRender(); api("PATCH","/floorplan/"+d.id,{x:d.a.x,y:d.a.y}).catch(function(){}); return; }
+        if(d.kind==="resize"){ fpRender(); api("PATCH","/floorplan/"+d.id,{w:d.a.w,h:d.a.h}).catch(function(){}); return; }
       }
       ov.addEventListener("mousedown",down); window.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
       ov.addEventListener("touchstart",down,{passive:false}); ov.addEventListener("touchmove",move,{passive:false}); ov.addEventListener("touchend",up);

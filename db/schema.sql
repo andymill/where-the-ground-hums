@@ -46,6 +46,13 @@ CREATE TABLE IF NOT EXISTS floorplan_annotations (
 );
 CREATE INDEX IF NOT EXISTS idx_fp_floor ON floorplan_annotations (floor);
 
+-- Per-floor scale: real feet per image pixel (set by tracing a known length).
+CREATE TABLE IF NOT EXISTS floorplan_scale (
+  floor       INTEGER PRIMARY KEY,
+  feet_per_px REAL NOT NULL,
+  updated_at  INTEGER
+);
+
 -- Monthly household budget (from the budget calculator).
 CREATE TABLE IF NOT EXISTS budget_lines (
   id      TEXT PRIMARY KEY,
