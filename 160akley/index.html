@@ -302,12 +302,15 @@
     .fp-fl{border:none;background:none;color:var(--muted);font-family:var(--sans);font-weight:600;font-size:13px;padding:7px 14px;border-radius:8px;cursor:pointer;}
     .fp-fl.on{background:var(--card);color:var(--forest);box-shadow:var(--shadow);}
     .fp-hint{font-size:12.5px;color:var(--muted);margin:9px 0 0;min-height:16px;}
-    .fp-card{padding:0;overflow:hidden;margin-top:12px;}
+    .fp-card{padding:0;overflow:visible;margin-top:12px;}
+    .btn.fp-active{background:var(--forest);color:var(--card);border-color:var(--forest);}
     .fp-stage{position:relative;width:100%;background:#fff;user-select:none;-webkit-user-select:none;}
-    .fp-stage img{display:block;width:100%;height:auto;pointer-events:none;}
+    .fp-stage img{display:block;width:100%;height:auto;pointer-events:none;border-radius:12px;}
     .fp-overlay{position:absolute;inset:0;}
     .fp-overlay.draw{cursor:crosshair;}
     .fp-box{position:absolute;border:2px solid var(--forest);background:rgba(51,96,76,0.16);border-radius:3px;box-sizing:border-box;cursor:pointer;}
+    /* invisible margin so hover/hit persists while reaching the outside handles (esp. the rotate knob) */
+    .fp-box::before{content:"";position:absolute;inset:-34px -18px -18px -18px;z-index:-1;}
     .fp-box .fp-lab{position:absolute;left:-2px;top:-2px;transform:translateY(-100%);background:var(--forest);color:#fff;font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;white-space:nowrap;font-family:var(--sans);max-width:200px;overflow:hidden;text-overflow:ellipsis;}
     .fp-box .fp-del{position:absolute;right:-9px;top:-9px;width:19px;height:19px;border-radius:50%;background:var(--cedar);color:#fff;border:2px solid var(--card);font-size:11px;line-height:1;display:none;align-items:center;justify-content:center;cursor:pointer;}
     .fp-box:hover .fp-del{display:flex;}
@@ -547,7 +550,7 @@
           <div class="fp-toolbar">
             <div class="fp-floors" id="fpFloors"></div>
             <div style="flex:1;"></div>
-            <button class="btn sm" id="fpDrawBtn"><i data-lucide="pencil"></i> Draw freehand</button>
+            <button class="btn sm" id="fpDrawBtn"><i data-lucide="pencil"></i> Draw a box</button>
           </div>
           <div class="fp-toolbar">
             <span class="fp-diml">Add furniture by size:</span>
@@ -558,7 +561,7 @@
             <button class="btn sm" id="fpAddDim">Add box</button>
             <span class="fp-scaleinfo" id="fpScaleInfo"></span>
           </div>
-          <p class="fp-hint" id="fpHint">Drag a box to move it, drag its corner to resize, tap to rename, ✕ to remove.</p>
+          <p class="fp-hint" id="fpHint">Editing — drag to move, corner to resize, top knob to rotate, tap to rename, ✕ to remove.</p>
 
           <div class="fp-frame">
             <div class="fp-corner"></div>
@@ -1228,9 +1231,10 @@
     function fpSetMode(m){
       fpMode=m;
       $("#fpOverlay").classList.toggle("draw",m==="draw");
-      $("#fpDrawBtn").innerHTML = m==="draw" ? '<i data-lucide="check"></i> Done' : '<i data-lucide="pencil"></i> Draw freehand';
-      $("#fpHint").textContent = m==="draw" ? "Drag a box over a room, then name the furniture."
-        : "Drag to move, corner to resize, top knob to rotate (hold Shift to snap 15°), tap to rename, ✕ to remove.";
+      $("#fpDrawBtn").classList.toggle("fp-active",m==="draw");
+      $("#fpDrawBtn").innerHTML = m==="draw" ? '<i data-lucide="check"></i> Done drawing' : '<i data-lucide="pencil"></i> Draw a box';
+      $("#fpHint").textContent = m==="draw" ? "Drawing mode — drag across a room to make a box, then name it. Tap “Done drawing” when finished."
+        : "Editing — drag to move, corner to resize, top knob to rotate (hold Shift to snap 15°), tap to rename, ✕ to remove.";
       icons();
     }
     function fpUpdateScaleInfo(){
