@@ -337,6 +337,17 @@
     .fp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
     .fp-add{display:flex;flex-direction:column;gap:8px;padding-top:11px;border-top:1px solid var(--line);}
     .fp-dl{font-size:12.5px;margin-top:auto;padding-top:8px;}
+    .fp-sel{width:100%;font:inherit;font-size:12.5px;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
+    .fp-est{display:flex;flex-direction:column;gap:8px;padding-top:11px;border-top:1px solid var(--line);}
+    .fp-est h3{font-size:13px;font-weight:700;color:var(--ink);margin:0;}
+    .fp-rooms{display:flex;flex-direction:column;gap:4px;}
+    .fp-rm{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-size:12.5px;color:var(--ink);}
+    .fp-rm:hover{border-color:var(--forest);}
+    .fp-rm.on{background:var(--forest-soft);border-color:var(--forest);color:var(--forest);font-weight:600;}
+    .fp-rm .sf{font-family:var(--mono);font-size:10.5px;color:var(--muted);white-space:nowrap;}
+    .fp-rm.on .sf{color:var(--forest);}
+    .fp-total{font-size:12.5px;color:var(--ink-2);line-height:1.5;}
+    .fp-total b{font-size:17px;color:var(--ink);}
     .fp-main{flex:1;min-width:0;display:flex;}
     .fp-viewport{flex:1;min-height:0;overflow:hidden;display:flex;justify-content:center;align-items:flex-start;}
     @media (max-width:820px){
@@ -578,6 +589,16 @@
               <span class="fp-scaleinfo" id="fpScaleInfo"></span>
             </div>
             <p class="fp-hint" id="fpHint">Editing — drag to move, corner to resize, top knob to rotate, tap to rename, ✕ to remove.</p>
+
+            <div class="fp-est">
+              <h3>Flooring estimate</h3>
+              <select class="fp-sel" id="fpMat"></select>
+              <div class="fp-row"><span class="fp-diml">$</span><input class="fp-dim" id="fpPrice" type="number" min="0" step="0.5" /><span class="fp-diml">/ sq ft</span></div>
+              <div class="fp-row"><button class="link" id="fpRoomsAll">Select all</button><button class="link" id="fpRoomsNone">Clear</button></div>
+              <div class="fp-rooms" id="fpRooms"></div>
+              <div class="fp-total" id="fpEstOut"></div>
+            </div>
+
             <a class="fp-dl" href="/160akley/floorplan/160-akley-floor-plan.pdf" download>Download the PDF ↓</a>
           </aside>
           <div class="fp-main">
@@ -1239,6 +1260,7 @@
       $("#fpImg").addEventListener("load",function(){ fpRenderAxes(); fpRender(); fpFit(); });
       window.addEventListener("resize",function(){ var s=$(".screen.on"); if(s&&s.getAttribute("data-screen")==="floorplan") fpFit(); });
       fpBindPointer();
+      initEstimate();
       $("#fpImg").src=fpImgSrc(fpFloor);
       loadFloorplan().then(function(){ fpRenderAxes(); fpRender(); fpUpdateScaleInfo(); fpFit(); });
       icons();
@@ -1248,7 +1270,7 @@
     function fpSetFloor(n){
       fpFloor=n; $("#fpImg").src=fpImgSrc(n);
       $$("[data-fpfl]").forEach(function(b){ b.classList.toggle("on",+b.getAttribute("data-fpfl")===n); });
-      fpRenderAxes(); fpRender(); fpUpdateScaleInfo();
+      fpRenderAxes(); fpRender(); fpUpdateScaleInfo(); renderRooms();
     }
     // Size the whole plan (rulers + image) to fit the available box — no zoom.
     function fpFit(){ var vp=$("#fpViewport"), fr=$("#fpFrame"), img=$("#fpImg");
@@ -1369,6 +1391,45 @@
       }
       ov.addEventListener("mousedown",down); window.addEventListener("mousemove",move); window.addEventListener("mouseup",up);
       ov.addEventListener("touchstart",down,{passive:false}); ov.addEventListener("touchmove",move,{passive:false}); ov.addEventListener("touchend",up);
+    }
+
+    /* ---------- flooring estimate ---------- */
+    var FP_ROOMS={
+      1:[{n:"Living room",w:17+1/12,h:13+8/12},{n:"Dining area",w:10+10/12,h:12+11/12},{n:"Kitchen",w:10+10/12,h:13+6/12},{n:"Hall",w:17+1/12,h:8+4/12},{n:"Bath",w:6+3/12,h:3+11/12},{n:"Foyer",w:6+1/12,h:5+10/12}],
+      2:[{n:"Primary bedroom",w:12+2/12,h:13+4/12},{n:"Bedroom (NE)",w:12+2/12,h:13+2/12},{n:"Bedroom (SE)",w:10+10/12,h:12+11/12},{n:"Bath",w:8+9/12,h:9+8/12},{n:"Bath (2nd)",w:7+7/12,h:9+8/12},{n:"Hall",w:9+4/12,h:6+2/12}],
+      3:[{n:"Big room",w:17+3/12,h:13+4/12},{n:"Room",w:8+7/12,h:7+3/12},{n:"Room (2nd)",w:8+5/12,h:7+3/12},{n:"Hall",w:17+4/12,h:5+1/12}]
+    };
+    var FP_MATERIALS=[{n:"Refinish existing wood",p:4},{n:"Laminate",p:4},{n:"Carpet",p:5},{n:"Luxury vinyl plank",p:6},{n:"Engineered hardwood",p:9},{n:"Solid oak hardwood",p:12},{n:"Tile",p:15}];
+    var fpMatPrice=9, fpPick={};
+    function fpArea(r){ return r.w*r.h; }
+    function fpEstLoad(){ try{ var s=JSON.parse(LS.getItem("fp-est")||"{}"); fpPick=s.pick||{}; if(s.price>0) fpMatPrice=s.price; }catch(e){ fpPick={}; } }
+    function fpEstSave(){ try{ LS.setItem("fp-est",JSON.stringify({pick:fpPick,price:fpMatPrice})); }catch(e){} }
+    function initEstimate(){
+      fpEstLoad();
+      $("#fpMat").innerHTML=FP_MATERIALS.map(function(m){ return '<option value="'+m.p+'">'+esc(m.n)+' — $'+m.p+'/sq ft</option>'; }).join("");
+      FP_MATERIALS.forEach(function(m){ if(m.p===fpMatPrice) $("#fpMat").value=String(m.p); });
+      $("#fpPrice").value=fpMatPrice;
+      $("#fpMat").addEventListener("change",function(){ fpMatPrice=parseFloat(this.value)||0; $("#fpPrice").value=fpMatPrice; fpEstSave(); renderEstimate(); });
+      $("#fpPrice").addEventListener("input",function(){ fpMatPrice=parseFloat(this.value)||0; fpEstSave(); renderEstimate(); });
+      $("#fpRoomsAll").addEventListener("click",function(){ var rs=FP_ROOMS[fpFloor]||[]; fpPick[fpFloor]={}; rs.forEach(function(_,i){ fpPick[fpFloor][i]=1; }); fpEstSave(); renderRooms(); renderEstimate(); });
+      $("#fpRoomsNone").addEventListener("click",function(){ fpPick[fpFloor]={}; fpEstSave(); renderRooms(); renderEstimate(); });
+      renderRooms(); renderEstimate();
+    }
+    function renderRooms(){
+      var el=$("#fpRooms"); if(!el) return;
+      var rs=FP_ROOMS[fpFloor]||[], sel=fpPick[fpFloor]||(fpPick[fpFloor]={});
+      if(!rs.length){ el.innerHTML='<span class="fp-scaleinfo">No room list for this sheet.</span>'; return; }
+      el.innerHTML=rs.map(function(r,i){ return '<div class="fp-rm'+(sel[i]?' on':'')+'" data-rm="'+i+'"><span>'+esc(r.n)+'</span><span class="sf">'+Math.round(fpArea(r))+' sq ft</span></div>'; }).join("");
+      $$("[data-rm]",el).forEach(function(x){ x.addEventListener("click",function(){ var i=+x.getAttribute("data-rm"); if(sel[i]) delete sel[i]; else sel[i]=1; fpEstSave(); renderRooms(); renderEstimate(); }); });
+    }
+    function renderEstimate(){
+      var el=$("#fpEstOut"); if(!el) return;
+      var totA=0, cnt=0;
+      Object.keys(fpPick).forEach(function(f){ var rs=FP_ROOMS[f]||[]; Object.keys(fpPick[f]).forEach(function(i){ if(rs[i]){ totA+=fpArea(rs[i]); cnt++; } }); });
+      if(!cnt){ el.innerHTML='<span class="fp-scaleinfo">Tap rooms above to add them up (across all floors).</span>'; return; }
+      var cost=totA*fpMatPrice;
+      el.innerHTML='<b>'+money(Math.round(cost))+'</b> · '+cnt+' room'+(cnt>1?'s':'')+' · '+Math.round(totA).toLocaleString()+' sq ft'
+        +'<div class="fp-scaleinfo">≈ '+money(Math.round(cost*1.1))+' with ~10% waste</div>';
     }
 
     /* ---------- boot ---------- */
