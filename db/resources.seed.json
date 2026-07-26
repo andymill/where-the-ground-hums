@@ -932,5 +932,17 @@
         "e": "dionna.mclean@gmail.com"
       }
     ]
+  },
+  {
+    "cat": "Landscaping",
+    "subt": null,
+    "items": [
+      {
+        "n": "Swift River Stone Quarry",
+        "w": "https://www.swiftriverstone.com",
+        "a": "Goshen, MA",
+        "note": "Goshen stone · masonry & flagging"
+      }
+    ]
   }
 ]
