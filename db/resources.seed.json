@@ -944,5 +944,20 @@
         "note": "Goshen stone · masonry & flagging"
       }
     ]
+  },
+  {
+    "cat": "Lumber",
+    "subt": null,
+    "items": [
+      {
+        "n": "Lumber Dogs",
+        "p": [
+          "413-388-1818"
+        ],
+        "w": "https://www.lumberdogsusa.com",
+        "a": "31 Jackson St, Holyoke, MA",
+        "note": "Discount lumber & building supplies"
+      }
+    ]
   }
 ]
